@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --color-light: rgba(39, 61, 39, 0.28);
+    --box-shadow: 0 3rem 3rem var(--color-light);
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 30px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.certificate {
+    box-shadow: var(--box-shadow);
+    border: 2px solid #000;
+    padding: 20px;
+    width: 600px;
+    margin: 0 auto;
+    text-align: center;
+    border-radius: 20px;
+}
+
+.certificate img {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    width: 100px;
+}
+
+.btn-print {
+    box-shadow: var(--box-shadow);
+    top: 40%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 150px;
+    margin: 20px auto;
+    padding: 10px;
+    background: #669b64;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.btn-danger {
+    box-shadow: var(--box-shadow);
+    top: 40%;
+    width: 150px;
+    margin: 20px auto;
+    padding: 10px;
+    outline: 2px solid black;
+    background: white;
+    color: black;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.btn-danger:hover {
+    box-shadow: none;
+}
+
+.btn-print span {
+    margin-left: 0.3rem;
+}
+
+.btn-print:hover {
+    box-shadow: none;
+}
+
+.buttons {
+    display: flex;
+    justify-content: center;
+}
+
+@media print {
+    .btn-print { display: none; }
+    .btn-danger { display: none; }
+    @page {
+        size: A4 landscape;
+    }
+}

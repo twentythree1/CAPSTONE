@@ -1,0 +1,489 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --color-primary: #A0C878;
+    --color-danger: #ff7782;
+    --color-success: #8deb40;
+    --color-warning: #ffbb55;
+    --color-white: #fff;
+    --color-info-dark: #697465;
+    --color-info-light: #dcebde;
+    --color-dark: #364938;
+    --color-light: rgba(94, 139, 94, 0.18);
+    --color-primary-variant: #dcebde;
+    --color-dark-variant: #5b685d;
+    --color-background: #f6f9f6;
+
+    --card-border-radius: 2rem;
+    --border-radius-1: 0.4rem;
+    --border-radius-2: 0.8rem;
+    --border-radius-3: 1.2rem;
+
+    --card-padding: 1.8rem;
+    --padding-1: 1.2rem;
+
+    --box-shadow: 0 2rem 2rem var(--color-light);
+}
+
+.dark-theme-variables {
+    --color-background: #212421;
+    --color-white: #242722;
+    --color-dark: #c0c0c0;
+    --color-dark-variant: #a3cca8;
+    --color-light: rgba(0, 0, 0, 0.4);
+    --box-shadow: 0 2rem 2rem var(--color-light);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    outline: 0;
+    appearance: none;
+    text-decoration: none;
+    list-style: none;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 15px;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    font-family: poppins, sans-serif;
+    font-size: 0.88rem;
+    background: var(--color-background);
+    user-select: none;
+    overflow-x: hidden;
+    color: var(--color-dark);
+}
+
+.container {
+    display: grid;
+    width: 96%;
+    margin: 0 auto;
+    gap: 1.8rem;
+    grid-template-columns: 14rem auto;
+}
+
+.container .top {
+    background: none;
+}
+
+.container .top h2 {
+    font-size: 1.8rem;
+}
+
+button {
+    border: none;
+}
+
+a {
+    color: var(--color-dark);
+}
+
+img {
+    display: block;
+    width: 100%;
+}
+
+h1 {
+    font-weight: 800;
+    font-size: 1.8rem;
+}
+
+h2 {
+    font-size: 1.6rem;
+}
+
+h3 {
+    font-size: 0.87rem;
+}
+
+h4 {
+    font-size: 0.8rem;
+}
+
+h5 {
+    font-size: 0.77rem;
+}
+
+.text-muted {
+    color: var(--color-info-dark);
+}
+
+p {
+    color: var(--color-dark-variant);
+}
+
+b {
+    color: var(--color-dark);
+}
+
+small {
+    font-size: 0.75rem;
+}
+
+aside {
+    height: 100vh;
+}
+
+aside .top {
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.4rem;
+}
+
+aside .logo {
+    align-items: center;
+    display: flex;
+    gap: 0.8rem;
+}
+
+aside .logo span {
+    color: seagreen;
+}
+
+aside .logo img {
+    width: 2rem;
+    height: 2rem;
+}
+
+aside .close {
+    display: none;
+}
+
+
+/* sidebar */
+aside .sidebar{
+    display: flex;
+    flex-direction: column;
+    height: 86vh;
+    position: relative;
+    top: 3rem;
+}
+
+aside h3 {
+    font-weight: 500;
+}
+
+aside .sidebar a {
+    display: flex;
+    color: var(--color-dark);
+    margin-left: 2rem;
+    gap: 1rem;
+    align-items: center;
+    position: relative;
+    height: 3.7rem;
+    transition: all 300ms ease;
+}
+
+aside .sidebar a span {
+    font-size: 1.6rem;
+    transition: all 300ms ease;
+}
+
+aside .sidebar .logout a {
+    position: absolute;
+    bottom: 5rem;
+    width: 100%;
+    color: var(--color-danger);
+}
+
+aside .sidebar .logout:hover a {
+    color: red;
+}
+
+aside .sidebar a.active {
+    background: var(--color-light);
+    color: var(--color-primary);
+    margin-left: 0;
+}
+
+aside .sidebar a.active:before {
+    content: "";
+    width: 6px;
+    height: 100%;
+    background: var(--color-primary);
+}
+
+aside .sidebar a.active span {
+    color: var(--color-primary);
+    margin-left: calc(1rem - 3px);
+}
+
+aside .sidebar a:hover {
+    color: var(--color-primary);
+}
+
+aside .sidebar a:hover span {
+    margin-left: 1rem;
+}
+
+/* Sidebar Dropdown */
+.sidebar-dropdown {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-dropdown .dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+}
+
+.sidebar-dropdown .dropdown-icon {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-dropdown.open .dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.sidebar-dropdown .dropdown-menu a {
+  display: block;
+  padding: 8px 12px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 6px;
+}
+
+.sidebar-dropdown .dropdown-menu a.active {
+  color: #1b5e20;               
+  font-weight: 700;
+  margin-left: 1.5rem;
+}
+
+.sidebar-dropdown .dropdown-menu {
+  display: none;
+  flex-direction: column;
+  padding-left: 3rem;
+}
+
+.sidebar-dropdown.open .dropdown-menu {
+  display: flex;
+}
+
+
+.sidebar-dropdown .dropdown-menu a {
+    font-size: 14px;
+    padding: 0.4rem 0;
+    color: var(--color-dark);
+}
+
+.sidebar-dropdown .dropdown-menu a:hover {
+    color: var(--color-primary);
+}
+
+main h2{
+    margin-bottom: 1rem;
+}
+
+main .btn {
+    margin-bottom: 1rem;
+    color: white;
+    background: seagreen;
+    padding: 0.6rem;
+    border-radius: 8px;
+    transition: 0.3s ease;
+    display: inline-block;
+}
+
+main .btn:hover {
+    background: green;
+}
+
+main .btn-danger {
+    background: #C5172E;
+}
+
+main .btn-danger:hover {
+    background: red;
+}
+
+main .btn-success {
+    padding: 0.6rem;
+    margin: 1rem 0;
+    display: inline-flex;
+    background-color: #143D60;
+    color: white;
+    border-radius: 8px;
+}
+
+main .btn-success:hover {
+    background-color: blue;
+}
+
+main table {
+    width: 100%;
+    padding: var(--card-padding);
+    background: var(--color-white);
+    text-align: center;
+    margin-top: 1.5rem;
+    border-radius: 25px;
+    box-shadow: var(--box-shadow);
+    transition: all 300ms ease;
+}
+
+main table:hover {
+    box-shadow: none;
+}
+
+main table tr th {
+    font-size: 14px;
+    text-align: left;
+}
+
+main table tbody tr td {
+    height: 3.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-light);
+    color: var(--color-dark-variant);
+}
+
+main table tbody tr:last-child td {
+    border: none;
+}
+
+.top {
+    margin-top: 0.7rem;
+    display: flex;
+    justify-content: end;
+    gap: 2rem;
+}
+
+.right .top button {
+    display: none;
+}
+
+main .top .theme-toggler {
+    margin-top: 0.5rem;
+    background: var(--color-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 1.6rem;
+    width: 4.2rem;
+    cursor: pointer;
+    border-radius: var(--border-radius-1);
+}
+
+main .top .theme-toggler span {
+    font-size: 1.2rem;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+main .top .theme-toggler span.active {
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--border-radius-1);
+}
+
+main .top button {
+    align-items: end;
+    display: none;
+}
+
+main .top .profile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    text-align: right;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+/* Modal Box */
+.modal-box {
+  background-color: #1e1e1e;
+  color: white;
+  padding: 20px;
+  border-radius: 15px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+
+/* Form styles */
+.modal-box form label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.modal-box input,
+.modal-box select,
+.modal-box textarea {
+  width: 100%;
+  padding: 8px 10px;
+  margin-top: 5px;
+  background-color: #2c2c2c;
+  border: 1px solid #444;
+  border-radius: 8px;
+  color: white;
+}
+
+/* Buttons */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-green {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-red {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+main .top .alert-success {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #46a942;
+    font-size: 1rem;
+    padding: 1.2rem;
+    margin: auto;
+    background-color: #ceffcc;
+    width: 30%;
+    border-radius: 25px;
+    box-sizing: border-box;
+}
