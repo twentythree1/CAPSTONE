@@ -254,7 +254,7 @@ aside .sidebar a:hover span {
 }
 
 .sidebar-dropdown .dropdown-menu a.active {
-  color: #1b5e20;               
+  color: var(--color-primary);               
   font-weight: 700;
   margin-left: 1.5rem;
 }

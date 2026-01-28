@@ -49,7 +49,7 @@ if (!isset($_SESSION['username'])) {
                 </a>
                 <?php $schedulesStatus = $_GET['status'] ?? ''; ?>
                 <div class="sidebar-dropdown <?= $schedulesStatus ? 'open' : '' ?>">
-                    <a class="active" href="javascript:void(0)" class="dropdown-toggle"
+                    <a href="javascript:void(0)" class="dropdown-toggle"
                         aria-expanded="<?= $schedulesStatus ? 'true' : 'false' ?>">
                         <span class="material-icons-sharp">event</span>
                         <h3>Schedules</h3>
