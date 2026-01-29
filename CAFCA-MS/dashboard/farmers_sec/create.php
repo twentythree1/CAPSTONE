@@ -160,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <button type="submit" class="btn btn-primary">Submit</button>
                 </div>
                 <div class="col-sm-3 d-grid">
-                    <a class="btn btn-outline-primary" href="/CAFCA-MS/dashboard/farmers_sec/farmers.php"
+                    <a class="btn btn-outline-primary" href="/CAPSTONE/CAFCA-MS/dashboard/farmers_sec/farmers.php"
                         role="button">Cancel</a>
                 </div>
             </div>

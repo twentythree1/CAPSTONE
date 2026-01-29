@@ -2,7 +2,7 @@
 
 session_start();
 if (!isset($_SESSION['username'])) {
-    header("Location: /CAFCA-MS/login/logindex.php");
+    header("Location: CAFCA-MS/login/logindex.php");
     exit();
 }
 

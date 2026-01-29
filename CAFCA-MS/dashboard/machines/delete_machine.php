@@ -18,6 +18,6 @@ if (isset($_GET["id"])) {
     $conn->close();
 }
 
-header("location: /CAFCA-MS/dashboard/machines/machine.php");
+header("location: /CAPSTONE/CAFCA-MS/dashboard/machines/machine.php");
 exit;
 ?>

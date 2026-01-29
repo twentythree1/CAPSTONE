@@ -89,8 +89,9 @@ if (!isset($_SESSION['username'])) {
                     <span class="material-icons-sharp">dark_mode</span>
                 </div>
                 <div class="profile" style="display: flex; flex-direction: column; text-align: right;">
-                    <span
-                        style="font-size: 18px; text-transform: capitalize; font-weight: 700; "><?= $_SESSION['username']; ?></span>
+                    <span style="font-size: 18px; text-transform: capitalize; font-weight: 700; ">
+                        <?= $_SESSION['username']; ?>
+                    </span>
                     <small class="text-muted">Admin</small>
                 </div>
             </div>
@@ -107,7 +108,6 @@ if (!isset($_SESSION['username'])) {
             $database = "testdb";
 
             $conn = new mysqli($servername, $username, $password, $database);
-
             if ($conn->connect_error) {
                 die("Connection failed: " . $conn->connect_error);
             }
@@ -126,8 +126,11 @@ if (!isset($_SESSION['username'])) {
                 JOIN farmers ON schedules.farmer_id = farmers.id
                 JOIN machines ON schedules.machine_id = machines.id
             ";
-
             $result = $conn->query($sql);
+
+            if (!$result) {
+                die("Error executing query: " . $conn->error);
+            }
 
             $statusFilter = $_GET['status'] ?? null;
 
@@ -139,6 +142,10 @@ if (!isset($_SESSION['username'])) {
             ];
 
             while ($row = $result->fetch_assoc()) {
+                if (empty($row['id'])) {
+                    continue;
+                }
+                
                 $schedule_start = strtotime($row['schedule_date'] . ' ' . $row['start_time']);
                 $schedule_end = strtotime(
                     date('Y-m-d', strtotime($row['schedule_date'] . " +{$row['date_span']} days")) 
@@ -146,16 +153,15 @@ if (!isset($_SESSION['username'])) {
                 );
                 $now = time();
 
-                if ($now > $schedule_end) {
-                    $dynamic_status = "Completed";
+                if ($row['status'] === 'Approved') {
+                    $dynamic_status = 'Approved';
+                } elseif ($now < $schedule_start) {
+                    $dynamic_status = 'Pending';
                 } elseif ($now >= $schedule_start && $now <= $schedule_end) {
-                    $dynamic_status = "On going";
-                } elseif ($row['status'] === "Approved") {
-                    $dynamic_status = "Approved";
+                    $dynamic_status = 'On going';
                 } else {
-                    $dynamic_status = "Pending";
+                    $dynamic_status = 'Completed';
                 }
-                
                 if ($statusFilter && $dynamic_status !== $statusFilter) {
                     continue;
                 }
@@ -175,6 +181,7 @@ if (!isset($_SESSION['username'])) {
                 }
 
                 echo "
+                <div class='table-scroll'>
                 <table style='width:100%' class='table'>
                     <thead>
                         <tr>
@@ -193,46 +200,62 @@ if (!isset($_SESSION['username'])) {
                 ";
 
                 foreach ($data as $item) {
+                    if (!isset($item['row'], $item['status'])) {
+                        continue;
+                    }
+
                     $row = $item['row'];
                     $status = $item['status'];
 
-                    echo "
-                    <tr>
-                        <td>{$row['id']}</td>
-                        <td>{$row['farmer_name']}</td>
-                        <td>{$row['machine_name']}</td>
-                        <td>{$row['schedule_date']}</td>
-                        <td>{$row['date_span']}</td>
-                        <td>{$row['start_time']}</td>
-                        <td>{$row['end_time']}</td>
-                        <td>$status</td>
-                        <td>
-                            <a class='btn btn-primary btn-sm' href='edit_schedule.php?id={$row['id']}'>Edit</a>
-                            <a class='btn btn-success btn-sm' href='print_certificate.php?id={$row['id']}'>Details</a>
-                            " . ($status === 'Pending' ? 
-                                "<a class='btn btn-warning btn-sm' href='approve_schedule.php?id={$row['id']}'>Approve</a>" 
-                                : "") . "
-                        </td>
-                    </tr>
-                    ";
+                    $edit_redirect = 'edit_schedule.php?id=' . $row['id'];
+                    if (isset($_GET['status'])) {
+                        $edit_redirect .= '&redirect=' . urlencode('schedule.php?status=' . $_GET['status']);
+                    }
+                            
+                    echo "<tr>";
+                    echo "<td>{$row['id']}</td>";
+                    echo "<td>{$row['farmer_name']}</td>";
+                    echo "<td>{$row['machine_name']}</td>";
+                    echo "<td>{$row['schedule_date']}</td>";
+                    echo "<td>{$row['date_span']}</td>";
+                    echo "<td>{$row['start_time']}</td>";
+                    echo "<td>{$row['end_time']}</td>";
+                    echo "<td>$status</td>";
+                    echo "<td>";
+                    echo "  <a class='btn btn-primary btn-sm' href='$edit_redirect'>Edit</a>";
+                    echo "  <a class='btn btn-success btn-sm' href='print_certificate.php?id={$row['id']}'>Details</a>";
+                    if ($status === 'Pending') {
+                        echo "  <a class='btn btn-warning btn-sm' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
+                    }
+                    echo "</td>";
+                    echo "</tr>";
                 }
 
-                echo "</tbody></table><br>";
+                echo "</tbody>
+                </table>
+                </div><br>";
             }
+            $currentStatus = isset($_GET['status']) ? htmlspecialchars($_GET['status']) : null;
 
             if ($statusFilter) {
-                renderScheduleTable($statusFilter . " Schedules", $schedules[$statusFilter]);
-
+                renderScheduleTable($statusFilter . " Schedules", $schedules[$statusFilter], $currentStatus);
             } else {
-                renderScheduleTable("Pending Schedules", $schedules['Pending']);
-                renderScheduleTable("Approved Schedules", $schedules['Approved']);
-                renderScheduleTable("On Going Schedules", $schedules['On going']);
-                renderScheduleTable("Completed Schedules", $schedules['Completed']);
+                renderScheduleTable("Pending Schedules", $schedules['Pending'], "schedule.php?status=Pending");
+                renderScheduleTable("Approved Schedules", $schedules['Approved'], "schedule.php?status=Approved");
+                renderScheduleTable("On-Going Schedules", $schedules['On going'], "schedule.php?status=On going");
+                renderScheduleTable("Completed Schedules", $schedules['Completed'], "schedule.php?status=Completed");
             }
             ?>
-
         </main>
     </div>
+
+    <script>
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) alert.remove();
+    }, 5000);
+    </script>
+    <script src="../main/dashscript.js"></script>
 
     <script>
     setTimeout(() => {

@@ -18,7 +18,7 @@ $successMessage = "";
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     if (!isset($_GET["id"])) {
-        header("location: /CAFCA-MS/dashboard/machines/machine.php");
+        header("location: /CAPSTONE/CAFCA-MS/dashboard/machines/machine.php");
         exit;
     }
 
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $row = $result->fetch_assoc();
 
     if (!$row) {
-        header("location: /CAFCA-MS/dashboard/machines/machine.php");
+        header("location: /CAPSTONE/CAFCA-MS/dashboard/machines/machine.php");
         exit;
     }
 
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 
         $successMessage = "Machine's information successfully updated!";
 
-        header("location: /CAFCA-MS/dashboard/machines/machine.php");
+        header("location:  /CAPSTONE/CAFCA-MS/dashboard/machines/machine.php");
         exit;
 
     } while (true);
@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
                 <div class="col-sm-3 d-grid">
-                    <a class="btn btn-outline-primary" href="/CAFCA-MS/dashboard/machines/machine.php"
+                    <a class="btn btn-outline-primary" href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php"
                         role="button">Cancel Editing</a>
                 </div>
             </div>

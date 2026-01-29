@@ -18,9 +18,15 @@ $end_time = "";
 $errorMessage = "";
 $successMessage = "";
 
+$currentStatus = isset($_GET['redirect']) ? $_GET['redirect'] : 'schedule.php';
+
+$currentStatus = filter_var($currentStatus, FILTER_SANITIZE_URL);
+
+$cancelUrl = htmlspecialchars($currentStatus);
+
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     if (!isset($_GET["id"])) {
-        header("location: /CAFCA-MS/dashboard/schedules/schedule.php");
+        header("location: schedule.php");
         exit;
     }
 
@@ -31,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $row = $result->fetch_assoc();
 
     if (!$row) {
-        header("location: /CAFCA-MS/dashboard/schedules/schedule.php");
+        header("location: schedule.php");
         exit;
     }
 
@@ -88,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         }
 
         $successMessage = "Schedule successfully updated!";
-        header("location: /CAFCA-MS/dashboard/schedules/schedule.php");
+        header("location: schedule.php");
         exit;
 
     } while (true);
@@ -203,8 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
                 <div class="col-sm-3 d-grid">
-                    <a class="btn btn-outline-primary" href="/CAFCA-MS/dashboard/schedules/schedule.php?status=Completed"
-                        role="button">Cancel Editing</a>
+                    <a class='btn btn-outline-primary' href="<?= $cancelUrl ?>" role='button'>Cancel Editing</a>
                 </div>
             </div>
         </form>

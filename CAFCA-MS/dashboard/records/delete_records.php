@@ -13,6 +13,6 @@ if (isset($_GET["id"])) {
     $conn->query($sql);
 }
 
-header("location: /CAFCA-MS/dashboard/records/records.php");
+header("location: /CAPSTONE/CAFCA-MS/dashboard/records/records.php");
 exit;
 ?>
