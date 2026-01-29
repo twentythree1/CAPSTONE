@@ -246,27 +246,27 @@ aside .sidebar a:hover span {
 }
 
 .sidebar-dropdown .dropdown-menu a {
-  display: block;
-  padding: 8px 12px;
-  text-decoration: none;
-  color: inherit;
-  border-radius: 6px;
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 6px;
 }
 
 .sidebar-dropdown .dropdown-menu a.active {
-  color: var(--color-primary);               
-  font-weight: 700;
-  margin-left: 1.5rem;
+    color: var(--color-primary);               
+    font-weight: 700;
+    margin-left: 1.5rem;
 }
 
 .sidebar-dropdown .dropdown-menu {
-  display: none;
-  flex-direction: column;
-  padding-left: 3rem;
+    display: none;
+    flex-direction: column;
+    padding-left: 3rem;
 }
 
 .sidebar-dropdown.open .dropdown-menu {
-  display: flex;
+    display: flex;
 }
 
 
