@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         $successMessage = "Machine successfully added!";
 
-        header("location: /CAFCA-MS/dashboard/machines/machine.php");
+        header("location: /CAPSTONE/CAFCA-MS/dashboard/machines/machine.php");
         exit;
 
     } while (false);

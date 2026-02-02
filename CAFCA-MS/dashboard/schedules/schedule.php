@@ -77,8 +77,11 @@ if (!isset($_SESSION['username'])) {
         <main>
             <div class="top">
                 <?php if (isset($_GET['approved'])): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="alert alert-success alert-dismissible fade show" role="alert" style="position: relative;">
                     The recent schedule was approved successfully!
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner"></div>
+                    </div>
                 </div>
                 <?php endif; ?>
                 <button id="menu-btn">
@@ -250,18 +253,27 @@ if (!isset($_SESSION['username'])) {
     </div>
 
     <script>
-    setTimeout(() => {
+    document.addEventListener('DOMContentLoaded', () => {
         const alert = document.querySelector('.alert');
-        if (alert) alert.remove();
-    }, 5000);
-    </script>
-    <script src="../main/dashscript.js"></script>
+        const progressBarInner = document.querySelector('.progress-bar-inner');
+        const timerDuration = 3;
+        const interval = 30;
+        const totalSteps = timerDuration * 1000 / interval;
+        let currentStep = 0;
 
-    <script>
-    setTimeout(() => {
-        const alert = document.querySelector('.alert');
-        if (alert) alert.remove();
-    }, 5000);
+        if (progressBarInner) {
+            const timer = setInterval(() => {
+                currentStep++;
+                const progressWidth = (currentStep / totalSteps) * 100;
+                progressBarInner.style.width = progressWidth + '%';
+
+                if (progressWidth >= 100) {
+                    clearInterval(timer);
+                    if (alert) alert.remove();
+                }
+            }, interval);
+        }
+    });
     </script>
 
     <script>
