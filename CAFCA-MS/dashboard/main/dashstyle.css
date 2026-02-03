@@ -282,6 +282,39 @@ main {
     margin-top: 1.4rem;
 }
 
+.insight-card-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--color-white);
+    padding: var(--card-padding);
+    border-radius: var(--card-border-radius);
+    margin-top: 1rem;
+    box-shadow: var(--box-shadow);
+    color: inherit;
+    text-decoration: none;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+    width: 100%;
+    min-height: 132px;
+}
+
+.insight-card-link:hover {
+    transform: translateY(-4px);
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.insight-card-link .farmers {
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
 main .insights {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -348,9 +381,49 @@ main .insights svg circle {
     transform: translate(8px, 8px);
 }
 
-main .insights .farmers svg circle {
-    stroke-dashoffset: -30;
-    stroke-dasharray: 200;
+.farmers {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 0;
+}
+
+.farmers .icon-bg {
+    background: var(--color-primary);
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.04);
+}
+
+.farmers .icon-bg .material-icons-sharp {
+    color: var(--color-white);
+    font-size: 24px;
+}
+
+.farmers .left h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.farmers .left h4 {
+    margin: 6px 0 0 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-dark);
+}
+
+.count-right h1 {
+    margin: 0;
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: var(--color-dark);
+    text-align: right;
 }
 
 main .insights .attendance svg circle {

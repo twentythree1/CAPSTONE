@@ -9,6 +9,24 @@ if (!isset($_SESSION['username'])) {
     exit();
 }
 
+$servername = "localhost";
+$username = "root";
+$password = "";
+$database = "testdb";
+
+$conn = new mysqli($servername, $username, $password, $database);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$farmer_count = 0;
+$sql = "SELECT COUNT(*) AS cnt FROM farmers";
+if ($result = $conn->query($sql)) {
+    $row = $result->fetch_assoc();
+    $farmer_count = (int)($row['cnt'] ?? 0);
+    $result->free();
+}
 ?>
 
 <!DOCTYPE html>
@@ -81,23 +99,23 @@ if (!isset($_SESSION['username'])) {
             <h1>Dashboard</h1>
 
             <div class="insights">
-                <div class="farmers">
-                    <span class="material-icons-sharp">groups</span>
-                    <div class="middle">
-                        <div class="left">
-                            <h3>Registered</h3>
-                            <h1>Farmers</h1>
-                        </div>
-                        <div class="progress">
-                            <svg>
-                                <circle cx='38' cy='36' r='36'></circle>
-                            </svg>
-                            <div class="number">
-                                <p>81%</p>
+                <a href="../farmers_sec/farmers.php" class="insight-card-link" title="View registered farmers">
+                    <div class="farmers">
+                        <div class="farmers-left" style="display:flex;align-items:center;gap:1rem;">
+                            <div class="icon-bg">
+                                <span class="material-icons-sharp">groups</span>
+                            </div>
+                            <div class="left">
+                                <h3>Registered</h3>
+                                <h4 style="margin-top:6px; font-weight:600; color:var(--color-dark-variant);">Farmers</h4>
                             </div>
                         </div>
+
+                        <div class="count-right">
+                            <h1><?= htmlspecialchars($farmer_count, ENT_QUOTES, 'UTF-8'); ?></h1>
+                        </div>
                     </div>
-                </div>
+                </a>
                 <div class="attendance">
                     <span class="material-icons-sharp">inventory</span>
                     <div class="middle">
