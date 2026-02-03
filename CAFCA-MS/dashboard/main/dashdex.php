@@ -137,7 +137,8 @@ if (!isset($_SESSION['username'])) {
             <div id="calendar-container">
                 <h2>Schedule Calendar</h2>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <button id="prev-month"><span class="material-icons-sharp">keyboard_arrow_left</span>Previous</button>
+                    <button id="prev-month"><span
+                            class="material-icons-sharp">keyboard_arrow_left</span>Previous</button>
                     <div id="calendar-header"></div>
                     <button id="next-month">Next<span class="material-icons-sharp">keyboard_arrow_right</span></button>
                 </div>
@@ -243,71 +244,83 @@ if (!isset($_SESSION['username'])) {
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const calendar = document.getElementById("calendar");
-            const prevBtn = document.getElementById("prev-month");
-            const nextBtn = document.getElementById("next-month");
-            const header = document.getElementById("calendar-header");
+    document.addEventListener("DOMContentLoaded", function() {
+        const calendar = document.getElementById("calendar");
+        const prevBtn = document.getElementById("prev-month");
+        const nextBtn = document.getElementById("next-month");
+        const header = document.getElementById("calendar-header");
 
-            let currentDate = new Date();
+        let currentDate = new Date();
 
-            function renderCalendar(events) {
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const firstDay = new Date(year, month, 1).getDay();
+        function renderCalendar(events) {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay();
 
-                const monthNames = [
-                    "January", "February", "March", "April", "May", "June",
-                    "July", "August", "September", "October", "November", "December"
-                ];
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
 
-                header.innerText = `${monthNames[month]} ${year}`;
-                calendar.innerHTML = "";
+            header.innerText = `${monthNames[month]} ${year}`;
+            calendar.innerHTML = "";
 
-                for (let i = 0; i < firstDay; i++) {
-                    calendar.innerHTML += '<div></div>';
-                }
+            // empty slots for the first row
+            for (let i = 0; i < firstDay; i++) {
+                calendar.innerHTML += '<div></div>';
+            }
 
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const cell = document.createElement("div");
-                    cell.className = "calendar-day";
-                    cell.innerHTML = `<strong>${day}</strong>`;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const cell = document.createElement("div");
+                cell.className = "calendar-day";
 
-                    const thisDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                // day number pinned to the top (CSS handles absolute positioning)
+                const dayLabel = document.createElement("strong");
+                dayLabel.textContent = day;
+                cell.appendChild(dayLabel);
 
-                    events.forEach(ev => {
-                        if (ev.date === thisDate) {
-                            const eventDiv = document.createElement("div");
-                            eventDiv.className = "event";
-                            eventDiv.textContent = ev.title;
-                            cell.appendChild(eventDiv);
+                const thisDate =
+                `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                // add events for this date (could be multiple)
+                events.forEach(ev => {
+                    if (ev.date === thisDate) {
+                        const eventDiv = document.createElement("div");
+                        eventDiv.className = "event";
+                        eventDiv.textContent = ev.title || "";
+                        // store farmer name in data attribute for custom tooltip and also set title
+                        if (ev.farmer_name) {
+                            eventDiv.setAttribute('data-farmer', ev.farmer_name);
+                            eventDiv.title = ev.farmer_name;
                         }
-                    });
+                        cell.appendChild(eventDiv);
+                    }
+                });
 
-                    calendar.appendChild(cell);
-                }
+                calendar.appendChild(cell);
             }
+        }
 
-            function loadCalendar() {
-                fetch("get_schedules.php")
-                    .then(res => res.json())
-                    .then(data => renderCalendar(data))
-                    .catch(err => console.error("Failed to fetch schedules:", err));
-            }
+        function loadCalendar() {
+            fetch("get_schedules.php")
+                .then(res => res.json())
+                .then(data => renderCalendar(Array.isArray(data) ? data : []))
+                .catch(err => console.error("Failed to fetch schedules:", err));
+        }
 
-            prevBtn.addEventListener("click", () => {
-                currentDate.setMonth(currentDate.getMonth() - 1);
-                loadCalendar();
-            });
-
-            nextBtn.addEventListener("click", () => {
-                currentDate.setMonth(currentDate.getMonth() + 1);
-                loadCalendar();
-            });
-
+        prevBtn.addEventListener("click", () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
             loadCalendar();
         });
+
+        nextBtn.addEventListener("click", () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            loadCalendar();
+        });
+
+        loadCalendar();
+    });
     </script>
 
     <script>

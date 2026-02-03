@@ -1,4 +1,5 @@
 <?php
+header('Content-Type: application/json');
 
 $servername = "localhost";
 $username = "root";
@@ -8,20 +9,33 @@ $database = "testdb";
 $conn = new mysqli($servername, $username, $password, $database);
 
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    http_response_code(500);
+    echo json_encode(["error" => "Connection failed"]);
+    exit;
 }
 
-$sql = "SELECT schedule_date, start_time, end_time FROM schedules";
+$sql = "
+    SELECT 
+        s.schedule_date,
+        s.start_time,
+        s.end_time,
+        f.name AS farmer_name
+    FROM schedules s
+    LEFT JOIN farmers f ON s.farmer_id = f.id
+";
+
 $result = $conn->query($sql);
 
 $schedules = [];
 
-while ($row = $result->fetch_assoc()) {
-    $schedules[] = [
-        "date" => $row["schedule_date"],
-        "title" => "📍 " . substr($row["start_time"], 0, 5) . " - " . substr($row["end_time"], 0, 5)
-    ];
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $schedules[] = [
+            "date" => $row["schedule_date"],
+            "title" => "📍 " . substr($row["start_time"], 0, 5) . " - " . substr($row["end_time"], 0, 5),
+            "farmer_name" => $row["farmer_name"] ?? ""
+        ];
+    }
 }
 
 echo json_encode($schedules);
-?>

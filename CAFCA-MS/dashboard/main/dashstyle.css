@@ -522,21 +522,63 @@ main .insights .progress .number {
     box-shadow: none;
 }
 
+/* Calendar day: pin the day number top-left and push events below it */
 .calendar-day {
-    padding: 0.4rem;
+    padding: 0.8rem 0.4rem 0.4rem 0.4rem;
     border-radius: 4px;
     height: 80px;
-    position: relative;
+    position: relative; /* required for absolute-positioned day number and tooltip */
     background: transparent;
     border: 0.5px solid var(--color-dark);
     overflow-y: auto;
 }
 
+/* pinned day number */
+.calendar-day strong {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: 0.95rem;
+    z-index: 2;
+}
+
+/* events render below the day number */
 .event {
+    margin-top: 28px;
     font-size: 0.8rem;
-    overflow: none;
-    text-overflow: ellipsis;
     color: var(--color-dark-variant);
+    position: relative;
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+/* tooltip showing farmer name from data-farmer on hover */
+.event[data-farmer]:hover::after {
+    content: attr(data-farmer);
+    position: absolute;
+    top: -36px;
+    left: 0;
+    transform: translateY(-2px);
+    white-space: nowrap;
+    background: var(--color-white);
+    color: var(--color-dark);
+    border: 1px solid var(--color-light);
+    padding: 6px 8px;
+    border-radius: 6px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+    z-index: 10;
+}
+
+/* tooltip arrow */
+.event[data-farmer]:hover::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 8px;
+    border: 6px solid transparent;
+    border-top-color: var(--color-white);
+    z-index: 9;
 }
 
 #calendar-container #calendar-header {
