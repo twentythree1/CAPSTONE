@@ -93,23 +93,24 @@ if (!isset($_SESSION['username'])) {
 
             <a href="create.php" class="btn btn-primary" role="button">Add Farmer</a>
             <br>
-            <table style="width: 100%;" class="table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Birthday</th>
-                        <th>Age</th>
-                        <th>Address</th>
-                        <th>Land Area</th>
-                        <th>Unit of Measurement</th>
-                        <th>Contact Number</th>
-                        <th>Date Added</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
+            <div class='table-scroll'>
+                <table style='width:100%' class='table'>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Birthday</th>
+                            <th>Age</th>
+                            <th>Address</th>
+                            <th>Land Area</th>
+                            <th>Unit of Measurement</th>
+                            <th>Contact Number</th>
+                            <th>Date Added</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
                     $servername = "localhost";
                     $username = "root";
                     $password = "";
@@ -146,7 +147,9 @@ if (!isset($_SESSION['username'])) {
                         <td>$row[created_at]</td>
                         <td>
                             <a class='btn btn-primary btn-sm' href='edit.php?id=$row[id]'>Edit</a>
-                            <a class='btn btn-danger btn-sm' href='delete.php?id=$row[id]'>Delete</a>
+                            <a class='btn btn-danger btn-sm' 
+                                            onclick=\"return confirm('Are you sure you want to delete this farmer?');\" 
+                                            href='delete.php?id=$row[id]'>Delete</a>
                         </td> 
                     </tr>
                     ";
@@ -154,8 +157,9 @@ if (!isset($_SESSION['username'])) {
 
                     ?>
 
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </main>
     </div>
 

@@ -90,22 +90,23 @@ if (!isset($_SESSION['username'])) {
                 </div>
             </div>
             <h2>Harvest Records</h2>
-                
+
             <a href="add_records.php" class="btn btn-primary" role="button">Add Record</a>
             <br>
-            <table style="width: 100%;" class="table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Farmer</th>
-                        <th>Machine</th>
-                        <th>Harvest Date</th>
-                        <th>Number of Sacks</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
+            <div class='table-scroll'>
+                <table style='width:100%' class='table'>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Farmer</th>
+                            <th>Machine</th>
+                            <th>Harvest Date</th>
+                            <th>Number of Sacks</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
                     $servername = "localhost";
                     $username = "root";
                     $password = "";
@@ -144,7 +145,9 @@ if (!isset($_SESSION['username'])) {
                         <td>$row[number_of_sacks]</td>
                         <td>
                             <a class='btn btn-primary btn-sm' href='edit_records.php?id=$row[id]'>Edit</a>
-                            <a class='btn btn-danger btn-sm' href='delete_records.php?id=$row[id]'>Delete</a>
+                            <a class='btn btn-danger btn-sm' 
+                                            onclick=\"return confirm('Are you sure you want to delete this record?');\" 
+                                            href='delete.php?id=$row[id]'>Delete</a>
                         </td> 
                     </tr>
                     ";
@@ -152,8 +155,9 @@ if (!isset($_SESSION['username'])) {
 
                     ?>
 
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </main>
     </div>
 

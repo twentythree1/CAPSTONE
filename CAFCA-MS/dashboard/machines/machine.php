@@ -2,7 +2,7 @@
 
 session_start();
 if (!isset($_SESSION['username'])) {
-    header("Location: CAFCA-MS/login/logindex.php");
+    header("Location: /CAPSTONE/CAFCA-MS/login/logindex.php");
     exit();
 }
 
@@ -73,8 +73,8 @@ if (!isset($_SESSION['username'])) {
             </div>
         </aside>
 
-    <main>
-        <div class="top">
+        <main>
+            <div class="top">
                 <button id="menu-btn">
                     <span class="material-icons-sharp">menu</span>
                 </button>
@@ -83,26 +83,28 @@ if (!isset($_SESSION['username'])) {
                     <span class="material-icons-sharp">dark_mode</span>
                 </div>
                 <div class="profile" style="display: flex; flex-direction: column; text-align: right;">
-                    <span style="font-size: 18px; text-transform: capitalize; font-weight: 700; "><?= $_SESSION['username']; ?></span>
+                    <span
+                        style="font-size: 18px; text-transform: capitalize; font-weight: 700; "><?= $_SESSION['username']; ?></span>
                     <small class="text-muted">Admin</small>
                 </div>
             </div>
             <h2>List of Machines</h2>
             <a href="add_machine.php" class="btn btn-primary" role="button">Add Machine</a>
             <br>
-            <table style="width: 100%;" class="table">
-                <thead>
-                    <tr>
-                        <th>Machine ID</th>
-                        <th>Machine Name</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Acquisition Date</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
+            <div class='table-scroll'>
+                <table style='width:100%' class='table'>
+                    <thead>
+                        <tr>
+                            <th>Machine ID</th>
+                            <th>Machine Name</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Acquisition Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
                     $servername = "localhost";
                     $username = "root";
                     $password = "";
@@ -131,8 +133,10 @@ if (!isset($_SESSION['username'])) {
                         <td>$row[acquisition_date]</td>
                         <td>
                             <a class='btn btn-primary btn-sm' href='edit_machine.php?id=$row[id]'>Edit</a>
-                            <a class='btn btn-danger btn-sm' href='delete_machine.php?id=$row[id]'>Delete</a>
-                            <a class='btn btn-success btn-sm' href='.php?id=$row[id]'>History</a>
+                            <a class='btn btn-danger btn-sm' 
+                                            onclick=\"return confirm('Are you sure you want to delete this machine?');\" 
+                                            href='delete.php?id=$row[id]'>Delete</a>
+                            <a class='btn btn-success btn-sm' href='history.php?id=$row[id]'>History</a>
                         </td> 
                     </tr>
                     ";
@@ -140,22 +144,23 @@ if (!isset($_SESSION['username'])) {
 
                     ?>
 
-                </tbody>
-            </table>
-    </main>
+                    </tbody>
+                </table>
+            </div>
+        </main>
 
-    <script>
-    const scheduleDropdown = document.querySelector(".sidebar-dropdown");
+        <script>
+        const scheduleDropdown = document.querySelector(".sidebar-dropdown");
 
-    scheduleDropdown.querySelector(".dropdown-toggle")
-        .addEventListener("click", () => {
-            scheduleDropdown.classList.toggle("open");
+        scheduleDropdown.querySelector(".dropdown-toggle")
+            .addEventListener("click", () => {
+                scheduleDropdown.classList.toggle("open");
 
-            const menu = scheduleDropdown.querySelector(".dropdown-menu");
-            menu.style.display = menu.style.display === "flex" ? "none" : "flex";
-        });
-    </script>
-    <script src="../main/dashscript.js"></script>
+                const menu = scheduleDropdown.querySelector(".dropdown-menu");
+                menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+            });
+        </script>
+        <script src="../main/dashscript.js"></script>
 </body>
 
 </html>

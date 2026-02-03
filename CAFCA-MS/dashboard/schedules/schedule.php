@@ -115,6 +115,15 @@ if (!isset($_SESSION['username'])) {
                 die("Connection failed: " . $conn->connect_error);
             }
 
+            $statusFilter = $_GET['status'] ?? null;
+
+            $schedules = [
+                'Pending' => [],
+                'Approved' => [],
+                'On going' => [],
+                'Completed' => []
+            ];
+
             $sql = "
                 SELECT 
                     schedules.id,
@@ -144,45 +153,49 @@ if (!isset($_SESSION['username'])) {
                 'Completed' => []
             ];
 
+            $sql = "
+                SELECT 
+                    schedules.id,
+                    schedules.status,
+                    farmers.name AS farmer_name,
+                    machines.name AS machine_name,
+                    schedules.schedule_date,
+                    schedules.date_span,
+                    schedules.start_time,
+                    schedules.end_time
+                FROM schedules
+                JOIN farmers ON schedules.farmer_id = farmers.id
+                JOIN machines ON schedules.machine_id = machines.id
+            ";
+            $result = $conn->query($sql);
+                            
+            if (!$result) {
+                die("Error executing query: " . $conn->error);
+            }
+                            
+            // Filter schedules based on status
             while ($row = $result->fetch_assoc()) {
-                if (empty($row['id'])) {
+                $current_status = $row['status']; 
+                            
+                if (isset($statusFilter) && $current_status !== $statusFilter) {
                     continue;
                 }
-                
-                $schedule_start = strtotime($row['schedule_date'] . ' ' . $row['start_time']);
-                $schedule_end = strtotime(
-                    date('Y-m-d', strtotime($row['schedule_date'] . " +{$row['date_span']} days")) 
-                    . ' ' . $row['end_time']
-                );
-                $now = time();
-
-                if ($row['status'] === 'Approved') {
-                    $dynamic_status = 'Approved';
-                } elseif ($now < $schedule_start) {
-                    $dynamic_status = 'Pending';
-                } elseif ($now >= $schedule_start && $now <= $schedule_end) {
-                    $dynamic_status = 'On going';
-                } else {
-                    $dynamic_status = 'Completed';
-                }
-                if ($statusFilter && $dynamic_status !== $statusFilter) {
-                    continue;
-                }
-
-                $schedules[$dynamic_status][] = [
+                            
+                $schedules[$current_status][] = [
                     'row' => $row,
-                    'status' => $dynamic_status
+                    'status' => $current_status
                 ];
             }
-
+                            
+            // Render function for displaying schedules in a table
             function renderScheduleTable($title, $data) {
                 echo "<h3>$title</h3>";
-
+                            
                 if (empty($data)) {
                     echo "<p>No schedules available.</p>";
                     return;
                 }
-
+                            
                 echo "
                 <div class='table-scroll'>
                 <table style='width:100%' class='table'>
@@ -191,62 +204,57 @@ if (!isset($_SESSION['username'])) {
                             <th>ID</th>
                             <th>Farmer</th>
                             <th>Machine</th>
-                            <th>Date</th>
-                            <th>Span</th>
-                            <th>Start</th>
-                            <th>End</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                 ";
-
+                            
                 foreach ($data as $item) {
-                    if (!isset($item['row'], $item['status'])) {
-                        continue;
-                    }
-
                     $row = $item['row'];
                     $status = $item['status'];
-
-                    $edit_redirect = 'edit_schedule.php?id=' . $row['id'];
-                    if (isset($_GET['status'])) {
-                        $edit_redirect .= '&redirect=' . urlencode('schedule.php?status=' . $_GET['status']);
-                    }
+                    $start_date = date('m-d', strtotime($row['schedule_date']));
+                    $end_date = date('m-d', strtotime($row['schedule_date'] . " +{$row['date_span']} days"));
                             
+                    $edit_redirect = 'edit_schedule.php?id=' . $row['id'];
                     echo "<tr>";
                     echo "<td>{$row['id']}</td>";
                     echo "<td>{$row['farmer_name']}</td>";
                     echo "<td>{$row['machine_name']}</td>";
-                    echo "<td>{$row['schedule_date']}</td>";
-                    echo "<td>{$row['date_span']}</td>";
+                    echo "<td>$start_date</td>";
+                    echo "<td>$end_date</td>";
                     echo "<td>{$row['start_time']}</td>";
                     echo "<td>{$row['end_time']}</td>";
                     echo "<td>$status</td>";
-                    echo "<td>";
-                    echo "  <a class='btn btn-primary btn-sm' href='$edit_redirect'>Edit</a>";
-                    echo "  <a class='btn btn-success btn-sm' href='print_certificate.php?id={$row['id']}'>Details</a>";
+                    echo "<td>
+                            <a class='btn btn-primary btn-sm' href='$edit_redirect'>Edit</a>
+                            <a class='btn btn-success btn-sm' href='print_certificate.php?id={$row['id']}'>Details</a>";
                     if ($status === 'Pending') {
-                        echo "  <a class='btn btn-warning btn-sm' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
+                        echo "<a class='btn btn-warning btn-sm' style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
+                        echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to cancel this schedule?');\"  style='margin-left: 4px;' href='cancel_schedule.php?id={$row['id']}'>Cancel</a>";
                     }
                     echo "</td>";
                     echo "</tr>";
                 }
-
+                            
                 echo "</tbody>
                 </table>
                 </div><br>";
             }
-            $currentStatus = isset($_GET['status']) ? htmlspecialchars($_GET['status']) : null;
-
+                            
             if ($statusFilter) {
-                renderScheduleTable($statusFilter . " Schedules", $schedules[$statusFilter], $currentStatus);
+                renderScheduleTable("$statusFilter Schedules", $schedules[$statusFilter]);
             } else {
-                renderScheduleTable("Pending Schedules", $schedules['Pending'], "schedule.php?status=Pending");
-                renderScheduleTable("Approved Schedules", $schedules['Approved'], "schedule.php?status=Approved");
-                renderScheduleTable("On-Going Schedules", $schedules['On going'], "schedule.php?status=On going");
-                renderScheduleTable("Completed Schedules", $schedules['Completed'], "schedule.php?status=Completed");
+                renderScheduleTable("Pending Schedules", $schedules['Pending']);
+                renderScheduleTable("Approved Schedules", $schedules['Approved']);
+                renderScheduleTable("On-Going Schedules", $schedules['On going']);
+                renderScheduleTable("Completed Schedules", $schedules['Completed']);
+                renderScheduleTable("Cancelled Schedules", $schedules['Cancelled']);
             }
             ?>
         </main>

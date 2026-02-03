@@ -19,6 +19,6 @@ if (isset($_GET["id"])) {
     $conn->close();
 }
 
-header("location: /CAFCA-MS/dashboard/farmers_sec/farmers.php");
+header("location: /CAPSTONE/CAFCA-MS/dashboard/farmers_sec/farmers.php");
 exit;
 ?>
