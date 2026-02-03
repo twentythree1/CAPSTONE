@@ -134,7 +134,7 @@ if (!isset($_SESSION['username'])) {
                         <td>
                             <a class='btn btn-primary btn-sm' href='edit_machine.php?id=$row[id]'>Edit</a>
                             <a class='btn btn-danger btn-sm' 
-                                            onclick=\"return confirm('Are you sure you want to delete this machine?');\" 
+                                            onclick=\"return confirm('Are you sure you want to delete $row[name]?');\" 
                                             href='delete.php?id=$row[id]'>Delete</a>
                             <a class='btn btn-success btn-sm' href='history.php?id=$row[id]'>History</a>
                         </td> 
