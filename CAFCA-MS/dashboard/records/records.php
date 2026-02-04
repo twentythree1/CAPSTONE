@@ -169,7 +169,8 @@ if ($countResult) {
                             <th>ID</th>
                             <th>Farmer</th>
                             <th>Machine</th>
-                            <th>Harvest Date</th>
+                            <th>Harvest Start Date</th>
+                            <th>Harvest End Date</th>
                             <th>Number of Sacks</th>
                             <th>Action</th>
                         </tr>
@@ -181,11 +182,13 @@ if ($countResult) {
                             records.id AS id,
                             farmers.name AS farmer_name,
                             machines.name AS machine_name,
-                            records.harvest_date,
+                            records.harvest_start_date,
+                            records.harvest_end_date,
                             records.number_of_sacks
                         FROM records
                         JOIN farmers ON records.farmer_id = farmers.id
                         JOIN machines ON records.machine_id = machines.id
+                        ORDER BY records.id DESC
                     ";
                     $result = $conn->query($sql);
 
@@ -196,16 +199,17 @@ if ($countResult) {
                     while ($row = $result->fetch_assoc()) {
                         echo "
                     <tr>
-                        <td>$row[id]</td>
-                        <td>$row[farmer_name]</td>
-                        <td>$row[machine_name]</td>
-                        <td>$row[harvest_date]</td>
-                        <td>$row[number_of_sacks]</td>
+                        <td>" . htmlspecialchars($row['id']) . "</td>
+                        <td>" . htmlspecialchars($row['farmer_name']) . "</td>
+                        <td>" . htmlspecialchars($row['machine_name']) . "</td>
+                        <td>" . htmlspecialchars($row['harvest_start_date']) . "</td>
+                        <td>" . htmlspecialchars($row['harvest_end_date']) . "</td>
+                        <td>" . htmlspecialchars($row['number_of_sacks']) . "</td>
                         <td>
-                            <a class='btn btn-primary btn-sm' href='edit_records.php?id=$row[id]'>Edit</a>
+                            <a class='btn btn-primary btn-sm' href='edit_records.php?id=" . htmlspecialchars($row['id']) . "'>Edit</a>
                             <a class='btn btn-danger btn-sm' 
-                                            onclick=\"return confirm('Are you sure you want to delete $row[farmer_name]\'s record?');\" 
-                                            href='delete.php?id=$row[id]'>Delete</a>
+                                            onclick=\"return confirm('Are you sure you want to delete " . htmlspecialchars($row['farmer_name']) . "\\'s record?');\" 
+                                            href='delete_records.php?id=" . htmlspecialchars($row['id']) . "'>Delete</a>
                         </td> 
                     </tr>
                     ";
@@ -222,3 +226,6 @@ if ($countResult) {
 </body>
 
 </html>
+<?php
+$conn->close();
+?>

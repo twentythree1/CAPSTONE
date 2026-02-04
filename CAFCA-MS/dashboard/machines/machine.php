@@ -194,7 +194,7 @@ if ($countResult) {
                             <a class='btn btn-success btn-sm' href='history.php?id=$row[id]'>History</a>
                             <a class='btn btn-danger btn-sm' 
                                             onclick=\"return confirm('Are you sure you want to delete $row[name]?');\" 
-                                            href='delete.php?id=$row[id]'>Delete</a>
+                                            href='delete_machine.php?id=$row[id]'>Delete</a>
                         </td> 
                     </tr>
                     ";

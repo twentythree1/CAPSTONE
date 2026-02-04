@@ -35,13 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
-        // Validate date range
         if (strtotime($harvest_end_date) < strtotime($harvest_start_date)) {
             $errorMessage = "End date cannot be earlier than start date.";
             break;
         }
 
-        // Check if farmer exists
         $farmer_id_esc = (int)$farmer_id;
         $farmerCheck = $conn->query("SELECT id FROM farmers WHERE id = '$farmer_id_esc'");
         if ($farmerCheck->num_rows == 0) {
@@ -49,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
-        // Check if machine exists
         $machine_id_esc = (int)$machine_id;
         $machineCheck = $conn->query("SELECT id FROM machines WHERE id = '$machine_id_esc'");
         if ($machineCheck->num_rows == 0) {
@@ -57,18 +54,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
-        // Validate number of sacks
         if (!is_numeric($number_of_sacks) || $number_of_sacks <= 0) {
             $errorMessage = "Number of sacks must be a positive number.";
             break;
         }
 
-        // Escape inputs
         $harvest_start_date_esc = $conn->real_escape_string($harvest_start_date);
         $harvest_end_date_esc = $conn->real_escape_string($harvest_end_date);
         $number_of_sacks_esc = (int)$number_of_sacks;
 
-        // Adding record with both start and end dates
         $sql = "INSERT INTO records (farmer_id, machine_id, harvest_start_date, harvest_end_date, number_of_sacks) 
                 VALUES ('$farmer_id_esc', '$machine_id_esc', '$harvest_start_date_esc', '$harvest_end_date_esc', '$number_of_sacks_esc')";
         $result = $conn->query($sql);
@@ -86,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         $successMessage = "Record successfully created!";
 
-        header("location: /CAFCA-MS/dashboard/records/records.php");
+        header("location: /CAPSTONE/CAFCA-MS/dashboard/records/records.php");
         exit;
 
     } while (false);
