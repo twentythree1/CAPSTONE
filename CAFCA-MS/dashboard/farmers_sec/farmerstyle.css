@@ -251,6 +251,13 @@ aside .sidebar a:hover span {
     text-decoration: none;
     color: inherit;
     border-radius: 6px;
+    font-size: 14px;
+    padding: 0.4rem 0;
+    color: var(--color-dark);
+}
+
+.sidebar-dropdown .dropdown-menu a:hover {
+    color: var(--color-primary);
 }
 
 .sidebar-dropdown .dropdown-menu a.active {
@@ -259,25 +266,77 @@ aside .sidebar a:hover span {
     margin-left: 1.5rem;
 }
 
-.sidebar-dropdown .dropdown-menu {
-    display: none;
-    flex-direction: column;
-    padding-left: 3rem;
-}
-
 .sidebar-dropdown.open .dropdown-menu {
     display: flex;
 }
 
-
-.sidebar-dropdown .dropdown-menu a {
-    font-size: 14px;
-    padding: 0.4rem 0;
-    color: var(--color-dark);
+aside {
+    width: 13rem !important;
+}
+.container {
+    grid-template-columns: 13rem auto !important;
 }
 
-.sidebar-dropdown .dropdown-menu a:hover {
+.sidebar-dropdown .dropdown-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-left: -1.5rem;
+    padding-right: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sidebar .dropdown-menu a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    border-radius: 8px;
+    color: inherit;
+    transition: background 150ms ease, transform 80ms ease;
+}
+
+.sidebar .dropdown-menu a:hover {
+    background: rgba(0,0,0,0.03);
+}
+.sidebar .dropdown-menu a.active {
+    background: rgba(163, 211, 171, 0.35);
+    font-weight: 700;
     color: var(--color-primary);
+    transform: translateX(2px);
+}
+
+.count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e6f4ea;
+    color: #0b6b33;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    line-height: 1;
+    min-width: 20px;
+    height: 20px;
+    text-align: center;
+    box-shadow: none;
+}
+
+.count-badge.zero {
+    opacity: 0.45;
+}
+
+.sidebar-dropdown .dropdown-menu span {
+    display: inline-block;
+    max-width: calc(100% - 48px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
 }
 
 main h2{

@@ -20,11 +20,66 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+$counts = [
+    'Pending' => 0,
+    'Approved' => 0,
+    'On going' => 0,
+    'Completed' => 0
+];
+
+$now = new DateTime();
+
+$countSql = "SELECT schedule_date, start_time, end_time, date_span, status FROM schedules";
+$countResult = $conn->query($countSql);
+if ($countResult) {
+    while ($r = $countResult->fetch_assoc()) {
+        $dbStatus = $r['status'];
+        $scheduleDate = $r['schedule_date'];
+        $startTime = $r['start_time'] ?: '00:00:00';
+        $endTime = $r['end_time'] ?: '23:59:59';
+        $dateSpan = isset($r['date_span']) ? (int)$r['date_span'] : 0;
+
+        try {
+            $startDt = new DateTime($scheduleDate . ' ' . $startTime);
+        } catch (Exception $e) {
+            $startDt = new DateTime($scheduleDate . ' 00:00:00');
+        }
+
+        $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
+        try {
+            $endDt = new DateTime($endDateStr . ' ' . $endTime);
+        } catch (Exception $e) {
+            $endDt = new DateTime($endDateStr . ' 23:59:59');
+        }
+
+        $computedStatus = $dbStatus;
+        if ($now >= $startDt && $now <= $endDt) {
+            $computedStatus = 'On going';
+        } elseif ($now > $endDt) {
+            $computedStatus = 'Completed';
+        } else {
+            $computedStatus = $dbStatus;
+        }
+
+        if (!isset($counts[$computedStatus])) $counts[$computedStatus] = 0;
+        $counts[$computedStatus]++;
+    }
+    $countResult->free();
+}
+
 $farmer_count = 0;
 $sql = "SELECT COUNT(*) AS cnt FROM farmers";
 if ($result = $conn->query($sql)) {
     $row = $result->fetch_assoc();
     $farmer_count = (int)($row['cnt'] ?? 0);
+    $result->free();
+}
+
+$machine_count = 0;
+$sql = "SELECT COUNT(*) AS cnt FROM machines";
+if ($result = $conn->query($sql)) {
+    $row = $result->fetch_assoc();
+    $machine_count = (int)($row['cnt'] ?? 0);
     $result->free();
 }
 ?>
@@ -71,27 +126,42 @@ if ($result = $conn->query($sql)) {
                     <span class="material-icons-sharp">agriculture</span>
                     <h3>Machines</h3>
                 </a>
-                <div class="sidebar-dropdown">
-                    <a href="javascript:void(0)" class="dropdown-toggle">
+                <?php $schedulesStatus = $_GET['status'] ?? ''; ?>
+                <div class="sidebar-dropdown <?= $schedulesStatus ? 'open' : '' ?>">
+                    <a href="javascript:void(0)" class="dropdown-toggle"
+                        aria-expanded="<?= $schedulesStatus ? 'true' : 'false' ?>">
                         <span class="material-icons-sharp">event</span>
                         <h3>Schedules</h3>
                         <span class="material-icons-sharp dropdown-icon">expand_more</span>
                     </a>
                     <div class="dropdown-menu">
-                        <a href="../schedules/schedule.php?status=Pending">Pending</a>
-                        <a href="../schedules/schedule.php?status=Approved">Approved</a>
-                        <a href="../schedules/schedule.php?status=On going">On going</a>
-                        <a href="../schedules/schedule.php?status=Completed">Completed</a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Pending">
+                            <span>Pending</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Pending'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Approved">
+                            <span>Approved</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Approved'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=On going">
+                            <span>On going</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['On going'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Completed">
+                            <span>Completed</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Completed'] ?? 0) ?></span>
+                        </a>
                     </div>
                 </div>
                 <a href="../records/records.php">
                     <span class="material-icons-sharp">topic</span>
                     <h3>Records</h3>
                 </a>
-                <a href="../../login/logout.php" class="danger">
-                    <span class="material-icons-sharp">logout</span>
-                    <h3>Log out</h3>
-                </a>
+                <div class="logout"><a href="../../login/logout.php" onclick="return confirm('Are you sure you want to log out?');" class="danger">
+                        <span class="material-icons-sharp">logout</span>
+                        <h3>Log out</h3>
+                    </a>
+                </div>
             </div>
         </aside>
 
@@ -133,23 +203,23 @@ if ($result = $conn->query($sql)) {
                         </div>
                     </div>
                 </div>
-                <div class="machines">
-                    <span class="material-icons-sharp">agriculture</span>
-                    <div class="middle">
-                        <div class="left">
-                            <h3>Available</h3>
-                            <h1>Machines</h1>
-                        </div>
-                        <div class="progress">
-                            <svg>
-                                <circle cx='38' cy='36' r='36'></circle>
-                            </svg>
-                            <div class="number">
-                                <p>44%</p>
+                <a href="../machines/machine.php" class="insight-card-link" title="View registered machines">
+                    <div class="machines">
+                        <div class="machines-left" style="display:flex;align-items:center;gap:1rem;">
+                            <div class="icon-bg">
+                                <span class="material-icons-sharp">agriculture</span>
+                            </div>
+                            <div class="left">
+                                <h3>Registered</h3>
+                                <h4 style="margin-top:6px; font-weight:600; color:var(--color-dark-variant);">Machines</h4>
                             </div>
                         </div>
+
+                        <div class="count-right">
+                            <h1><?= htmlspecialchars($machine_count, ENT_QUOTES, 'UTF-8'); ?></h1>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
 
             <div id="calendar-container">
@@ -339,18 +409,6 @@ if ($result = $conn->query($sql)) {
 
         loadCalendar();
     });
-    </script>
-
-    <script>
-    const scheduleDropdown = document.querySelector(".sidebar-dropdown");
-
-    scheduleDropdown.querySelector(".dropdown-toggle")
-        .addEventListener("click", () => {
-            scheduleDropdown.classList.toggle("open");
-
-            const menu = scheduleDropdown.querySelector(".dropdown-menu");
-            menu.style.display = menu.style.display === "flex" ? "none" : "flex";
-        });
     </script>
     <script src="dashscript.js"></script>
 </body>

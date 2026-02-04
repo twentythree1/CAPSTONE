@@ -5,6 +5,30 @@ $password = "";
 $database = "testdb";
 
 $conn = new mysqli($servername, $username, $password, $database);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$rawRedirect = null;
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $rawRedirect = isset($_GET['redirect']) ? $_GET['redirect'] : null;
+} else {
+    $rawRedirect = isset($_POST['redirect']) ? $_POST['redirect'] : (isset($_GET['redirect']) ? $_GET['redirect'] : null);
+}
+$rawRedirect = is_string($rawRedirect) ? trim($rawRedirect) : '';
+
+
+if ($rawRedirect === '') {
+    $cancelUrl = 'schedule.php';
+} else {
+    $san = filter_var($rawRedirect, FILTER_SANITIZE_STRING);
+
+    if (strpos($san, 'status=') !== false || stripos($san, 'schedule.php') !== false || preg_match('#^/|https?://#i', $san)) {
+        $cancelUrl = $san;
+    } else {
+        $cancelUrl = 'schedule.php?status=' . urlencode($san);
+    }
+}
 
 $id = "";
 $farmer_id = "";
@@ -14,32 +38,26 @@ $date_span = "";
 $start_time = "";
 $end_time = "";
 
-
 $errorMessage = "";
 $successMessage = "";
 
-$currentStatus = isset($_GET['redirect']) ? $_GET['redirect'] : 'schedule.php';
-
-$currentStatus = filter_var($currentStatus, FILTER_SANITIZE_URL);
-
-$cancelUrl = htmlspecialchars($currentStatus);
-
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     if (!isset($_GET["id"])) {
-        header("location: schedule.php");
+        header("Location: " . $cancelUrl);
         exit;
     }
 
-    $id = $_GET["id"];
+    $id = (int)$_GET["id"];
 
     $sql = "SELECT * FROM schedules WHERE id=$id";
     $result = $conn->query($sql);
-    $row = $result->fetch_assoc();
 
-    if (!$row) {
-        header("location: schedule.php");
+    if (!$result || $result->num_rows === 0) {
+        header("Location: " . $cancelUrl);
         exit;
     }
+
+    $row = $result->fetch_assoc();
 
     $farmer_id = $row["farmer_id"];
     $machine_id = $row["machine_id"];
@@ -49,15 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $end_time = $row["end_time"];
 
 } else {
+    $id = isset($_POST["id"]) ? (int)$_POST["id"] : 0;
+    $farmer_id = isset($_POST["farmer_id"]) ? (int)$_POST["farmer_id"] : 0;
+    $machine_id = isset($_POST["machine_id"]) ? (int)$_POST["machine_id"] : 0;
+    $schedule_date = isset($_POST["schedule_date"]) ? $_POST["schedule_date"] : '';
+    $date_span = isset($_POST["date_span"]) ? (int)$_POST["date_span"] : 0;
+    $start_time = isset($_POST["start_time"]) ? $_POST["start_time"] : '';
+    $end_time = isset($_POST["end_time"]) ? $_POST["end_time"] : '';
 
-    $id = isset($_POST["id"]) ? $_POST["id"] : '';
-    $farmer_id = $_POST["farmer_id"];
-    $machine_id = $_POST["machine_id"];
-    $schedule_date = $_POST["schedule_date"];
-    $date_span = $_POST["date_span"];
-    $start_time = $_POST["start_time"];
-    $end_time = $_POST["end_time"];
-
+    // (optional) fetch names if needed elsewhere
     $farmer_name = "";
     $machine_name = "";
 
@@ -74,16 +92,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     do {
         if (
             empty($id) || empty($farmer_id) || empty($machine_id) ||
-            empty($schedule_date) || empty($date_span) ||
+            empty($schedule_date) || (!is_numeric($date_span) && $date_span !== 0) ||
             empty($start_time) || empty($end_time)
         ) {
             $errorMessage = "All fields are required!";
             break;
         }
 
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $schedule_date)) {
+            $errorMessage = "Invalid schedule date format.";
+            break;
+        }
+
+        if ($date_span < 0) {
+            $errorMessage = "Date span must be 0 or greater.";
+            break;
+        }
+
+        $schedule_date_esc = $conn->real_escape_string($schedule_date);
+        $start_time_esc = $conn->real_escape_string($start_time);
+        $end_time_esc = $conn->real_escape_string($end_time);
+
+        $id = (int)$id;
+        $farmer_id = (int)$farmer_id;
+        $machine_id = (int)$machine_id;
+        $date_span = (int)$date_span;
 
         $sql = "UPDATE schedules 
-                SET farmer_id = '$farmer_id', machine_id = '$machine_id', schedule_date = '$schedule_date', date_span = '$date_span', start_time = '$start_time', end_time = '$end_time' 
+                SET farmer_id = $farmer_id, machine_id = $machine_id, schedule_date = '$schedule_date_esc', date_span = $date_span, start_time = '$start_time_esc', end_time = '$end_time_esc' 
                 WHERE id = $id";
 
         $result = $conn->query($sql);
@@ -94,14 +130,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         }
 
         $successMessage = "Schedule successfully updated!";
-        header("location: schedule.php");
+        // Redirect back to the computed cancel URL which includes the status if provided
+        header("Location: " . $cancelUrl);
         exit;
 
-    } while (true);
+    } while (false);
 }
 
+// compute server-side end date preview
+$end_date_preview = "";
+if (!empty($schedule_date) && is_numeric($date_span)) {
+    $end_date_preview = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
+}
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -109,10 +150,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     <meta charset="UTF-8">
     <link rel="icon" href="../../../LandingPage/others/logo.png" type="image/x-icon">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAFCA | Farmers</title>
+    <title>CAFCA | Edit Schedule</title>
     <link rel="stylesheet" href="	https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
-
 </head>
 
 <body>
@@ -124,14 +164,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         if (!empty($errorMessage)) {
             echo "
             <div class='alert alert-warning alert-dismissible fade show' role='alert'>
-                <strong>$errorMessage</strong>
+                <strong>" . htmlspecialchars($errorMessage) . "</strong>
+                <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
+            </div>
+            ";
+        }
+        if (!empty($successMessage)) {
+            echo "
+            <div class='alert alert-success alert-dismissible fade show' role='alert'>
+                <strong>" . htmlspecialchars($successMessage) . "</strong>
                 <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
             </div>
             ";
         }
         ?>
-        <form method="post">
-            <input type="hidden" name="id" value="<?= $id ?>">
+
+        <form method="post" id="editScheduleForm">
+            <input type="hidden" name="id" value="<?= htmlspecialchars($id) ?>">
+            <input type="hidden" name="redirect" value="<?= htmlspecialchars($rawRedirect) ?>">
+
             <div class="row mb-3">
                 <label class="col-sm-3 col-form-label">Farmer</label>
                 <div class="col-sm-6">
@@ -148,6 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                     </select>
                 </div>
             </div>
+
             <div class="row mb-3">
                 <label class="col-sm-3 col-form-label">Machine</label>
                 <div class="col-sm-6">
@@ -168,53 +220,77 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
             <div class="row mb-3">
                 <label class="col-sm-3 col-form-label">Schedule Date</label>
                 <div class="col-sm-6">
-                    <input type="date" class="form-control" name="schedule_date" value="<?php echo $schedule_date; ?>" min="<?php echo date('Y-m-d'); ?>">
-                </div>
-            </div>
-            <div class="row mb-3">
-                <label class="col-sm-3 col-form-label">Date Span</label>
-                <div class="col-sm-6">
-                    <input type="number" class="form-control" name="date_span" value="<?php echo $date_span; ?>">
-                </div>
-            </div>
-            <div class="row mb-3">
-                <label class="col-sm-3 col-form-label">Start Time</label>
-                <div class="col-sm-6">
-                    <input type="time" class="form-control" name="start_time" value="<?php echo $start_time; ?>">
-                </div>
-            </div>
-            <div class="row mb-3">
-                <label class="col-sm-3 col-form-label">End Time</label>
-                <div class="col-sm-6">
-                    <input type="time" class="form-control" name="end_time" value="<?php echo $end_time; ?>">
+                    <input type="date" class="form-control" id="schedule_date" name="schedule_date" value="<?= htmlspecialchars($schedule_date) ?>" min="<?php echo date('Y-m-d'); ?>" required>
                 </div>
             </div>
 
-            <?php
-            if (!empty($successMessage)) {
-                echo "
-                <div class='row mb-3'>
-                    <div class='offset-sm-3 col-sm-6'>
-                        <div class='alert alert-success alert-dismissible fade show' role='alert'>
-                            <strong>$successMessage</strong>
-                            <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
-                        </div>
-                    </div>
+            <div class="row mb-3">
+                <label class="col-sm-3 col-form-label">Date Span (days)</label>
+                <div class="col-sm-6">
+                    <input type="number" class="form-control" id="date_span" name="date_span" value="<?= htmlspecialchars($date_span) ?>" min="0" required>
+                    <small class="text-muted">Number of days to add to the schedule date to get the end date.</small>
                 </div>
-                ";
-            }
-            ?>
+            </div>
+
+            <div class="row mb-3">
+                <label class="col-sm-3 col-form-label">End Date (preview)</label>
+                <div class="col-sm-6">
+                    <input type="date" class="form-control" id="end_date_preview" value="<?= htmlspecialchars($end_date_preview) ?>" readonly>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <label class="col-sm-3 col-form-label">Start Time</label>
+                <div class="col-sm-6">
+                    <input type="time" class="form-control" name="start_time" value="<?= htmlspecialchars($start_time) ?>" required>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <label class="col-sm-3 col-form-label">End Time</label>
+                <div class="col-sm-6">
+                    <input type="time" class="form-control" name="end_time" value="<?= htmlspecialchars($end_time) ?>" required>
+                </div>
+            </div>
+
             <div class="row mb-3">
                 <div class="offset-sm-3 col-sm-3 d-grid">
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
                 <div class="col-sm-3 d-grid">
-                    <a class='btn btn-outline-primary' href="<?= $cancelUrl ?>" role='button'>Cancel Editing</a>
+                    <a class='btn btn-outline-primary' href="<?= htmlspecialchars($cancelUrl) ?>" role='button'>Cancel Editing</a>
                 </div>
             </div>
         </form>
     </div>
 
+    <script>
+    (function () {
+        const scheduleDateInput = document.getElementById('schedule_date');
+        const dateSpanInput = document.getElementById('date_span');
+        const endDateInput = document.getElementById('end_date_preview');
+
+        function updateEndDate() {
+            const sd = scheduleDateInput.value;
+            let span = parseInt(dateSpanInput.value, 10);
+            if (!sd || isNaN(span)) {
+                endDateInput.value = '';
+                return;
+            }
+
+            const d = new Date(sd);
+            d.setDate(d.getDate() + span);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            endDateInput.value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        scheduleDateInput.addEventListener('change', updateEndDate);
+        dateSpanInput.addEventListener('input', updateEndDate);
+        updateEndDate();
+    })();
+    </script>
 
 </body>
 

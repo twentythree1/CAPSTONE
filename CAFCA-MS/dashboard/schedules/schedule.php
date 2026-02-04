@@ -6,6 +6,63 @@ if (!isset($_SESSION['username'])) {
     exit();
 }
 
+$servername = "localhost";
+$username = "root";
+$password = "";
+$database = "testdb";
+
+$conn = new mysqli($servername, $username, $password, $database);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$counts = [
+    'Pending' => 0,
+    'Approved' => 0,
+    'On going' => 0,
+    'Completed' => 0
+];
+
+$now = new DateTime();
+
+$countSql = "SELECT schedule_date, start_time, end_time, date_span, status FROM schedules";
+$countResult = $conn->query($countSql);
+if ($countResult) {
+    while ($r = $countResult->fetch_assoc()) {
+        $dbStatus = $r['status'];
+        $scheduleDate = $r['schedule_date'];
+        $startTime = $r['start_time'] ?: '00:00:00';
+        $endTime = $r['end_time'] ?: '23:59:59';
+        $dateSpan = isset($r['date_span']) ? (int)$r['date_span'] : 0;
+
+        try {
+            $startDt = new DateTime($scheduleDate . ' ' . $startTime);
+        } catch (Exception $e) {
+            $startDt = new DateTime($scheduleDate . ' 00:00:00');
+        }
+
+        $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
+        try {
+            $endDt = new DateTime($endDateStr . ' ' . $endTime);
+        } catch (Exception $e) {
+            $endDt = new DateTime($endDateStr . ' 23:59:59');
+        }
+
+        $computedStatus = $dbStatus;
+        if ($now >= $startDt && $now <= $endDt) {
+            $computedStatus = 'On going';
+        } elseif ($now > $endDt) {
+            $computedStatus = 'Completed';
+        } else {
+            $computedStatus = $dbStatus;
+        }
+
+        if (!isset($counts[$computedStatus])) $counts[$computedStatus] = 0;
+        $counts[$computedStatus]++;
+    }
+    $countResult->free();
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -19,6 +76,30 @@ if (!isset($_SESSION['username'])) {
     <link rel="stylesheet" href="../farmers_sec/farmerstyle.css">
     <!-- MATERIAL ICONS -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp">
+
+    <!-- Inline styles for the small count badges in the sidebar submenu -->
+    <style>
+    .sidebar .dropdown-menu a {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-right: 12px;
+    }
+
+    .count-badge {
+        background: #e6f4ea;
+        color: #0b6b33;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 4px 8px;
+        border-radius: 999px;
+        line-height: 1;
+        min-width: 28px;
+        text-align: center;
+        box-shadow: none;
+    }
+    </style>
 </head>
 
 <body>
@@ -56,17 +137,30 @@ if (!isset($_SESSION['username'])) {
                         <span class="material-icons-sharp dropdown-icon">expand_more</span>
                     </a>
                     <div class="dropdown-menu">
-                        <a href="schedule.php?status=Pending">Pending</a>
-                        <a href="schedule.php?status=Approved">Approved</a>
-                        <a href="schedule.php?status=On going">On going</a>
-                        <a href="schedule.php?status=Completed">Completed</a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Pending">
+                            <span>Pending</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Pending'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Approved">
+                            <span>Approved</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Approved'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=On going">
+                            <span>On going</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['On going'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Completed">
+                            <span>Completed</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Completed'] ?? 0) ?></span>
+                        </a>
                     </div>
                 </div>
                 <a href="../records/records.php">
                     <span class="material-icons-sharp">topic</span>
                     <h3>Records</h3>
                 </a>
-                <div class="logout"><a href="../../login/logout.php" class="danger">
+                <div class="logout"><a href="../../login/logout.php"
+                        onclick="return confirm('Are you sure you want to log out?');" class="danger">
                         <span class="material-icons-sharp">logout</span>
                         <h3>Log out</h3>
                     </a>
@@ -100,21 +194,15 @@ if (!isset($_SESSION['username'])) {
             </div>
             <h2>List of Schedules</h2>
 
-            <a href="add_schedule.php" class="btn btn-primary" role="button">Create</a>
+            <?php
+            $currentStatus = isset($_GET['status']) ? $_GET['status'] : 'Pending';
+            ?>
+            <a href="add_schedule.php?redirect=<?= urlencode($currentStatus) ?>" class="btn btn-primary"
+                role="button">Create</a>
             <br>
 
 
             <?php
-            $servername = "localhost";
-            $username = "root";
-            $password = "";
-            $database = "testdb";
-
-            $conn = new mysqli($servername, $username, $password, $database);
-            if ($conn->connect_error) {
-                die("Connection failed: " . $conn->connect_error);
-            }
-
             $statusFilter = $_GET['status'] ?? null;
 
             $schedules = [
@@ -144,50 +232,52 @@ if (!isset($_SESSION['username'])) {
                 die("Error executing query: " . $conn->error);
             }
 
-            $statusFilter = $_GET['status'] ?? null;
+            $now = new DateTime();
 
-            $schedules = [
-                'Pending' => [],
-                'Approved' => [],
-                'On going' => [],
-                'Completed' => []
-            ];
-
-            $sql = "
-                SELECT 
-                    schedules.id,
-                    schedules.status,
-                    farmers.name AS farmer_name,
-                    machines.name AS machine_name,
-                    schedules.schedule_date,
-                    schedules.date_span,
-                    schedules.start_time,
-                    schedules.end_time
-                FROM schedules
-                JOIN farmers ON schedules.farmer_id = farmers.id
-                JOIN machines ON schedules.machine_id = machines.id
-            ";
-            $result = $conn->query($sql);
-                            
-            if (!$result) {
-                die("Error executing query: " . $conn->error);
-            }
-                            
-            // Filter schedules based on status
             while ($row = $result->fetch_assoc()) {
-                $current_status = $row['status']; 
-                            
-                if (isset($statusFilter) && $current_status !== $statusFilter) {
+                $dbStatus = $row['status'];
+
+                $scheduleDate = $row['schedule_date'];
+                $startTime = $row['start_time'] ?: '00:00:00';
+                $endTime = $row['end_time'] ?: '23:59:59';
+                $dateSpan = isset($row['date_span']) ? (int)$row['date_span'] : 0;
+
+                try {
+                    $startDt = new DateTime($scheduleDate . ' ' . $startTime);
+                } catch (Exception $e) {
+                    $startDt = new DateTime($scheduleDate . ' 00:00:00');
+                }
+
+                $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
+                try {
+                    $endDt = new DateTime($endDateStr . ' ' . $endTime);
+                } catch (Exception $e) {
+                    $endDt = new DateTime($endDateStr . ' 23:59:59');
+                }
+
+                $computedStatus = $dbStatus;
+                if ($now >= $startDt && $now <= $endDt) {
+                    $computedStatus = 'On going';
+                } elseif ($now > $endDt) {
+                    $computedStatus = 'Completed';
+                } else {
+                    $computedStatus = $dbStatus;
+                }
+
+                if (isset($statusFilter) && $computedStatus !== $statusFilter) {
                     continue;
                 }
-                            
-                $schedules[$current_status][] = [
+
+                if (!isset($schedules[$computedStatus])) {
+                    $schedules[$computedStatus] = [];
+                }
+
+                $schedules[$computedStatus][] = [
                     'row' => $row,
-                    'status' => $current_status
+                    'status' => $computedStatus
                 ];
             }
                             
-            // Render function for displaying schedules in a table
             function renderScheduleTable($title, $data) {
                 echo "<h3>$title</h3>";
                             
@@ -221,7 +311,7 @@ if (!isset($_SESSION['username'])) {
                     $start_date = date('m-d', strtotime($row['schedule_date']));
                     $end_date = date('m-d', strtotime($row['schedule_date'] . " +{$row['date_span']} days"));
                             
-                    $edit_redirect = 'edit_schedule.php?id=' . $row['id'];
+                    $edit_redirect = 'edit_schedule.php?id=' . $row['id'] . '&redirect=' . urlencode($status);
                     echo "<tr>";
                     echo "<td>{$row['id']}</td>";
                     echo "<td>{$row['farmer_name']}</td>";
@@ -248,13 +338,12 @@ if (!isset($_SESSION['username'])) {
             }
                             
             if ($statusFilter) {
-                renderScheduleTable("$statusFilter Schedules", $schedules[$statusFilter]);
+                renderScheduleTable("$statusFilter Schedules", $schedules[$statusFilter] ?? []);
             } else {
-                renderScheduleTable("Pending Schedules", $schedules['Pending']);
-                renderScheduleTable("Approved Schedules", $schedules['Approved']);
-                renderScheduleTable("On-Going Schedules", $schedules['On going']);
-                renderScheduleTable("Completed Schedules", $schedules['Completed']);
-                renderScheduleTable("Cancelled Schedules", $schedules['Cancelled']);
+                renderScheduleTable("Pending Schedules", $schedules['Pending'] ?? []);
+                renderScheduleTable("Approved Schedules", $schedules['Approved'] ?? []);
+                renderScheduleTable("On-Going Schedules", $schedules['On going'] ?? []);
+                renderScheduleTable("Completed Schedules", $schedules['Completed'] ?? []);
             }
             ?>
         </main>
@@ -282,18 +371,6 @@ if (!isset($_SESSION['username'])) {
             }, interval);
         }
     });
-    </script>
-
-    <script>
-    const scheduleDropdown = document.querySelector(".sidebar-dropdown");
-
-    scheduleDropdown.querySelector(".dropdown-toggle")
-        .addEventListener("click", () => {
-            scheduleDropdown.classList.toggle("open");
-
-            const menu = scheduleDropdown.querySelector(".dropdown-menu");
-            menu.style.display = menu.style.display === "flex" ? "none" : "flex";
-        });
     </script>
 
     <script>
