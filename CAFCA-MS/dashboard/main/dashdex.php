@@ -166,6 +166,20 @@ if ($result = $conn->query($sql)) {
         </aside>
 
         <main>
+            <div class="top">
+                <button id="menu-btn">
+                    <span class="material-icons-sharp">menu</span>
+                </button>
+                <div class="theme-toggler">
+                    <span class="material-icons-sharp active">light_mode</span>
+                    <span class="material-icons-sharp">dark_mode</span>
+                </div>
+                <div class="profile" style="display: flex; flex-direction: column; text-align: right;">
+                    <span
+                        style="font-size: 18px; text-transform: capitalize; font-weight: 700; "><?= $_SESSION['username']; ?></span>
+                    <small class="text-muted">Admin</small>
+                </div>
+            </div>
             <h1>Dashboard</h1>
 
             <div class="insights">
@@ -233,101 +247,7 @@ if ($result = $conn->query($sql)) {
                 <div id="calendar">
                 </div>
             </div>
-
         </main>
-
-        <div class="right">
-            <div class="top">
-                <button id="menu-btn">
-                    <span class="material-icons-sharp">menu</span>
-                </button>
-                <div class="theme-toggler">
-                    <span class="material-icons-sharp active">light_mode</span>
-                    <span class="material-icons-sharp">dark_mode</span>
-                </div>
-                <div class="profile">
-                    <span
-                        style="font-size: 18px; text-transform: capitalize; font-weight: 700; "><?= $_SESSION['username']; ?></span>
-                    <small class="text-muted">Admin</small>
-                </div>
-            </div>
-
-            <div class="recent-updates">
-                <h2>Recent Updates</h2>
-                <div class="updates">
-                    <div class="update">
-                        <div class="message">
-                            <p><b>Ryan</b> hapos lang gid na.</p>
-                            <small class="text-muted">1 decade ago.</small>
-                        </div>
-                    </div>
-                    <div class="update">
-                        <div class="message">
-                            <p><b>Grigo</b> Gani, Bel.</p>
-                            <small class="text-muted">1 decade ago.</small>
-                        </div>
-                    </div>
-                    <div class="update">
-                        <div class="message">
-                            <p><b>Robel</b> magtanim ay di biro, maghapong nakayuko.</p>
-                            <small class="text-muted">1 decade ago.</small>
-                        </div>
-                    </div>
-                    <div class="update">
-                        <div class="message">
-                            <p><b>Michael</b> gainano ta di man?</p>
-                            <small class="text-muted">1 decade ago.</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="attendance-sec">
-                <h2>Attendance</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>Jan Laurence Tan</td>
-                            <td class="present">Present</td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>Ryan Jay Madayag</td>
-                            <td class="danger">Absent</td>
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td>Robel Andrew Ambahan</td>
-                            <td class="present">Present</td>
-                        </tr>
-                        <tr>
-                            <td>4</td>
-                            <td>Jerovi Vargas</td>
-                            <td class="danger">Absent</td>
-                        </tr>
-                        <tr>
-                            <td>5</td>
-                            <td>John Michael Tombocon</td>
-                            <td class="danger">Absent</td>
-                        </tr>
-                        <tr>
-                            <td>7</td>
-                            <td>Ken Lenard Ababao</td>
-                            <td class="present">Present</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <a href="#">Show All</a>
-            </div>
-        </div>
     </div>
 
 
