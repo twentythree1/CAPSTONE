@@ -168,10 +168,10 @@ if ($result = $conn->query($sql)) {
                 </div>
             </div>
             <div class="title">
-                <h2 class="machine-count">List of Farmers
+                <h2 class="farmers-count">List of Farmers
                     <span><?= htmlspecialchars($farmer_count, ENT_QUOTES, 'UTF-8'); ?></span>
                 </h2>
-                <a href="add_farmer.php" class="btn btn-primary farmer" role="button">Add Farmer</a>
+                <a href="create.php" class="btn btn-primary farmer" role="button">Add Farmer</a>
             </div>
             <br>
             <div class='table-scroll'>

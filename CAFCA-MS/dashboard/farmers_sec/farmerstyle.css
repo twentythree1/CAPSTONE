@@ -296,12 +296,15 @@ aside {
     line-height: 1.2;
     border-radius: 8px;
     color: inherit;
+    position: relative;
+    padding-right: 12px;
     transition: background 150ms ease, transform 80ms ease;
 }
 
 .sidebar .dropdown-menu a:hover {
     background: rgba(0,0,0,0.03);
 }
+
 .sidebar .dropdown-menu a.active {
     background: rgba(163, 211, 171, 0.35);
     font-weight: 700;
@@ -313,17 +316,17 @@ aside {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #e6f4ea;
-    color: #0b6b33;
-    font-weight: 600;
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 999px;
-    line-height: 1;
-    min-width: 20px;
     height: 20px;
     text-align: center;
     box-shadow: none;
+    background: var(--color-primary-variant);
+    color: var(--color-dark);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    border-radius: 999px;
+    line-height: 1;
+    min-width: 28px;
 }
 
 .count-badge.zero {
@@ -379,15 +382,23 @@ main .farmers-count {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 1.2rem;
 }
+
+main .machine-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+}
+
 
 main .farmers-count span {
     align-items: center;
     gap: 1rem;
     background: var(--color-light);
     padding: 0.7rem 1.2rem;
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--color-dark);
 }
 
@@ -396,7 +407,7 @@ main .machine-count span {
     gap: 1rem;
     background: var(--color-light);
     padding: 0.7rem 1.2rem;
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--color-dark);
 }
 

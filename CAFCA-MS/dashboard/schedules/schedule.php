@@ -76,30 +76,6 @@ if ($countResult) {
     <link rel="stylesheet" href="../farmers_sec/farmerstyle.css">
     <!-- MATERIAL ICONS -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp">
-
-    <!-- Inline styles for the small count badges in the sidebar submenu -->
-    <style>
-    .sidebar .dropdown-menu a {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-right: 12px;
-    }
-
-    .count-badge {
-        background: #e6f4ea;
-        color: #0b6b33;
-        font-weight: 600;
-        font-size: 0.85rem;
-        padding: 4px 8px;
-        border-radius: 999px;
-        line-height: 1;
-        min-width: 28px;
-        text-align: center;
-        box-shadow: none;
-    }
-    </style>
 </head>
 
 <body>
