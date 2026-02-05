@@ -49,12 +49,12 @@ if ($countResult) {
         }
 
         $computedStatus = $dbStatus;
-        if ($now >= $startDt && $now <= $endDt) {
-            $computedStatus = 'On going';
-        } elseif ($now > $endDt) {
-            $computedStatus = 'Completed';
-        } else {
-            $computedStatus = $dbStatus;
+        if ($dbStatus === 'Approved') {
+            if ($now >= $startDt && $now <= $endDt) {
+                $computedStatus = 'On going';
+            } elseif ($now > $endDt) {
+                $computedStatus = 'Completed';
+            }
         }
 
         if (!isset($counts[$computedStatus])) $counts[$computedStatus] = 0;
@@ -192,13 +192,13 @@ if ($countResult) {
                     <small class="text-muted">Admin</small>
                 </div>
             </div>
-            <h2>List of Schedules</h2>
-
-            <?php
-            $currentStatus = isset($_GET['status']) ? $_GET['status'] : 'Pending';
-            ?>
-            <a href="add_schedule.php?redirect=<?= urlencode($currentStatus) ?>" class="btn btn-primary"
-                role="button">Create</a>
+            <div class="title">
+                <h2 class="machine-count">List of Schedules</h2>
+                <?php
+                    $currentStatus = isset($_GET['status']) ? $_GET['status'] : 'Pending'; ?>
+                <a href="add_schedule.php?redirect=<?= urlencode($currentStatus) ?>" class="btn btn-primary schedule"
+                    role="button">Add Schedule</a>
+            </div>
             <br>
 
 
@@ -256,12 +256,12 @@ if ($countResult) {
                 }
 
                 $computedStatus = $dbStatus;
-                if ($now >= $startDt && $now <= $endDt) {
-                    $computedStatus = 'On going';
-                } elseif ($now > $endDt) {
-                    $computedStatus = 'Completed';
-                } else {
-                    $computedStatus = $dbStatus;
+                if ($dbStatus === 'Approved') {
+                    if ($now >= $startDt && $now <= $endDt) {
+                        $computedStatus = 'On going';
+                    } elseif ($now > $endDt) {
+                        $computedStatus = 'Completed';
+                    }
                 }
 
                 if (isset($statusFilter) && $computedStatus !== $statusFilter) {
@@ -279,7 +279,7 @@ if ($countResult) {
             }
                             
             function renderScheduleTable($title, $data) {
-                echo "<h3>$title</h3>";
+                echo "<h3 style='margin-top: -1rem; margin-bottom: 1.2rem; padding-left: 1rem;'>$title</h3>";
                             
                 if (empty($data)) {
                     echo "<p>No schedules available.</p>";

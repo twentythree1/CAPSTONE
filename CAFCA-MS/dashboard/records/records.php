@@ -49,12 +49,12 @@ if ($countResult) {
         }
 
         $computedStatus = $dbStatus;
-        if ($now >= $startDt && $now <= $endDt) {
-            $computedStatus = 'On going';
-        } elseif ($now > $endDt) {
-            $computedStatus = 'Completed';
-        } else {
-            $computedStatus = $dbStatus;
+        if ($dbStatus === 'Approved') {
+            if ($now >= $startDt && $now <= $endDt) {
+                $computedStatus = 'On going';
+            } elseif ($now > $endDt) {
+                $computedStatus = 'Completed';
+            }
         }
 
         if (!isset($counts[$computedStatus])) $counts[$computedStatus] = 0;
@@ -158,9 +158,10 @@ if ($countResult) {
                     <small class="text-muted">Admin</small>
                 </div>
             </div>
-            <h2>Harvest Records</h2>
-
-            <a href="add_records.php" class="btn btn-primary" role="button">Add Record</a>
+            <div class="title">
+                <h2 class="machine-count">List of Records</h2>
+                <a href="add_records.php" class="btn btn-primary records" role="button">Add Record</a>
+            </div>
             <br>
             <div class='table-scroll'>
                 <table style='width:100%' class='table'>

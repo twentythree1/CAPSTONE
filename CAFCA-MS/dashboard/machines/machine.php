@@ -49,12 +49,12 @@ if ($countResult) {
         }
 
         $computedStatus = $dbStatus;
-        if ($now >= $startDt && $now <= $endDt) {
-            $computedStatus = 'On going';
-        } elseif ($now > $endDt) {
-            $computedStatus = 'Completed';
-        } else {
-            $computedStatus = $dbStatus;
+        if ($dbStatus === 'Approved') {
+            if ($now >= $startDt && $now <= $endDt) {
+                $computedStatus = 'On going';
+            } elseif ($now > $endDt) {
+                $computedStatus = 'Completed';
+            }
         }
 
         if (!isset($counts[$computedStatus])) $counts[$computedStatus] = 0;
@@ -63,6 +63,13 @@ if ($countResult) {
     $countResult->free();
 }
 
+$machine_count = 0;
+$sql = "SELECT COUNT(*) AS cnt FROM machines";
+if ($result = $conn->query($sql)) {
+    $row = $result->fetch_assoc();
+    $machine_count = (int)($row['cnt'] ?? 0);
+    $result->free();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -157,8 +164,12 @@ if ($countResult) {
                     <small class="text-muted">Admin</small>
                 </div>
             </div>
-            <h2>List of Machines</h2>
-            <a href="add_machine.php" class="btn btn-primary" role="button">Add Machine</a>
+            <div class="title">
+                <h2 class="machine-count">List of Machines
+                    <span><?= htmlspecialchars($machine_count, ENT_QUOTES, 'UTF-8'); ?></span>
+                </h2>
+                <a href="add_machine.php" class="btn btn-primary machine" role="button">Add Machine</a>
+            </div>
             <br>
             <div class='table-scroll'>
                 <table style='width:100%' class='table'>

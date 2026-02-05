@@ -339,8 +339,65 @@ aside {
     font-size: 12px;
 }
 
-main h2{
-    margin-bottom: 1rem;
+main .title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding: 0 1rem;
+}
+
+main .title a {
+    display: flex;
+}
+
+main .title a.farmer {
+    position: absolute;
+    margin-top: 2rem;
+    right: 5rem;
+}
+
+main .title a.schedule {
+    position: absolute;
+    margin-top: 4rem;
+    right: 5rem;
+}
+
+main .title a.machine {
+    position: absolute;
+    margin-top: 2rem;
+    right: 5rem;
+}
+
+main .title a.records {
+    position: absolute;
+    margin-top: 2rem;
+    right: 5rem;
+}
+
+main .farmers-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+main .farmers-count span {
+    align-items: center;
+    gap: 1rem;
+    background: var(--color-light);
+    padding: 0.7rem 1.2rem;
+    border-radius: 8px;
+    color: var(--color-dark);
+}
+
+main .machine-count span {
+    align-items: center;
+    gap: 1rem;
+    background: var(--color-light);
+    padding: 0.7rem 1.2rem;
+    border-radius: 8px;
+    color: var(--color-dark);
 }
 
 main .btn {
@@ -410,7 +467,7 @@ main table tbody tr:last-child td {
 }
 
 .table-scroll {
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     max-height: calc(100vh - 220px);
     overflow-y: auto;
     overflow-x: hidden;

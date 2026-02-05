@@ -53,12 +53,12 @@ if ($countResult) {
         }
 
         $computedStatus = $dbStatus;
-        if ($now >= $startDt && $now <= $endDt) {
-            $computedStatus = 'On going';
-        } elseif ($now > $endDt) {
-            $computedStatus = 'Completed';
-        } else {
-            $computedStatus = $dbStatus;
+        if ($dbStatus === 'Approved') {
+            if ($now >= $startDt && $now <= $endDt) {
+                $computedStatus = 'On going';
+            } elseif ($now > $endDt) {
+                $computedStatus = 'Completed';
+            }
         }
 
         if (!isset($counts[$computedStatus])) $counts[$computedStatus] = 0;

@@ -49,18 +49,26 @@ if ($countResult) {
         }
 
         $computedStatus = $dbStatus;
-        if ($now >= $startDt && $now <= $endDt) {
-            $computedStatus = 'On going';
-        } elseif ($now > $endDt) {
-            $computedStatus = 'Completed';
-        } else {
-            $computedStatus = $dbStatus;
+        if ($dbStatus === 'Approved') {
+            if ($now >= $startDt && $now <= $endDt) {
+                $computedStatus = 'On going';
+            } elseif ($now > $endDt) {
+                $computedStatus = 'Completed';
+            }
         }
 
         if (!isset($counts[$computedStatus])) $counts[$computedStatus] = 0;
         $counts[$computedStatus]++;
     }
     $countResult->free();
+}
+
+$farmer_count = 0;
+$sql = "SELECT COUNT(*) AS cnt FROM farmers";
+if ($result = $conn->query($sql)) {
+    $row = $result->fetch_assoc();
+    $farmer_count = (int)($row['cnt'] ?? 0);
+    $result->free();
 }
 
 ?>
@@ -135,7 +143,8 @@ if ($countResult) {
                     <span class="material-icons-sharp">topic</span>
                     <h3>Records</h3>
                 </a>
-                <div class="logout"><a href="../../login/logout.php" onclick="return confirm('Are you sure you want to log out?');" class="danger">
+                <div class="logout"><a href="../../login/logout.php"
+                        onclick="return confirm('Are you sure you want to log out?');" class="danger">
                         <span class="material-icons-sharp">logout</span>
                         <h3>Log out</h3>
                     </a>
@@ -158,9 +167,12 @@ if ($countResult) {
                     <small class="text-muted">Admin</small>
                 </div>
             </div>
-            <h2>List of Farmers</h2>
-
-            <a href="create.php" class="btn btn-primary" role="button">Add Farmer</a>
+            <div class="title">
+                <h2 class="machine-count">List of Farmers
+                    <span><?= htmlspecialchars($farmer_count, ENT_QUOTES, 'UTF-8'); ?></span>
+                </h2>
+                <a href="add_farmer.php" class="btn btn-primary farmer" role="button">Add Farmer</a>
+            </div>
             <br>
             <div class='table-scroll'>
                 <table style='width:100%' class='table'>
@@ -179,7 +191,7 @@ if ($countResult) {
                         </tr>
                     </thead>
                     <tbody>
-                    <?php
+                        <?php
                     $sql = "SELECT * FROM farmers";
                     $result = $conn->query($sql);
 
