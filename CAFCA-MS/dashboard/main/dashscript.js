@@ -34,83 +34,103 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  const scheduleDropdown = document.querySelector(".sidebar-dropdown");
-  if (!scheduleDropdown) return;
+    const dropdowns = document.querySelectorAll(".sidebar-dropdown");
+    
+    dropdowns.forEach((dropdown) => {
+        const toggle = dropdown.querySelector(".dropdown-toggle");
+        const menu = dropdown.querySelector(".dropdown-menu");
+        if (!toggle || !menu) return;
 
-  const toggle = scheduleDropdown.querySelector(".dropdown-toggle");
-  const menu = scheduleDropdown.querySelector(".dropdown-menu");
-  if (!toggle || !menu) return;
+        const icon = toggle.querySelector(".material-icons-sharp");
+        let dropdownType = 'unknown';
+        if (icon) {
+            if (icon.textContent.trim() === 'event') {
+                dropdownType = 'schedules';
+            } else if (icon.textContent.trim() === 'agriculture') {
+                dropdownType = 'machines';
+            }
+        }
 
-  // Helper: detect whether current page is part of schedules area
-  const isSchedulesPage = () => {
-    const p = window.location.pathname.toLowerCase();
-    // adjust checks if your schedules pages live in a different path
-    return p.includes('/schedules/') || p.endsWith('/schedule.php') || p.includes('schedule.php');
-  };
+        if (!dropdown.classList.contains('open')) {
+            menu.style.display = 'none';
+            toggle.setAttribute('aria-expanded', 'false');
+        } else {
+            menu.style.display = 'flex';
+            toggle.setAttribute('aria-expanded', 'true');
+        }
 
-  // Ensure initial closed state (unless server-side already marked open)
-  if (!scheduleDropdown.classList.contains('open')) {
-    menu.style.display = 'none';
-    toggle.setAttribute('aria-expanded', 'false');
-  } else {
-    // If server-side added 'open' (because ?status=...), keep menu visible
-    menu.style.display = 'flex';
-    toggle.setAttribute('aria-expanded', 'true');
-  }
+        toggle.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            
+            dropdowns.forEach((otherDropdown) => {
+                if (otherDropdown !== dropdown && otherDropdown.classList.contains('open')) {
+                    const otherMenu = otherDropdown.querySelector(".dropdown-menu");
+                    const otherToggle = otherDropdown.querySelector(".dropdown-toggle");
+                    otherDropdown.classList.remove('open');
+                    if (otherMenu) otherMenu.style.display = 'none';
+                    if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
 
-  // Toggle when user clicks the dropdown toggle
-  toggle.addEventListener('click', (ev) => {
-    ev.preventDefault();
-    scheduleDropdown.classList.toggle('open');
-    const opened = scheduleDropdown.classList.contains('open');
-    menu.style.display = opened ? 'flex' : 'none';
-    toggle.setAttribute('aria-expanded', opened ? 'true' : 'false');
+            dropdown.classList.toggle('open');
+            const opened = dropdown.classList.contains('open');
+            menu.style.display = opened ? 'flex' : 'none';
+            toggle.setAttribute('aria-expanded', opened ? 'true' : 'false');
 
-    // Persist that the user explicitly opened it. Remove when closed.
-    if (opened) {
-      localStorage.setItem('schedulesDropdownOpen', '1');
-    } else {
-      localStorage.removeItem('schedulesDropdownOpen');
-    }
-  });
+            if (opened) {
+                localStorage.setItem(`${dropdownType}DropdownOpen`, '1');
+            } else {
+                localStorage.removeItem(`${dropdownType}DropdownOpen`);
+            }
+        });
 
-  // Restore open state only when on a schedules page (prevents opening on other pages)
-  const saved = localStorage.getItem('schedulesDropdownOpen');
-  if (saved && isSchedulesPage()) {
-    scheduleDropdown.classList.add('open');
-    menu.style.display = 'flex';
-    toggle.setAttribute('aria-expanded', 'true');
-  }
+        const normalize = s => (s || '').toString().replace(/\s+/g, ' ').trim().toLowerCase();
+        const params = new URLSearchParams(window.location.search);
+        const urlStatus = normalize(params.get('status'));
 
-  // Highlight active link based on ?status=... and keep link logic (unchanged)
-  const normalize = s => (s || '').toString().replace(/\s+/g, ' ').trim().toLowerCase();
-  const params = new URLSearchParams(window.location.search);
-  const urlStatus = normalize(params.get('status'));
+        const currentPath = window.location.pathname.toLowerCase();
+        const isSchedulesPage = currentPath.includes('/schedules/') || currentPath.endsWith('/schedule.php') || currentPath.includes('schedule.php');
+        const isMachinesPage = currentPath.includes('/machines/') || currentPath.endsWith('/machine.php') || currentPath.includes('machine.php');
 
-  Array.from(menu.querySelectorAll('a')).forEach(a => {
-    let hrefStatus = '';
-    try {
-      hrefStatus = normalize((new URL(a.href, window.location.origin)).searchParams.get('status'));
-    } catch (e) {
-      // fallback for relative links
-      const parts = (a.getAttribute('href') || '').split('?')[1] || '';
-      hrefStatus = normalize((new URL('?' + parts, window.location.origin)).searchParams.get('status'));
-    }
+        let shouldOpen = false;
 
-    if (urlStatus && hrefStatus === urlStatus) {
-      a.classList.add('active');
-      // If URL has a status and we are on a non-schedules page, we still want the submenu visible.
-      scheduleDropdown.classList.add('open');
-      menu.style.display = 'flex';
-      toggle.setAttribute('aria-expanded', 'true');
-    } else {
-      a.classList.remove('active');
-    }
+        Array.from(menu.querySelectorAll('a')).forEach(a => {
+            let hrefStatus = '';
+            try {
+                hrefStatus = normalize((new URL(a.href, window.location.origin)).searchParams.get('status'));
+            } catch (e) {
+                const parts = (a.getAttribute('href') || '').split('?')[1] || '';
+                hrefStatus = normalize((new URL('?' + parts, window.location.origin)).searchParams.get('status'));
+            }
 
-    // Save user's last chosen status into localStorage only when they click a menu item.
-    a.addEventListener('click', () => {
-      const st = hrefStatus || urlStatus;
-      if (st) localStorage.setItem('schedulesStatus', st);
+            if (urlStatus && hrefStatus === urlStatus) {
+                a.classList.add('active');
+                shouldOpen = true;
+            } else {
+                a.classList.remove('active');
+            }
+
+            a.addEventListener('click', () => {
+                const st = hrefStatus || urlStatus;
+                if (st && dropdownType !== 'unknown') {
+                    localStorage.setItem(`${dropdownType}Status`, st);
+                }
+            });
+        });
+
+        if (shouldOpen) {
+            dropdown.classList.add('open');
+            menu.style.display = 'flex';
+            toggle.setAttribute('aria-expanded', 'true');
+        } else {
+            const savedState = localStorage.getItem(`${dropdownType}DropdownOpen`);
+            if (savedState && 
+                ((dropdownType === 'schedules' && isSchedulesPage) || 
+                 (dropdownType === 'machines' && isMachinesPage))) {
+                dropdown.classList.add('open');
+                menu.style.display = 'flex';
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+        }
     });
-  });
 });

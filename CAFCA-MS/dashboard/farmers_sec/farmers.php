@@ -16,6 +16,62 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Count machines by status
+$machineCounts = [
+    'Available' => 0,
+    'Partially Damaged' => 0,
+    'Totally Damaged' => 0,
+    'Not Returned' => 0
+];
+
+$countSql = "SELECT status FROM machines";
+$countResult = $conn->query($countSql);
+if ($countResult) {
+    while ($r = $countResult->fetch_assoc()) {
+        $status = $r['status'];
+        if (isset($machineCounts[$status])) {
+            $machineCounts[$status]++;
+        }
+    }
+    $countResult->free();
+}
+
+$now = new DateTime();
+$notReturnedSql = "SELECT DISTINCT s.machine_id, s.schedule_date, s.date_span, s.start_time, s.end_time, s.return_date, s.status
+                   FROM schedules s
+                   WHERE s.status IN ('Approved', 'Completed')";
+$notReturnedResult = $conn->query($notReturnedSql);
+$notReturnedCount = 0;
+
+if ($notReturnedResult) {
+    while ($r = $notReturnedResult->fetch_assoc()) {
+        $scheduleDate = $r['schedule_date'] ?? '';
+        $startTime = $r['start_time'] ?? '00:00:00';
+        $endTime = $r['end_time'] ?? '23:59:59';
+        $dateSpan = $r['date_span'] ?? 0;
+        $returnDate = $r['return_date'];
+        $scheduleStatus = $r['status'];
+
+        if (!empty($scheduleDate)) {
+            try {
+                $startDt = new DateTime($scheduleDate . ' ' . $startTime);
+                $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
+                $endDt = new DateTime($endDateStr . ' ' . $endTime);
+
+                if ($now > $endDt && empty($returnDate)) {
+                    $notReturnedCount++;
+                }
+            } catch (Exception $e) {
+            }
+        }
+    }
+    $notReturnedResult->free();
+}
+
+// Update the Not Returned count
+$machineCounts['Not Returned'] = $notReturnedCount;
+
+// Count schedules by status
 $counts = [
     'Pending' => 0,
     'Approved' => 0,
@@ -71,6 +127,11 @@ if ($result = $conn->query($sql)) {
     $result->free();
 }
 
+// Get status filter from URL
+$statusFilter = $_GET['status'] ?? null;
+
+// Total machine count
+$machine_count = array_sum($machineCounts);
 ?>
 
 <!DOCTYPE html>
@@ -108,11 +169,41 @@ if ($result = $conn->query($sql)) {
                     <span class="material-icons-sharp">people</span>
                     <h3>Farmers</h3>
                 </a>
-                <a href="../machines/machine.php">
-                    <span class="material-icons-sharp">agriculture</span>
-                    <h3>Machines</h3>
-                </a>
-                <?php $schedulesStatus = $_GET['status'] ?? ''; ?>
+                <?php
+                $statusParam = $_GET['status'] ?? ''; 
+                $currentPage = basename($_SERVER['PHP_SELF']);
+                $isMachinePage = ($currentPage === 'machine.php');
+                $isSchedulePage = ($currentPage === 'schedule.php');
+                ?>
+                <div class="sidebar-dropdown <?= ($isMachinePage && $statusParam) ? 'open' : '' ?>">
+                    <a href="javascript:void(0)" class="dropdown-toggle"
+                        aria-expanded="<?= ($isMachinePage && $statusParam) ? 'true' : 'false' ?>">
+                        <span class="material-icons-sharp">agriculture</span>
+                        <h3>Machines</h3>
+                        <span class="material-icons-sharp dropdown-icon">expand_more</span>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Not Returned">
+                            <span>Not Returned</span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Available">
+                            <span>Available</span>
+                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Available'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Partially Damaged">
+                            <span>Partially Damaged</span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Partially Damaged'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Totally Damaged">
+                            <span>Totally Damaged</span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
+                        </a>
+                    </div>
+                </div>
                 <div class="sidebar-dropdown <?= $schedulesStatus ? 'open' : '' ?>">
                     <a href="javascript:void(0)" class="dropdown-toggle"
                         aria-expanded="<?= $schedulesStatus ? 'true' : 'false' ?>">
