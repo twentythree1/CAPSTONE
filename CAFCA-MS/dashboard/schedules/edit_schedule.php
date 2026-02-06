@@ -135,7 +135,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     } while (false);
 }
 
-// compute server-side end date preview
 $end_date_preview = "";
 if (!empty($schedule_date) && is_numeric($date_span)) {
     $end_date_preview = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
