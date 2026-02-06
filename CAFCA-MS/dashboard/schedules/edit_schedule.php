@@ -75,7 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $start_time = isset($_POST["start_time"]) ? $_POST["start_time"] : '';
     $end_time = isset($_POST["end_time"]) ? $_POST["end_time"] : '';
 
-    // (optional) fetch names if needed elsewhere
     $farmer_name = "";
     $machine_name = "";
 
@@ -130,7 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         }
 
         $successMessage = "Schedule successfully updated!";
-        // Redirect back to the computed cancel URL which includes the status if provided
         header("Location: " . $cancelUrl);
         exit;
 

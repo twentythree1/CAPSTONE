@@ -26,6 +26,7 @@ $counts = [
 $now = new DateTime();
 
 $countSql = "SELECT schedule_date, start_time, end_time, date_span, status FROM schedules";
+
 $countResult = $conn->query($countSql);
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {

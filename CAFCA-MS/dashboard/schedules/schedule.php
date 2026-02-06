@@ -27,6 +27,7 @@ $now = new DateTime();
 
 $countSql = "SELECT schedule_date, start_time, end_time, date_span, status FROM schedules";
 $countResult = $conn->query($countSql);
+
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {
         $dbStatus = $r['status'];
@@ -288,6 +289,7 @@ if ($countResult) {
                     $end_date = date('m-d', strtotime($row['schedule_date'] . " +{$row['date_span']} days"));
                             
                     $edit_redirect = 'edit_schedule.php?id=' . $row['id'] . '&redirect=' . urlencode($status);
+                    $details_redirect = 'print_certificate.php?id=' . $row['id'] . '&redirect=' . urlencode($status);
                     echo "<tr>";
                     echo "<td>{$row['id']}</td>";
                     echo "<td>{$row['farmer_name']}</td>";
@@ -299,7 +301,7 @@ if ($countResult) {
                     echo "<td>$status</td>";
                     echo "<td>
                             <a class='btn btn-primary btn-sm' href='$edit_redirect'>Edit</a>
-                            <a class='btn btn-success btn-sm' href='print_certificate.php?id={$row['id']}'>Details</a>";
+                            <a class='btn btn-success btn-sm' href='$details_redirect'>Details</a>";
                     if ($status === 'Pending') {
                         echo "<a class='btn btn-warning btn-sm' onclick=\"return confirm('Are you sure you want to approve " . htmlspecialchars($row['farmer_name']) . "\\'s schedule to use " . htmlspecialchars($row['machine_name']) . "?');\" style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
                         echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to cancel " . htmlspecialchars($row['farmer_name']) . "\\'s schedule?');\"  style='margin-left: 4px;' href='cancel_schedule.php?id={$row['id']}'>Cancel</a>";

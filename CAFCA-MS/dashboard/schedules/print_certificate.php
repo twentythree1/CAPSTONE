@@ -9,6 +9,21 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+$rawRedirect = isset($_GET['redirect']) ? $_GET['redirect'] : null;
+$rawRedirect = is_string($rawRedirect) ? trim($rawRedirect) : '';
+
+if ($rawRedirect === '') {
+    $backUrl = 'schedule.php';
+} else {
+    $san = filter_var($rawRedirect, FILTER_SANITIZE_STRING);
+
+    if (strpos($san, 'status=') !== false || stripos($san, 'schedule.php') !== false || preg_match('#^/|https?://#i', $san)) {
+        $backUrl = $san;
+    } else {
+        $backUrl = 'schedule.php?status=' . urlencode($san);
+    }
+}
+
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $sql = "SELECT s.*, f.name AS farmer_name, m.name AS machine_name 
@@ -52,7 +67,7 @@ if (isset($_GET['id'])) {
 
 <div class="buttons">
 <a class="btn-print" onclick="window.print();">Print <span class="material-icons-sharp">print</span></a>
-<a class="btn-danger" href="schedule.php?status=Completed">Back</a>
+<a href="<?= htmlspecialchars($backUrl) ?>" class="btn-danger" role="button">Back</a>
 </div>
 
 
