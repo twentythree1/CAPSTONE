@@ -301,8 +301,8 @@ if ($countResult) {
                             <a class='btn btn-primary btn-sm' href='$edit_redirect'>Edit</a>
                             <a class='btn btn-success btn-sm' href='print_certificate.php?id={$row['id']}'>Details</a>";
                     if ($status === 'Pending') {
-                        echo "<a class='btn btn-warning btn-sm' style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
-                        echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to cancel this schedule?');\"  style='margin-left: 4px;' href='cancel_schedule.php?id={$row['id']}'>Cancel</a>";
+                        echo "<a class='btn btn-warning btn-sm' onclick=\"return confirm('Are you sure you want to approve " . htmlspecialchars($row['farmer_name']) . "\\'s schedule to use " . htmlspecialchars($row['machine_name']) . "?');\" style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
+                        echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to cancel " . htmlspecialchars($row['farmer_name']) . "\\'s schedule?');\"  style='margin-left: 4px;' href='cancel_schedule.php?id={$row['id']}'>Cancel</a>";
                     }
                     echo "</td>";
                     echo "</tr>";

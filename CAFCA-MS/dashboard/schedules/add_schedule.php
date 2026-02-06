@@ -228,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
                 <div class="col-sm-3 d-grid">
                     <a class="btn btn-outline-primary" href="<?= htmlspecialchars($cancelUrl) ?>"
-                        onclick="return confirm('Are you sure you want to cancel?');" role="button">Cancel</a>
+                        onclick="return confirm('Are you sure you want to cancel adding a schedule?');" role="button">Cancel</a>
                 </div>
             </div>
         </form>
