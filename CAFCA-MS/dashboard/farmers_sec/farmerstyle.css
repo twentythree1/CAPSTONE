@@ -808,7 +808,7 @@ main .top .alert-success {
     left: var(--tooltip-left);
     top: var(--tooltip-top);
     background: var(--color-dark);
-    color: white;
+    color: var(--color-white);
     padding: 0.75rem 1rem;
     border-radius: var(--border-radius-1);
     white-space: pre-wrap;
