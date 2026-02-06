@@ -425,6 +425,14 @@ main .btn:hover {
     background: green;
 }
 
+main .btn-resched {
+    background: #EB5B00;
+}
+
+main .btn-resched:hover {
+    background: #ff7b3d;
+}
+
 main .btn-danger {
     background: #C5172E;
 }
@@ -638,4 +646,204 @@ main .top .alert-success {
     width: 0;
     background: #28a745;
     transition: width 0.05s linear;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background-color: var(--color-white);
+    margin: 3% auto;
+    padding: 0;
+    border-radius: var(--card-border-radius);
+    width: 90%;
+    max-width: 700px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--color-info-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--color-dark);
+}
+
+.close-modal {
+    color: var(--color-dark-variant);
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+    line-height: 1;
+}
+
+.close-modal:hover,
+.close-modal:focus {
+    color: var(--color-danger);
+}
+
+.modal-body {
+    padding: 2rem;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--color-dark);
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--color-info-light);
+    border-radius: var(--border-radius-1);
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+.schedule-info {
+    background: var(--color-light);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-1);
+    margin-bottom: 2rem;
+}
+
+.schedule-info h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--color-primary);
+}
+
+.schedule-info p {
+    margin: 0.5rem 0;
+    color: var(--color-dark-variant);
+}
+
+.schedule-info strong {
+    color: var(--color-dark);
+}
+
+.alert-error {
+    background: var(--color-danger);
+    color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius-1);
+    margin-bottom: 1rem;
+}
+
+/* RESCHEDULE INFO TOOLTIP */
+.reschedule-info-icon {
+    display: inline-block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--color-dark-variant);
+    position: relative;
+    vertical-align: middle;
+    transition: color 0.2s;
+    cursor: help;
+    margin-left: 6px;
+    --tooltip-left: 0px;
+    --tooltip-top: 0px;
+}
+
+.reschedule-info-icon:hover {
+    color: var(--color-primary);
+}
+
+.reschedule-info-icon::before {
+    content: attr(data-tooltip);
+    position: fixed;
+    left: var(--tooltip-left);
+    top: var(--tooltip-top);
+    background: var(--color-dark);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-1);
+    white-space: pre-wrap;
+    min-width: 250px;
+    max-width: 350px;
+    font-size: 0.85rem;
+    font-weight: normal;
+    line-height: 1.4;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 10000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    transform: translate(-50%, -100%);
+}
+
+.reschedule-info-icon::after {
+    content: '';
+    position: fixed;
+    left: var(--tooltip-left);
+    top: var(--tooltip-top);
+    border: 8px solid transparent;
+    border-top-color: var(--color-dark);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 10000;
+    transform: translate(-50%, -8px);
+}
+
+.reschedule-info-icon:hover::before,
+.reschedule-info-icon:hover::after {
+    opacity: 1;
+    visibility: visible;
 }

@@ -155,6 +155,14 @@ if ($countResult) {
                     </div>
                 </div>
                 <?php endif; ?>
+                <?php if (isset($_GET['rescheduled'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert" style="position: relative;">
+                    The schedule was rescheduled successfully!
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner"></div>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <button id="menu-btn">
                     <span class="material-icons-sharp">menu</span>
                 </button>
@@ -198,7 +206,9 @@ if ($countResult) {
                     schedules.schedule_date,
                     schedules.date_span,
                     schedules.start_time,
-                    schedules.end_time
+                    schedules.end_time,
+                    schedules.reschedule_reason,
+                    schedules.rescheduled_at
                 FROM schedules
                 JOIN farmers ON schedules.farmer_id = farmers.id
                 JOIN machines ON schedules.machine_id = machines.id
@@ -305,6 +315,15 @@ if ($countResult) {
                     if ($status === 'Pending') {
                         echo "<a class='btn btn-warning btn-sm' onclick=\"return confirm('Are you sure you want to approve " . htmlspecialchars($row['farmer_name']) . "\\'s schedule to use " . htmlspecialchars($row['machine_name']) . "?');\" style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
                         echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to cancel " . htmlspecialchars($row['farmer_name']) . "\\'s schedule?');\"  style='margin-left: 4px;' href='cancel_schedule.php?id={$row['id']}'>Cancel</a>";
+                    } elseif ($status === 'Approved') {
+                        echo "<a class='btn btn-resched btn-sm' style='margin-left: 4px;' onclick='openRescheduleModal({$row['id']}, \"" . htmlspecialchars($row['farmer_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['machine_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['schedule_date']) . "\", {$row['date_span']}, \"" . htmlspecialchars($row['start_time']) . "\", \"" . htmlspecialchars($row['end_time']) . "\", \"$status\")'>Reschedule</a>";
+                        
+                        // Show ellipses with tooltip if there's a reschedule reason
+                        if (!empty($row['reschedule_reason'])) {
+                            $reason = htmlspecialchars($row['reschedule_reason'], ENT_QUOTES);
+                            $rescheduled_date = !empty($row['rescheduled_at']) ? date('M d, Y g:i A', strtotime($row['rescheduled_at'])) : 'N/A';
+                            echo "<span class='reschedule-info-icon' data-tooltip='Rescheduled on: $rescheduled_date&#10;Reason: $reason'>⋯</span>";
+                        }
                     }
                     echo "</td>";
                     echo "</tr>";
@@ -325,6 +344,68 @@ if ($countResult) {
             }
             ?>
         </main>
+    </div>
+
+    <!-- Reschedule Modal -->
+    <div id="rescheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reschedule Appointment</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+
+            <div class="modal-body">
+                <div id="errorMessage" class="alert-error" style="display: none;"></div>
+
+                <div class="schedule-info">
+                    <h3>Current Schedule Information</h3>
+                    <p><strong>Farmer:</strong> <span id="current-farmer"></span></p>
+                    <p><strong>Machine:</strong> <span id="current-machine"></span></p>
+                    <p><strong>Current Date:</strong> <span id="current-date"></span></p>
+                    <p><strong>Duration:</strong> <span id="current-duration"></span> day(s)</p>
+                    <p><strong>Time:</strong> <span id="current-time"></span></p>
+                    <p><strong>Status:</strong> <span id="current-status"></span></p>
+                </div>
+
+                <form id="rescheduleForm" method="POST" action="process_reschedule.php">
+                    <input type="hidden" id="schedule_id" name="schedule_id">
+                    <input type="hidden" name="redirect" value="<?= htmlspecialchars($statusFilter ?? 'Approved') ?>">
+
+                    <div class="form-group">
+                        <label for="schedule_date">New Schedule Date <span style="color: red;">*</span></label>
+                        <input type="date" id="schedule_date" name="schedule_date" min="<?= date('Y-m-d') ?>" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date_span">Duration (Days) <span style="color: red;">*</span></label>
+                        <input type="number" id="date_span" name="date_span" min="1" max="30" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="start_time">Start Time <span style="color: red;">*</span></label>
+                        <input type="time" id="start_time" name="start_time" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="end_time">End Time <span style="color: red;">*</span></label>
+                        <input type="time" id="end_time" name="end_time" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reschedule_reason">Reason for Rescheduling <span
+                                style="color: red;">*</span></label>
+                        <textarea id="reschedule_reason" name="reschedule_reason"
+                            placeholder="Please provide a reason for rescheduling this appointment..."
+                            required></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeRescheduleModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Reschedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -414,6 +495,118 @@ if ($countResult) {
         }
     });
     </script>
+
+    <!-- MODAL -->
+    <script>
+    function openRescheduleModal(id, farmerName, machineName, scheduleDate, dateSpan, startTime, endTime, status) {
+        const modal = document.getElementById('rescheduleModal');
+
+        document.getElementById('current-farmer').textContent = farmerName;
+        document.getElementById('current-machine').textContent = machineName;
+        document.getElementById('current-date').textContent = formatDate(scheduleDate);
+        document.getElementById('current-duration').textContent = dateSpan;
+        document.getElementById('current-time').textContent = formatTime(startTime) + ' - ' + formatTime(endTime);
+        document.getElementById('current-status').textContent = status;
+
+        document.getElementById('schedule_id').value = id;
+        document.getElementById('schedule_date').value = scheduleDate;
+        document.getElementById('date_span').value = dateSpan;
+        document.getElementById('start_time').value = startTime;
+        document.getElementById('end_time').value = endTime;
+        document.getElementById('reschedule_reason').value = '';
+
+        document.getElementById('errorMessage').style.display = 'none';
+
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeRescheduleModal() {
+        const modal = document.getElementById('rescheduleModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const options = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        };
+        return date.toLocaleDateString('en-US', options);
+    }
+
+    function formatTime(timeString) {
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        return `${hour12}:${minutes} ${ampm}`;
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('rescheduleModal');
+        if (event.target == modal) {
+            closeRescheduleModal();
+        }
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeRescheduleModal();
+        }
+    });
+
+    document.getElementById('rescheduleForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (!confirm('Are you sure you want to reschedule this appointment?')) {
+            return;
+        }
+
+        const formData = new FormData(this);
+
+        fetch('process_reschedule.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'schedule.php?status=' + data.redirect + '&rescheduled=1';
+                } else {
+                    const errorDiv = document.getElementById('errorMessage');
+                    errorDiv.textContent = data.message || 'Failed to reschedule. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                console.error('Error:', error);
+            });
+    });
+
+    document.querySelector('.close-modal').addEventListener('click', closeRescheduleModal);
+
+    // TOOLTIP FOR RESCHEDULE REASON
+    document.addEventListener('DOMContentLoaded', function() {
+        const infoIcons = document.querySelectorAll('.reschedule-info-icon');
+        
+        infoIcons.forEach(icon => {
+            icon.addEventListener('mouseenter', function(e) {
+                const rect = this.getBoundingClientRect();
+                const tooltip = window.getComputedStyle(this, '::before');
+                
+                this.style.setProperty('--tooltip-left', rect.left + (rect.width / 2) + 'px');
+                this.style.setProperty('--tooltip-top', (rect.top - 10) + 'px');
+            });
+        });
+    });
+    </script>
+
     <script src="../main/dashscript.js"></script>
 </body>
 
