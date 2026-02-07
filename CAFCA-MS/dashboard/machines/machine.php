@@ -249,7 +249,7 @@ $machine_count = array_sum($machineCounts);
             <div class="title">
                 <h2>List of Machines</h2>
                 <?php if ($statusFilter !== 'Not Returned'): ?>
-                <a href="add_machine.php" class="btn btn-primary machine" role="button">Add Machine</a>
+                <a href="add_machine.php?redirect=<?= urlencode($statusFilter ?: 'Available') ?>" class="btn btn-primary machine" role="button">Add Machine</a>
                 <?php endif; ?>
             </div>
             <br>
@@ -373,11 +373,11 @@ $machine_count = array_sum($machineCounts);
                                 <td>$row[status]</td>
                                 <td>$row[acquisition_date]</td>
                                 <td>
-                                    <a class='btn btn-primary btn-sm' href='edit_machine.php?id=$row[id]'>Edit</a>
-                                    <a class='btn btn-success btn-sm' href='history.php?id=$row[id]'>History</a>
+                                    <a class='btn btn-primary btn-sm' href='edit_machine.php?id=$row[id]&redirect=" . urlencode($statusFilter ?: 'Available') . "'>Edit</a>
+                                    <a class='btn btn-success btn-sm' href='history.php?id=$row[id]&redirect=" . urlencode($statusFilter ?: 'Available') . "'>History</a>
                                     <a class='btn btn-danger btn-sm' 
                                        onclick=\"return confirm('Are you sure you want to delete $row[name]?');\" 
-                                       href='delete_machine.php?id=$row[id]'>Delete</a>
+                                       href='delete_machine.php?id=$row[id]&redirect=" . urlencode($statusFilter ?: 'Available') . "'>Delete</a>
                                     <span class='reschedule-info-icon' data-tooltip='{$tooltipContent}'>⋯</span>
                                 </td> 
                             </tr>

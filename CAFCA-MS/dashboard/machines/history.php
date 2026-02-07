@@ -4,10 +4,29 @@ $username = "root";
 $password = "";
 $database = "testdb";
 
-// Connect to the database
 $conn = new mysqli($servername, $username, $password, $database);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
+}
+
+// Handle redirect parameter
+$rawRedirect = isset($_GET['redirect']) ? $_GET['redirect'] : '';
+$rawRedirect = is_string($rawRedirect) ? trim($rawRedirect) : '';
+
+if ($rawRedirect === '') {
+    $cancelUrl = '/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Available';
+} else {
+    $san = filter_var($rawRedirect, FILTER_SANITIZE_STRING);
+
+    if (strpos($san, 'machine.php') !== false) {
+        if (strpos($san, '/CAPSTONE/CAFCA-MS/dashboard/machines/') === false) {
+            $cancelUrl = '/CAPSTONE/CAFCA-MS/dashboard/machines/' . $san;
+        } else {
+            $cancelUrl = $san;
+        }
+    } else {
+        $cancelUrl = '/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=' . urlencode($san);
+    }
 }
 
 // Get the machine ID from the URL
@@ -61,9 +80,8 @@ if (!$historyResult) {
 <body>
     <div class="container my-5">
         <h2>Usage History for: <?= htmlspecialchars($machineName) ?></h2>
-        <a class="btn btn-outline-primary mb-3" href="machine.php" role="button">Back to Machines</a>
+        <a class="btn btn-outline-primary mb-3" href="<?= htmlspecialchars($cancelUrl) ?>" role="button">Back to Machines</a>
 
-        <!-- Display History -->
         <?php if ($historyResult->num_rows > 0): ?>
             <table class="table table-striped">
                 <thead>

@@ -6,6 +6,31 @@ $database = "testdb";
 
 $conn = new mysqli($servername, $username, $password, $database);
 
+// Handle redirect parameter
+$rawRedirect = null;
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $rawRedirect = isset($_GET['redirect']) ? $_GET['redirect'] : null;
+} else {
+    $rawRedirect = isset($_POST['redirect']) ? $_POST['redirect'] : (isset($_GET['redirect']) ? $_GET['redirect'] : null);
+}
+$rawRedirect = is_string($rawRedirect) ? trim($rawRedirect) : '';
+
+if ($rawRedirect === '') {
+    $cancelUrl = '/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Available';
+} else {
+    $san = filter_var($rawRedirect, FILTER_SANITIZE_STRING);
+
+    if (strpos($san, 'machine.php') !== false) {
+        if (strpos($san, '/CAPSTONE/CAFCA-MS/dashboard/machines/') === false) {
+            $cancelUrl = '/CAPSTONE/CAFCA-MS/dashboard/machines/' . $san;
+        } else {
+            $cancelUrl = $san;
+        }
+    } else {
+        $cancelUrl = '/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=' . urlencode($san);
+    }
+}
+
 $id = "";
 $name = "";
 $type = "";
@@ -18,7 +43,7 @@ $successMessage = "";
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     if (!isset($_GET["id"])) {
-        header("location: /CAPSTONE/CAFCA-MS/dashboard/machines/machine.php");
+        header("Location: " . $cancelUrl);
         exit;
     }
 
@@ -29,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $row = $result->fetch_assoc();
 
     if (!$row) {
-        header("location: /CAPSTONE/CAFCA-MS/dashboard/machines/machine.php");
+        header("Location: " . $cancelUrl);
         exit;
     }
 
@@ -63,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 
         $successMessage = "Machine's information successfully updated!";
 
-        header("location:  /CAPSTONE/CAFCA-MS/dashboard/machines/machine.php");
+        header("Location: " . $cancelUrl);
         exit;
 
     } while (true);
@@ -101,6 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         ?>
         <form method="post">
             <input type="hidden" name="id" value="<?php echo $id; ?>">
+            <input type="hidden" name="redirect" value="<?= htmlspecialchars($rawRedirect) ?>">
+            
             <div class="row mb-3">
                 <label class="col-sm-3 col-form-label">Name</label>
                 <div class="col-sm-6">
@@ -118,15 +145,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 <div class="col-sm-6">
                     <select type="text" class="form-select" name="status">
                         <option value="N/A">---</option>
-                        <option value="Available">Available</option>
-                        <option value="Partially Damaged">Partially Damaged</option>
-                        <option value="Damaged">Damaged</option>
-                        <option value="Totally Damaged">Totally Damaged</option>
+                        <option value="Available" <?= $status == 'Available' ? 'selected' : '' ?>>Available</option>
+                        <option value="Partially Damaged" <?= $status == 'Partially Damaged' ? 'selected' : '' ?>>Partially Damaged</option>
+                        <option value="Damaged" <?= $status == 'Damaged' ? 'selected' : '' ?>>Damaged</option>
+                        <option value="Totally Damaged" <?= $status == 'Totally Damaged' ? 'selected' : '' ?>>Totally Damaged</option>
                     </select>
                 </div>
             </div>
             <div class="row mb-3">
-                <label class="col-sm-3 col-form-label">Address</label>
+                <label class="col-sm-3 col-form-label">Acquisition Date</label>
                 <div class="col-sm-6">
                     <input type="date" class="form-control" name="acquisition_date"
                         value="<?php echo $acquisition_date; ?>">
@@ -154,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
                 <div class="col-sm-3 d-grid">
-                    <a class="btn btn-outline-primary" href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php"
+                    <a class="btn btn-outline-primary" href="<?= htmlspecialchars($cancelUrl) ?>"
                         role="button">Cancel Editing</a>
                 </div>
             </div>

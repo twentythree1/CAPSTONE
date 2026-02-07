@@ -158,7 +158,7 @@ aside .close {
 
 
 /* sidebar */
-aside .sidebar{
+aside .sidebar {
     display: flex;
     flex-direction: column;
     height: 86vh;
@@ -830,7 +830,7 @@ main .top .alert-success {
     content: '';
     position: fixed;
     left: var(--tooltip-left);
-    top: var(--tooltip-top);
+    top: calc(var(--tooltip-top) + 0.8%);
     border: 8px solid transparent;
     border-top-color: var(--color-dark);
     opacity: 0;

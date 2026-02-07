@@ -6,6 +6,30 @@ $database = "testdb";
 
 $conn = new mysqli($servername, $username, $password, $database);
 
+$rawRedirect = null;
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $rawRedirect = isset($_GET['redirect']) ? $_GET['redirect'] : null;
+} else {
+    $rawRedirect = isset($_POST['redirect']) ? $_POST['redirect'] : (isset($_GET['redirect']) ? $_GET['redirect'] : null);
+}
+$rawRedirect = is_string($rawRedirect) ? trim($rawRedirect) : '';
+
+if ($rawRedirect === '') {
+    $cancelUrl = '/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Available';
+} else {
+    $san = filter_var($rawRedirect, FILTER_SANITIZE_STRING);
+
+    if (strpos($san, 'machine.php') !== false) {
+        if (strpos($san, '/CAPSTONE/CAFCA-MS/dashboard/machines/') === false) {
+            $cancelUrl = '/CAPSTONE/CAFCA-MS/dashboard/machines/' . $san;
+        } else {
+            $cancelUrl = $san;
+        }
+    } else {
+        $cancelUrl = '/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=' . urlencode($san);
+    }
+}
+
 $name = "";
 $type = "";
 $acquisition_date = "";
@@ -37,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $acquisition_date = "";
 
             $successMessage = "Machine successfully added with status 'Available'!";
-            header("location: machine.php");
+            header("Location: " . $cancelUrl);
             exit;
         }
     }
@@ -77,6 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <!-- Machine Addition Form -->
         <form method="post">
+            <input type="hidden" name="redirect" value="<?= htmlspecialchars($rawRedirect) ?>">
+
             <div class="row mb-3">
                 <label class="col-sm-3 col-form-label">Machine Name</label>
                 <div class="col-sm-6">
@@ -106,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <button type="submit" class="btn btn-primary">Add Machine</button>
                 </div>
                 <div class="col-sm-3 d-grid">
-                    <a class="btn btn-outline-secondary" href="machine.php" role="button">Cancel</a>
+                    <a class="btn btn-outline-secondary" href="<?= htmlspecialchars($cancelUrl) ?>" role="button">Cancel</a>
                 </div>
             </div>
         </form>
