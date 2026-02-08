@@ -125,6 +125,26 @@ $statusFilter = $_GET['status'] ?? null;
 
 // Total machine count
 $machine_count = array_sum($machineCounts);
+
+// Handle AJAX request for fetching machine data
+if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['id'])) {
+    header('Content-Type: application/json');
+    $id = intval($_GET['id']);
+    $sql = "SELECT * FROM machines WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        echo json_encode(['success' => true, 'data' => $row]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Machine not found']);
+    }
+    $stmt->close();
+    $conn->close();
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -233,6 +253,14 @@ $machine_count = array_sum($machineCounts);
 
         <main>
             <div class="top">
+                <?php if (isset($_GET['added'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert" style="position: relative;">
+                    New machine was added successfully!
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner"></div>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <button id="menu-btn">
                     <span class="material-icons-sharp">menu</span>
                 </button>
@@ -248,8 +276,10 @@ $machine_count = array_sum($machineCounts);
             </div>
             <div class="title">
                 <h2>List of Machines</h2>
-                <?php if ($statusFilter !== 'Not Returned'): ?>
-                <a href="add_machine.php?redirect=<?= urlencode($statusFilter ?: 'Available') ?>" class="btn btn-primary machine" role="button">Add Machine</a>
+                <?php 
+                $currentStatus = $statusFilter ?: 'Available';
+                if ($statusFilter !== 'Not Returned'): ?>
+                <a href="javascript:void(0)" onclick="openAddMachineModal()" class="btn btn-primary machine" role="button">Add Machine</a>
                 <?php endif; ?>
             </div>
             <br>
@@ -373,8 +403,8 @@ $machine_count = array_sum($machineCounts);
                                 <td>$row[status]</td>
                                 <td>$row[acquisition_date]</td>
                                 <td>
-                                    <a class='btn btn-primary btn-sm' href='edit_machine.php?id=$row[id]&redirect=" . urlencode($statusFilter ?: 'Available') . "'>Edit</a>
-                                    <a class='btn btn-success btn-sm' href='history.php?id=$row[id]&redirect=" . urlencode($statusFilter ?: 'Available') . "'>History</a>
+                                    <a class='btn btn-primary btn-sm' onclick='openEditMachineModal($row[id])' href='javascript:void(0)'>Edit</a>
+                                    <a class='btn btn-success btn-sm' onclick='openHistoryModal($row[id])'>History</a>
                                     <a class='btn btn-danger btn-sm' 
                                        onclick=\"return confirm('Are you sure you want to delete $row[name]?');\" 
                                        href='delete_machine.php?id=$row[id]&redirect=" . urlencode($statusFilter ?: 'Available') . "'>Delete</a>
@@ -391,6 +421,25 @@ $machine_count = array_sum($machineCounts);
         </main>
     </div>
 
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Usage History: <span id="history-machine-name"></span></h2>
+                <button class="close-modal" onclick="closeHistoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="historyLoadingMessage" style="text-align: center; padding: 20px; display: none;">
+                    <p>Loading history...</p>
+                </div>
+                <div id="historyErrorMessage" class="error-message" style="display: none;"></div>
+                <div id="historyContent">
+                    <!-- History table will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Return Machine Modal -->
     <div id="returnModal" class="modal">
         <div class="modal-content">
@@ -458,19 +507,31 @@ $machine_count = array_sum($machineCounts);
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
     }
-
-    // Close modal when clicking outside
+    // Close modals when clicking outside
     window.onclick = function(event) {
-        const modal = document.getElementById('returnModal');
-        if (event.target == modal) {
+        const returnModal = document.getElementById('returnModal');
+        const historyModal = document.getElementById('historyModal');
+        
+        if (event.target == returnModal) {
             closeReturnModal();
+        }
+        if (event.target == historyModal) {
+            closeHistoryModal();
         }
     }
 
-    // Close modal with Escape key
+    // Close modals with Escape key
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
-            closeReturnModal();
+            const returnModal = document.getElementById('returnModal');
+            const historyModal = document.getElementById('historyModal');
+            
+            if (returnModal && returnModal.style.display === 'block') {
+                closeReturnModal();
+            }
+            if (historyModal && historyModal.style.display === 'block') {
+                closeHistoryModal();
+            }
         }
     });
 
@@ -521,6 +582,306 @@ $machine_count = array_sum($machineCounts);
                 this.style.setProperty('--tooltip-top', (rect.top - 10) + 'px');
             });
         });
+    });
+
+    // MACHINE HISTORY MODAL FUNCTIONS
+    function openHistoryModal(machineId) {
+        const modal = document.getElementById('historyModal');
+        const loadingMsg = document.getElementById('historyLoadingMessage');
+        const errorMsg = document.getElementById('historyErrorMessage');
+        const historyContent = document.getElementById('historyContent');
+        
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        loadingMsg.style.display = 'block';
+        errorMsg.style.display = 'none';
+        historyContent.innerHTML = '';
+        
+        fetch('get_machine_history.php?id=' + machineId)
+            .then(response => response.json())
+            .then(data => {
+                loadingMsg.style.display = 'none';
+                
+                if (data.success) {
+                    document.getElementById('history-machine-name').textContent = data.machine_name;
+                    
+                    if (data.history && data.history.length > 0) {
+                        let tableHTML = '<table class="table table-striped"><thead><tr><th>Farmer</th><th>Start Date</th><th>End Date</th><th>Total Days</th></tr></thead><tbody>';
+                        
+                        data.history.forEach(record => {
+                            tableHTML += '<tr>' +
+                                '<td>' + escapeHtml(record.farmer_name) + '</td>' +
+                                '<td>' + record.start_date + '</td>' +
+                                '<td>' + record.end_date + '</td>' +
+                                '<td>' + record.total_days + '</td>' +
+                                '</tr>';
+                        });
+                        
+                        tableHTML += '</tbody></table>';
+                        historyContent.innerHTML = tableHTML;
+                    } else {
+                        historyContent.innerHTML = '<p style="text-align: center; padding: 20px;">No usage history found for this machine.</p>';
+                    }
+                } else {
+                    errorMsg.textContent = data.message || 'Failed to load history. Please try again.';
+                    errorMsg.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                loadingMsg.style.display = 'none';
+                errorMsg.textContent = 'An error occurred while loading history. Please try again.';
+                errorMsg.style.display = 'block';
+                console.error('Error:', error);
+            });
+    }
+
+    function closeHistoryModal() {
+        const modal = document.getElementById('historyModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    </script>
+
+    <!-- ADD MACHINE MODAL -->
+    <div id="addMachineModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Machine</h2>
+                <span class="close-modal" onclick="closeAddMachineModal()">&times;</span>
+            </div>
+
+            <div class="modal-body">
+                <div id="addMachineErrorMessage" class="alert-error" style="display: none;"></div>
+
+                <form id="addMachineForm" method="POST">
+                    <input type="hidden" name="redirect" value="<?= htmlspecialchars($currentStatus) ?>">
+
+                    <div class="form-group">
+                        <label for="machine_name">Machine Name <span style="color: red;">*</span></label>
+                        <input type="text" id="machine_name" name="name" placeholder="Enter machine name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="machine_type">Type <span style="color: red;">*</span></label>
+                        <input type="text" id="machine_type" name="type" placeholder="Enter machine type (e.g., tractor, harvester)" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="acquisition_date">Acquisition Date <span style="color: red;">*</span></label>
+                        <input type="date" id="acquisition_date" name="acquisition_date" max="<?= date('Y-m-d') ?>" required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddMachineModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50;">Add Machine</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT MACHINE MODAL -->
+    <div id="editMachineModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Machine Information</h2>
+                <span class="close-modal" onclick="closeEditMachineModal()">&times;</span>
+            </div>
+
+            <div class="modal-body">
+                <div id="editMachineErrorMessage" class="alert-error" style="display: none;"></div>
+
+                <form id="editMachineForm" method="POST">
+                    <input type="hidden" id="edit_machine_id" name="id">
+
+                    <div class="form-group">
+                        <label for="edit_machine_name">Machine Name <span style="color: red;">*</span></label>
+                        <input type="text" id="edit_machine_name" name="name" placeholder="Enter machine name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_machine_type">Type <span style="color: red;">*</span></label>
+                        <input type="text" id="edit_machine_type" name="type" placeholder="Enter machine type" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_machine_status">Status <span style="color: red;">*</span></label>
+                        <select id="edit_machine_status" name="status" required>
+                            <option value="">--- Select status ---</option>
+                            <option value="Available">Available</option>
+                            <option value="Partially Damaged">Partially Damaged</option>
+                            <option value="Damaged">Damaged</option>
+                            <option value="Totally Damaged">Totally Damaged</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_acquisition_date">Acquisition Date <span style="color: red;">*</span></label>
+                        <input type="date" id="edit_acquisition_date" name="acquisition_date" required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditMachineModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD MACHINE MODAL SCRIPT -->
+    <script>
+    function openAddMachineModal() {
+        const modal = document.getElementById('addMachineModal');
+        
+        document.getElementById('addMachineForm').reset();
+        document.getElementById('addMachineErrorMessage').style.display = 'none';
+        
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAddMachineModal() {
+        const modal = document.getElementById('addMachineModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const addModal = document.getElementById('addMachineModal');
+            const editModal = document.getElementById('editMachineModal');
+            if (addModal && addModal.style.display === 'block') {
+                closeAddMachineModal();
+            }
+            if (editModal && editModal.style.display === 'block') {
+                closeEditMachineModal();
+            }
+        }
+    });
+
+    document.getElementById('addMachineForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('process_add_machine.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'machine.php?status=' + encodeURIComponent(data.redirect) + '&added=1';
+                } else {
+                    const errorDiv = document.getElementById('addMachineErrorMessage');
+                    errorDiv.textContent = data.message || 'Failed to add machine. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                const errorDiv = document.getElementById('addMachineErrorMessage');
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                console.error('Error:', error);
+            });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const alert = document.querySelector('.alert');
+        const progressBarInner = document.querySelector('.progress-bar-inner');
+        const timerDuration = 3;
+        const interval = 30;
+        const totalSteps = timerDuration * 1000 / interval;
+        let currentStep = 0;
+
+        if (progressBarInner) {
+            const timer = setInterval(() => {
+                currentStep++;
+                const progressWidth = (currentStep / totalSteps) * 100;
+                progressBarInner.style.width = progressWidth + '%';
+
+                if (progressWidth >= 100) {
+                    clearInterval(timer);
+                    if (alert) alert.remove();
+                }
+            }, interval);
+        }
+    });
+    </script>
+
+    <!-- EDIT MACHINE MODAL SCRIPT -->
+    <script>
+    function openEditMachineModal(machineId) {
+        const modal = document.getElementById('editMachineModal');
+        const errorDiv = document.getElementById('editMachineErrorMessage');
+        errorDiv.style.display = 'none';
+        
+        fetch(`machine.php?action=get_machine&id=${machineId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('edit_machine_id').value = data.data.id;
+                    document.getElementById('edit_machine_name').value = data.data.name;
+                    document.getElementById('edit_machine_type').value = data.data.type;
+                    document.getElementById('edit_machine_status').value = data.data.status;
+                    document.getElementById('edit_acquisition_date').value = data.data.acquisition_date;
+                    
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    alert('Error loading machine data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading machine data');
+            });
+    }
+
+    function closeEditMachineModal() {
+        const modal = document.getElementById('editMachineModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    document.getElementById('editMachineForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('process_edit_machine.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'machine.php?status=<?= urlencode($statusFilter ?: 'Available') ?>&updated=1';
+                } else {
+                    const errorDiv = document.getElementById('editMachineErrorMessage');
+                    errorDiv.textContent = data.message || 'Failed to update machine. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                const errorDiv = document.getElementById('editMachineErrorMessage');
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                console.error('Error:', error);
+            });
     });
     </script>
 

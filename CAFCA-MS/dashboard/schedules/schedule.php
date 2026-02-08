@@ -125,6 +125,30 @@ $statusFilter = $_GET['status'] ?? null;
 
 // Total machine count
 $machine_count = array_sum($machineCounts);
+
+// Handle AJAX request for fetching schedule data
+if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['id'])) {
+    header('Content-Type: application/json');
+    $id = intval($_GET['id']);
+    $sql = "SELECT s.*, f.name as farmer_name, m.name as machine_name 
+            FROM schedules s
+            LEFT JOIN farmers f ON s.farmer_id = f.id
+            LEFT JOIN machines m ON s.machine_id = m.id
+            WHERE s.id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        echo json_encode(['success' => true, 'data' => $row]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Schedule not found']);
+    }
+    $stmt->close();
+    $conn->close();
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -254,6 +278,14 @@ $machine_count = array_sum($machineCounts);
                     </div>
                 </div>
                 <?php endif; ?>
+                <?php if (isset($_GET['added'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert" style="position: relative;">
+                    New schedule was added successfully!
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner"></div>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <button id="menu-btn">
                     <span class="material-icons-sharp">menu</span>
                 </button>
@@ -272,7 +304,7 @@ $machine_count = array_sum($machineCounts);
                 <h2>List of Schedules</h2>
                 <?php
                     $currentStatus = isset($_GET['status']) ? $_GET['status'] : 'Pending'; ?>
-                <a href="add_schedule.php?redirect=<?= urlencode($currentStatus) ?>" class="btn btn-primary schedule"
+                <a href="javascript:void(0)" onclick="openAddScheduleModal()" class="btn btn-primary schedule"
                     role="button">Add Schedule</a>
             </div>
             <br>
@@ -360,7 +392,7 @@ $machine_count = array_sum($machineCounts);
                 echo "<h3 style='margin-top: -1rem; margin-bottom: 1.2rem; padding-left: 1rem;'>$title</h3>";
                             
                 if (empty($data)) {
-                    echo "<p>No schedules available.</p>";
+                    echo "<p style='display: flex; justify-content: center; text-transform: capitalize;'>No {$title} available.</p>";
                     return;
                 }
                             
@@ -401,7 +433,7 @@ $machine_count = array_sum($machineCounts);
                     echo "<td>{$row['end_time']}</td>";
                     echo "<td>$status</td>";
                     echo "<td>
-                            <a class='btn btn-primary btn-sm' href='$edit_redirect'>Edit</a>
+                            <a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)'>Edit</a>
                             <a class='btn btn-success btn-sm' href='$details_redirect'>Details</a>";
                     if ($status === 'Pending') {
                         echo "<a class='btn btn-warning btn-sm' onclick=\"return confirm('Are you sure you want to approve " . htmlspecialchars($row['farmer_name']) . "\\'s schedule to use " . htmlspecialchars($row['machine_name']) . "?');\" style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
@@ -632,6 +664,308 @@ $machine_count = array_sum($machineCounts);
                 this.style.setProperty('--tooltip-top', (rect.top - 10) + 'px');
             });
         });
+    });
+    </script>
+
+    <!-- ADD SCHEDULE MODAL -->
+    <div id="addScheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Schedule</h2>
+                <span class="close-modal" onclick="closeAddScheduleModal()">&times;</span>
+            </div>
+
+            <div class="modal-body">
+                <div id="addScheduleErrorMessage" class="alert-error" style="display: none;"></div>
+
+                <form id="addScheduleForm" method="POST">
+                    <input type="hidden" name="redirect" value="<?= htmlspecialchars($currentStatus) ?>">
+
+                    <div class="form-group">
+                        <label for="farmer_id">Farmer <span style="color: red;">*</span></label>
+                        <select name="farmer_id" id="farmer_id" required class="form-select">
+                            <option value="">Select a Farmer</option>
+                            <?php
+                            $farmerList = $conn->query("SELECT id, name FROM farmers ORDER BY name ASC");
+                            while ($row = $farmerList->fetch_assoc()): ?>
+                            <option value="<?= $row['id'] ?>">
+                                <?= htmlspecialchars($row['name']) ?>
+                            </option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="machine_id">Machine <span style="color: red;">*</span></label>
+                        <select name="machine_id" id="machine_id" required class="form-select">
+                            <option value="">Select a Machine</option>
+                            <?php
+                            $machineList = $conn->query("SELECT id, name FROM machines ORDER BY name ASC");
+                            while ($row = $machineList->fetch_assoc()): ?>
+                            <option value="<?= $row['id'] ?>">
+                                <?= htmlspecialchars($row['name']) ?>
+                            </option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="add_schedule_date">Schedule Date <span style="color: red;">*</span></label>
+                        <input type="date" id="add_schedule_date" name="schedule_date" min="<?= date('Y-m-d') ?>" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="add_end_date">Schedule End Date <span style="color: red;">*</span></label>
+                        <input type="date" id="add_end_date" name="end_date" min="<?= date('Y-m-d') ?>" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="add_start_time">Start Time <span style="color: red;">*</span></label>
+                        <input type="time" id="add_start_time" name="start_time" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="add_end_time">End Time <span style="color: red;">*</span></label>
+                        <input type="time" id="add_end_time" name="end_time" required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddScheduleModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50;">Create Schedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT SCHEDULE MODAL -->
+    <div id="editScheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Schedule</h2>
+                <span class="close-modal" onclick="closeEditScheduleModal()">&times;</span>
+            </div>
+
+            <div class="modal-body">
+                <div id="editScheduleErrorMessage" class="alert-error" style="display: none;"></div>
+
+                <form id="editScheduleForm" method="POST">
+                    <input type="hidden" id="edit_schedule_id" name="id">
+
+                    <div class="form-group">
+                        <label for="edit_farmer_id">Farmer <span style="color: red;">*</span></label>
+                        <select id="edit_farmer_id" name="farmer_id" required>
+                            <option value="">Select a Farmer</option>
+                            <?php
+                            $farmerList = $conn->query("SELECT id, name FROM farmers ORDER BY name");
+                            while ($row = $farmerList->fetch_assoc()):
+                            ?>
+                                <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_machine_id">Machine <span style="color: red;">*</span></label>
+                        <select id="edit_machine_id" name="machine_id" required>
+                            <option value="">Select a Machine</option>
+                            <?php
+                            $machineList = $conn->query("SELECT id, name FROM machines ORDER BY name");
+                            while ($row = $machineList->fetch_assoc()):
+                            ?>
+                                <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_schedule_date">Schedule Date <span style="color: red;">*</span></label>
+                        <input type="date" id="edit_schedule_date" name="schedule_date" min="<?= date('Y-m-d') ?>" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_date_span">Date Span (days) <span style="color: red;">*</span></label>
+                        <input type="number" id="edit_date_span" name="date_span" min="0" required>
+                        <small style="color: var(--color-dark-variant); display: block; margin-top: 0.25rem;">Number of days to add to the schedule date to get the end date.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_end_date_preview">End Date (preview)</label>
+                        <input type="date" id="edit_end_date_preview" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_start_time">Start Time <span style="color: red;">*</span></label>
+                        <input type="time" id="edit_start_time" name="start_time" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_end_time">End Time <span style="color: red;">*</span></label>
+                        <input type="time" id="edit_end_time" name="end_time" required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditScheduleModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50;">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD SCHEDULE MODAL SCRIPT -->
+    <script>
+    function openAddScheduleModal() {
+        const modal = document.getElementById('addScheduleModal');
+        
+        document.getElementById('addScheduleForm').reset();
+        document.getElementById('addScheduleErrorMessage').style.display = 'none';
+        
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAddScheduleModal() {
+        const modal = document.getElementById('addScheduleModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const addModal = document.getElementById('addScheduleModal');
+            const editModal = document.getElementById('editScheduleModal');
+            if (addModal && addModal.style.display === 'block') {
+                closeAddScheduleModal();
+            }
+            if (editModal && editModal.style.display === 'block') {
+                closeEditScheduleModal();
+            }
+        }
+    });
+
+    document.getElementById('addScheduleForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('process_add_schedule.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'schedule.php?status=' + encodeURIComponent(data.redirect) + '&added=1';
+                } else {
+                    const errorDiv = document.getElementById('addScheduleErrorMessage');
+                    errorDiv.textContent = data.message || 'Failed to create schedule. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                const errorDiv = document.getElementById('addScheduleErrorMessage');
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                console.error('Error:', error);
+            });
+    });
+    </script>
+
+    <!-- EDIT SCHEDULE MODAL SCRIPT -->
+    <script>
+    function openEditScheduleModal(scheduleId) {
+        const modal = document.getElementById('editScheduleModal');
+        const errorDiv = document.getElementById('editScheduleErrorMessage');
+        errorDiv.style.display = 'none';
+        
+        fetch(`schedule.php?action=get_schedule&id=${scheduleId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('edit_schedule_id').value = data.data.id;
+                    document.getElementById('edit_farmer_id').value = data.data.farmer_id;
+                    document.getElementById('edit_machine_id').value = data.data.machine_id;
+                    document.getElementById('edit_schedule_date').value = data.data.schedule_date;
+                    document.getElementById('edit_date_span').value = data.data.date_span;
+                    document.getElementById('edit_start_time').value = data.data.start_time;
+                    document.getElementById('edit_end_time').value = data.data.end_time;
+                    
+                    updateEditEndDate();
+                    
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    alert('Error loading schedule data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading schedule data');
+            });
+    }
+
+    function closeEditScheduleModal() {
+        const modal = document.getElementById('editScheduleModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    function updateEditEndDate() {
+        const scheduleDateInput = document.getElementById('edit_schedule_date');
+        const dateSpanInput = document.getElementById('edit_date_span');
+        const endDateInput = document.getElementById('edit_end_date_preview');
+        
+        const sd = scheduleDateInput.value;
+        let span = parseInt(dateSpanInput.value, 10);
+        if (!sd || isNaN(span)) {
+            endDateInput.value = '';
+            return;
+        }
+
+        const d = new Date(sd);
+        d.setDate(d.getDate() + span);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        endDateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const editScheduleDate = document.getElementById('edit_schedule_date');
+        const editDateSpan = document.getElementById('edit_date_span');
+        
+        if (editScheduleDate && editDateSpan) {
+            editScheduleDate.addEventListener('change', updateEditEndDate);
+            editDateSpan.addEventListener('input', updateEditEndDate);
+        }
+    });
+
+    document.getElementById('editScheduleForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('process_edit_schedule.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'schedule.php?status=<?= urlencode($statusFilter ?: 'Pending') ?>&updated=1';
+                } else {
+                    const errorDiv = document.getElementById('editScheduleErrorMessage');
+                    errorDiv.textContent = data.message || 'Failed to update schedule. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                const errorDiv = document.getElementById('editScheduleErrorMessage');
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                console.error('Error:', error);
+            });
     });
     </script>
 

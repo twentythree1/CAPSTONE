@@ -1,0 +1,95 @@
+<?php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$database = "testdb";
+
+$conn = new mysqli($servername, $username, $password, $database);
+if ($conn->connect_error) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
+}
+
+$id = "";
+$farmer_id = "";
+$machine_id = "";
+$schedule_date = "";
+$date_span = "";
+$start_time = "";
+$end_time = "";
+
+$errorMessage = "";
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $id = isset($_POST["id"]) ? (int)$_POST["id"] : 0;
+    $farmer_id = isset($_POST["farmer_id"]) ? (int)$_POST["farmer_id"] : 0;
+    $machine_id = isset($_POST["machine_id"]) ? (int)$_POST["machine_id"] : 0;
+    $schedule_date = isset($_POST["schedule_date"]) ? $_POST["schedule_date"] : '';
+    $date_span = isset($_POST["date_span"]) ? (int)$_POST["date_span"] : 0;
+    $start_time = isset($_POST["start_time"]) ? $_POST["start_time"] : '';
+    $end_time = isset($_POST["end_time"]) ? $_POST["end_time"] : '';
+
+    do {
+        if (
+            empty($id) || empty($farmer_id) || empty($machine_id) ||
+            empty($schedule_date) || (!is_numeric($date_span) && $date_span !== 0) ||
+            empty($start_time) || empty($end_time)
+        ) {
+            $errorMessage = "All fields are required!";
+            break;
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $schedule_date)) {
+            $errorMessage = "Invalid schedule date format.";
+            break;
+        }
+
+        if ($date_span < 0) {
+            $errorMessage = "Date span must be 0 or greater.";
+            break;
+        }
+
+        if (!is_numeric($id)) {
+            $errorMessage = "Invalid schedule ID.";
+            break;
+        }
+
+        $sql = "UPDATE schedules 
+                SET farmer_id = ?, machine_id = ?, schedule_date = ?, date_span = ?, start_time = ?, end_time = ? 
+                WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+
+        if (!$stmt) {
+            $errorMessage = "Database error: " . $conn->error;
+            break;
+        }
+
+        $stmt->bind_param("iisissi", $farmer_id, $machine_id, $schedule_date, $date_span, $start_time, $end_time, $id);
+
+        if (!$stmt->execute()) {
+            $errorMessage = "Error updating schedule: " . $stmt->error;
+            $stmt->close();
+            break;
+        }
+
+        $stmt->close();
+
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'message' => 'Schedule successfully updated!']);
+        $conn->close();
+        exit;
+
+    } while (false);
+
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => $errorMessage]);
+    $conn->close();
+    exit;
+}
+
+$conn->close();
+
+// If accessed directly (not via POST), redirect to schedules page
+header("location: /CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Pending");
+exit;

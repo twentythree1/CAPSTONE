@@ -132,6 +132,26 @@ $statusFilter = $_GET['status'] ?? null;
 
 // Total machine count
 $machine_count = array_sum($machineCounts);
+
+// Handle AJAX request for fetching farmer data
+if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id'])) {
+    header('Content-Type: application/json');
+    $id = intval($_GET['id']);
+    $sql = "SELECT * FROM farmers WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        echo json_encode(['success' => true, 'data' => $row]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Farmer not found']);
+    }
+    $stmt->close();
+    $conn->close();
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -245,6 +265,14 @@ $machine_count = array_sum($machineCounts);
 
         <main>
             <div class="top">
+                <?php if (isset($_GET['added'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert" style="position: relative;">
+                    New farmer was added successfully!
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner"></div>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <button id="menu-btn">
                     <span class="material-icons-sharp">menu</span>
                 </button>
@@ -262,7 +290,7 @@ $machine_count = array_sum($machineCounts);
                 <h2 class="farmers-count">List of Farmers
                     <span><?= htmlspecialchars($farmer_count, ENT_QUOTES, 'UTF-8'); ?></span>
                 </h2>
-                <a href="create.php" class="btn btn-primary farmer" role="button">Add Farmer</a>
+                <a href="javascript:void(0)" onclick="openAddFarmerModal()" class="btn btn-primary farmer" role="button">Add Farmer</a>
             </div>
             <br>
             <div class='table-scroll'>
@@ -307,7 +335,7 @@ $machine_count = array_sum($machineCounts);
                         <td>$row[phone]</td>
                         <td>$row[created_at]</td>
                         <td>
-                            <a class='btn btn-primary btn-sm' href='edit.php?id=$row[id]'>Edit</a>
+                            <a class='btn btn-primary btn-sm' onclick='openEditFarmerModal($row[id])'>Edit</a>
                             <a class='btn btn-danger btn-sm' 
                                             onclick=\"return confirm('Are you sure you want to delete $row[name]?');\" 
                                             href='delete.php?id=$row[id]'>Delete</a>
@@ -323,6 +351,278 @@ $machine_count = array_sum($machineCounts);
             </div>
         </main>
     </div>
+
+    <!-- ADD FARMER MODAL -->
+    <div id="addFarmerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Farmer</h2>
+                <span class="close-modal" onclick="closeAddFarmerModal()">&times;</span>
+            </div>
+
+            <div class="modal-body">
+                <div id="addFarmerErrorMessage" class="alert-error" style="display: none;"></div>
+
+                <form id="addFarmerForm" method="POST">
+                    <div class="form-group">
+                        <label for="farmer_name">Name <span style="color: red;">*</span></label>
+                        <input type="text" id="farmer_name" name="name" placeholder="Enter farmer's full name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="farmer_birthday">Birthday <span style="color: red;">*</span></label>
+                        <input type="date" id="farmer_birthday" name="birthday" max="<?= date('Y-m-d', strtotime('-15 years')) ?>" required>
+                        <small style="color: var(--color-dark-variant); display: block; margin-top: 0.25rem;">Farmer must be at least 15 years old</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="farmer_address">Address <span style="color: red;">*</span></label>
+                        <input type="text" id="farmer_address" name="address" placeholder="Enter complete address" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="farmer_land">Land Area <span style="color: red;">*</span></label>
+                        <input type="number" id="farmer_land" name="land" step="0.25" min="0" placeholder="Enter land area" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="farmer_unit">Unit of Measurement of Land Area <span style="color: red;">*</span></label>
+                        <select id="farmer_unit" name="unit" required>
+                            <option value="">--- Select unit ---</option>
+                            <option value="cm²">cm²</option>
+                            <option value="m²">m²</option>
+                            <option value="km²">km²</option>
+                            <option value="hectare(s)">hectare(s)</option>
+                            <option value="acre(s)">acre(s)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="farmer_phone">Contact Number <span style="color: red;">*</span></label>
+                        <input type="text" id="farmer_phone" name="phone" placeholder="Enter contact number" required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddFarmerModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50">Add Farmer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT FARMER MODAL -->
+    <div id="editFarmerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Farmer Information</h2>
+                <span class="close-modal" onclick="closeEditFarmerModal()">&times;</span>
+            </div>
+
+            <div class="modal-body">
+                <div id="editFarmerErrorMessage" class="alert-error" style="display: none;"></div>
+
+                <form id="editFarmerForm" method="POST">
+                    <input type="hidden" id="edit_farmer_id" name="id">
+                    
+                    <div class="form-group">
+                        <label for="edit_farmer_name">Name <span style="color: red;">*</span></label>
+                        <input type="text" id="edit_farmer_name" name="name" placeholder="Enter farmer's full name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_farmer_birthday">Birthday <span style="color: red;">*</span></label>
+                        <input type="date" id="edit_farmer_birthday" name="birthday" max="<?= date('Y-m-d', strtotime('-15 years')) ?>" required>
+                        <small style="color: var(--color-dark-variant); display: block; margin-top: 0.25rem;">Farmer must be at least 15 years old</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_farmer_address">Address <span style="color: red;">*</span></label>
+                        <input type="text" id="edit_farmer_address" name="address" placeholder="Enter complete address" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_farmer_land">Land Area <span style="color: red;">*</span></label>
+                        <input type="number" id="edit_farmer_land" name="land" step="0.25" min="0" placeholder="Enter land area" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_farmer_unit">Unit of Measurement of Land Area <span style="color: red;">*</span></label>
+                        <select id="edit_farmer_unit" name="unit" required>
+                            <option value="">--- Select unit ---</option>
+                            <option value="cm²">cm²</option>
+                            <option value="m²">m²</option>
+                            <option value="km²">km²</option>
+                            <option value="hectare(s)">hectare(s)</option>
+                            <option value="acre(s)">acre(s)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_farmer_phone">Contact Number <span style="color: red;">*</span></label>
+                        <input type="text" id="edit_farmer_phone" name="phone" placeholder="Enter contact number" maxlength="11" required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditFarmerModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD FARMER MODAL SCRIPT -->
+    <script>
+    function openAddFarmerModal() {
+        const modal = document.getElementById('addFarmerModal');
+        
+        document.getElementById('addFarmerForm').reset();
+        document.getElementById('addFarmerErrorMessage').style.display = 'none';
+        
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAddFarmerModal() {
+        const modal = document.getElementById('addFarmerModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+
+    // Handle form submission with AJAX
+    document.getElementById('addFarmerForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('process_add_farmer.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'farmers.php?added=1';
+                } else {
+                    const errorDiv = document.getElementById('addFarmerErrorMessage');
+                    errorDiv.textContent = data.message || 'Failed to add farmer. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                const errorDiv = document.getElementById('addFarmerErrorMessage');
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                console.error('Error:', error);
+            });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const alert = document.querySelector('.alert');
+        const progressBarInner = document.querySelector('.progress-bar-inner');
+        const timerDuration = 3;
+        const interval = 30;
+        const totalSteps = timerDuration * 1000 / interval;
+        let currentStep = 0;
+
+        if (progressBarInner) {
+            const timer = setInterval(() => {
+                currentStep++;
+                const progressWidth = (currentStep / totalSteps) * 100;
+                progressBarInner.style.width = progressWidth + '%';
+
+                if (progressWidth >= 100) {
+                    clearInterval(timer);
+                    if (alert) alert.remove();
+                }
+            }, interval);
+        }
+    });
+
+    // EDIT FARMER MODAL FUNCTIONS
+    function openEditFarmerModal(farmerId) {
+        const modal = document.getElementById('editFarmerModal');
+        const errorDiv = document.getElementById('editFarmerErrorMessage');
+        errorDiv.style.display = 'none';
+        
+        // Fetch farmer data
+        fetch(`farmers.php?action=get_farmer&id=${farmerId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Populate form fields
+                    document.getElementById('edit_farmer_id').value = data.data.id;
+                    document.getElementById('edit_farmer_name').value = data.data.name;
+                    document.getElementById('edit_farmer_birthday').value = data.data.birthday;
+                    document.getElementById('edit_farmer_address').value = data.data.address;
+                    document.getElementById('edit_farmer_land').value = data.data.land;
+                    document.getElementById('edit_farmer_unit').value = data.data.unit;
+                    document.getElementById('edit_farmer_phone').value = data.data.phone;
+                    
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    alert('Error loading farmer data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading farmer data');
+            });
+    }
+
+    function closeEditFarmerModal() {
+        const modal = document.getElementById('editFarmerModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    // Update ESC key handler to include edit modal
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const addModal = document.getElementById('addFarmerModal');
+            const editModal = document.getElementById('editFarmerModal');
+            if (addModal && addModal.style.display === 'block') {
+                closeAddFarmerModal();
+            }
+            if (editModal && editModal.style.display === 'block') {
+                closeEditFarmerModal();
+            }
+        }
+    });
+
+    // Handle EDIT form submission with AJAX
+    document.getElementById('editFarmerForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('process_edit_farmer.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'farmers.php?updated=1';
+                } else {
+                    const errorDiv = document.getElementById('editFarmerErrorMessage');
+                    errorDiv.textContent = data.message || 'Failed to update farmer. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                const errorDiv = document.getElementById('editFarmerErrorMessage');
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                console.error('Error:', error);
+            });
+    });
+    </script>
+
+
     <script src="../main/dashscript.js"></script>
 </body>
 

@@ -724,6 +724,7 @@ main .top .alert-success {
     padding: 2rem;
     max-height: calc(100vh - 200px);
     overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .form-group {
@@ -810,7 +811,7 @@ main .top .alert-success {
     background: var(--color-dark);
     color: var(--color-white);
     padding: 0.75rem 1rem;
-    border-radius: var(--border-radius-1);
+    border-radius: 8px;
     white-space: pre-wrap;
     min-width: 250px;
     max-width: 350px;
@@ -942,4 +943,167 @@ main .top .alert-success {
     margin-bottom: 16px;
     display: none;
     font-size: 14px;
+}
+
+/* ===================================
+   HISTORY MODAL STYLES
+   =================================== */
+
+#historyModal .modal-content {
+    max-width: 800px;
+    width: 90%;
+    animation: slideDown 0.3s ease-out;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#historyModal .modal-body {
+    padding: 0;
+}
+
+#historyContent {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+#historyContent table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+}
+
+#historyContent table thead {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.dark-theme-variables #historyContent table thead {
+    background-color: #2c2f2c;
+}
+
+#historyContent table thead th {
+    padding: 15px 20px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dark-theme-variables #historyContent table thead th {
+    color: #c0c0c0;
+    border-bottom-color: #444;
+}
+
+#historyContent table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.2s ease;
+}
+
+.dark-theme-variables #historyContent table tbody tr {
+    border-bottom-color: #3a3d3a;
+    border-bottom-width: 80%;
+}
+
+#historyContent table tbody td {
+    padding: 15px 20px;
+    color: #495057;
+    font-size: 14px;
+}
+
+.dark-theme-variables #historyContent table tbody td {
+    color: #a3cca8;
+}
+
+#historyContent table tbody tr:last-child {
+    border-bottom: none;
+}
+
+/* Column specific widths for better spacing */
+#historyContent table th:nth-child(1),
+#historyContent table td:nth-child(1) {
+    width: 35%;
+}
+
+#historyContent table th:nth-child(2),
+#historyContent table td:nth-child(2),
+#historyContent table th:nth-child(3),
+#historyContent table td:nth-child(3) {
+    width: 25%;
+}
+
+#historyContent table th:nth-child(4),
+#historyContent table td:nth-child(4) {
+    width: 15%;
+    text-align: center;
+}
+
+/* Scrollbar styling */
+#historyContent::-webkit-scrollbar {
+    width: 8px;
+}
+
+#historyContent::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.dark-theme-variables #historyContent::-webkit-scrollbar-track {
+    background: #2c2f2c;
+}
+
+#historyContent::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+/* Loading and Error Messages */
+#historyLoadingMessage {
+    text-align: center;
+    padding: 40px;
+    display: none;
+}
+
+#historyLoadingMessage p {
+    margin: 0;
+    color: #666;
+}
+
+.dark-theme-variables #historyLoadingMessage p {
+    color: #999;
+}
+
+#historyErrorMessage {
+    display: none;
+    margin: 20px;
+}
+
+/* Empty state styling */
+#historyContent .no-history {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.dark-theme-variables #historyContent .no-history {
+    color: #888;
+}
+
+#historyContent .no-history p {
+    font-size: 16px;
+    margin: 0;
 }
