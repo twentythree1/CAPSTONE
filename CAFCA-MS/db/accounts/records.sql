@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 04, 2025 at 05:05 PM
+-- Generation Time: Feb 09, 2026 at 01:40 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -31,7 +31,8 @@ CREATE TABLE `records` (
   `id` int(255) NOT NULL,
   `farmer_id` int(255) NOT NULL,
   `machine_id` int(255) NOT NULL,
-  `harvest_date` date NOT NULL,
+  `harvest_start_date` date DEFAULT NULL,
+  `harvest_end_date` date DEFAULT NULL,
   `number_of_sacks` int(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -39,8 +40,8 @@ CREATE TABLE `records` (
 -- Dumping data for table `records`
 --
 
-INSERT INTO `records` (`id`, `farmer_id`, `machine_id`, `harvest_date`, `number_of_sacks`) VALUES
-(1, 2, 1, '2025-05-03', 69);
+INSERT INTO `records` (`id`, `farmer_id`, `machine_id`, `harvest_start_date`, `harvest_end_date`, `number_of_sacks`) VALUES
+(4, 2, 1, '2026-02-04', '2026-02-04', 2342);
 
 --
 -- Indexes for dumped tables
@@ -62,7 +63,7 @@ ALTER TABLE `records`
 -- AUTO_INCREMENT for table `records`
 --
 ALTER TABLE `records`
-  MODIFY `id` int(255) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(255) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Constraints for dumped tables

@@ -734,7 +734,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
 
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="closeEditMachineModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50;">Save Changes</button>
                     </div>
                 </form>
             </div>
