@@ -277,7 +277,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
                     <thead>
                         <tr>
                             <th>No.</th>
-                            <th>Brgy</th>
+                            <th>Brgy.</th>
                             <th>RSBSA Reference No.</th>
                             <th>Name</th>
                             <th>Ecosystem</th>
