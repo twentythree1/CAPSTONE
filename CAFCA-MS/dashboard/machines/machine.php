@@ -195,10 +195,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         <span class="material-icons-sharp dropdown-icon">expand_more</span>
                     </a>
                     <div class="dropdown-menu">
-                        <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Not Returned">
-                            <span>Not Returned</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
-                        </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Available">
                             <span>Available</span>
                             <span class="count-badge"><?= htmlspecialchars($machineCounts['Available'] ?? 0) ?></span>
@@ -210,6 +206,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Totally Damaged">
                             <span>Totally Damaged</span>
                             <span class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Not Returned">
+                            <span>Not Returned</span>
+                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
                         </a>
                     </div>
                 </div>
@@ -283,141 +283,172 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                 <?php endif; ?>
             </div>
             <br>
-            <div class='table-scroll'>
-                <table style='width:100%' class='table'>
-                    <thead>
-                        <tr>
-                            <?php if ($statusFilter === 'Not Returned'): ?>
-                            <th>Farmer's Name</th>
-                            <th>Machine Name</th>
-                            <th>Schedule Date</th>
-                            <th>End Date</th>
-                            <th>Duration</th>
-                            <th>Action</th>
-                            <?php else: ?>
-                            <th>Machine ID</th>
-                            <th>Machine Name</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Acquisition Date</th>
-                            <th>Action</th>
-                            <?php endif; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                    if ($statusFilter === 'Not Returned') {
-                        $sql = "SELECT s.id as schedule_id, s.schedule_date, s.date_span, s.start_time, s.end_time,
-                                       m.id as machine_id, m.name as machine_name, 
-                                       f.name as farmer_name
-                                FROM schedules s
-                                INNER JOIN machines m ON s.machine_id = m.id
-                                INNER JOIN farmers f ON s.farmer_id = f.id
-                                WHERE s.status IN ('Approved', 'Completed')
-                                AND s.return_date IS NULL";
+            <?php
+            // Prepare data first to check if table should be shown
+            if ($statusFilter === 'Not Returned') {
+                $sql = "SELECT s.id as schedule_id, s.schedule_date, s.date_span, s.start_time, s.end_time,
+                               m.id as machine_id, m.name as machine_name, 
+                               f.name as farmer_name
+                        FROM schedules s
+                        INNER JOIN machines m ON s.machine_id = m.id
+                        INNER JOIN farmers f ON s.farmer_id = f.id
+                        WHERE s.status IN ('Approved', 'Completed')
+                        AND s.return_date IS NULL";
+                
+                $result = $conn->query($sql);
+                $notReturnedRows = [];
+                
+                if ($result) {
+                    while ($row = $result->fetch_assoc()) {
+                        $scheduleDate = $row['schedule_date'];
+                        $startTime = $row['start_time'] ?: '00:00:00';
+                        $endTime = $row['end_time'] ?: '23:59:59';
+                        $dateSpan = (int)$row['date_span'];
                         
-                        $result = $conn->query($sql);
-                        
-                        if ($result) {
-                            while ($row = $result->fetch_assoc()) {
-                                $scheduleDate = $row['schedule_date'];
-                                $startTime = $row['start_time'] ?: '00:00:00';
-                                $endTime = $row['end_time'] ?: '23:59:59';
-                                $dateSpan = (int)$row['date_span'];
-                                
-                                try {
-                                    $startDt = new DateTime($scheduleDate . ' ' . $startTime);
-                                    $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
-                                    $endDt = new DateTime($endDateStr . ' ' . $endTime);
-                                    
-                                    if ($now > $endDt) {
-                                        $formattedStartDate = date('M d, Y', strtotime($scheduleDate));
-                                        $formattedEndDate = date('M d, Y', strtotime($endDateStr));
-                                        echo "
-                                        <tr>
-                                            <td>" . htmlspecialchars($row['farmer_name']) . "</td>
-                                            <td>" . htmlspecialchars($row['machine_name']) . "</td>
-                                            <td>{$formattedStartDate}</td>
-                                            <td>{$formattedEndDate}</td>
-                                            <td>{$dateSpan} day(s)</td>
-                                            <td>
-                                                <a class='btn btn-success btn-sm' 
-                                                   onclick='openReturnModal(" . $row['schedule_id'] . ", \"" . 
-                                                   htmlspecialchars($row['farmer_name'], ENT_QUOTES) . "\", \"" . 
-                                                   htmlspecialchars($row['machine_name'], ENT_QUOTES) . "\", " . 
-                                                   $row['machine_id'] . ")' 
-                                                   href='javascript:void(0)'>Return</a>
-                                            </td>
-                                        </tr>
-                                        ";
-                                    }
-                                } catch (Exception $e) {
-                                }
+                        try {
+                            $startDt = new DateTime($scheduleDate . ' ' . $startTime);
+                            $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
+                            $endDt = new DateTime($endDateStr . ' ' . $endTime);
+                            
+                            if ($now > $endDt) {
+                                $notReturnedRows[] = $row;
                             }
-                        }
-                    } else {
-                        // Original machine listing code with usage history tooltip
-                        if ($statusFilter) {
-                            $sql = "SELECT * FROM machines WHERE status = ?";
-                            $stmt = $conn->prepare($sql);
-                            $stmt->bind_param("s", $statusFilter);
-                            $stmt->execute();
-                            $result = $stmt->get_result();
-                        } else {
-                            $sql = "SELECT * FROM machines";
-                            $result = $conn->query($sql);
-                        }
-
-                        if (!$result) {
-                            die("Invalid query: " . $conn->error);
-                        }
-
-                        while ($row = $result->fetch_assoc()) {
-                            $historySQL = "SELECT f.name, s.schedule_date, s.date_span 
-                                          FROM schedules s
-                                          INNER JOIN farmers f ON s.farmer_id = f.id
-                                          WHERE s.machine_id = ? AND s.status IN ('Approved', 'Completed')
-                                          ORDER BY s.schedule_date DESC
-                                          LIMIT 1";
-                            $historyStmt = $conn->prepare($historySQL);
-                            $historyStmt->bind_param("i", $row['id']);
-                            $historyStmt->execute();
-                            $historyResult = $historyStmt->get_result();
-                            $historyData = $historyResult->fetch_assoc();
-                            $historyStmt->close();
-
-                            $tooltipContent = '';
-                            if ($historyData) {
-                                $usageDate = date('M d, Y', strtotime($historyData['schedule_date']));
-                                $endDate = date('M d, Y', strtotime($historyData['schedule_date'] . ' +' . $historyData['date_span'] . ' days'));
-                                $tooltipContent = "Last Used By: " . htmlspecialchars($historyData['name']) . "&#10;Date: {$usageDate} - {$endDate}";
-                            } else {
-                                $tooltipContent = "No usage history";
-                            }
-
-                            echo "
-                            <tr>
-                                <td>$row[id]</td>
-                                <td>$row[name]</td>
-                                <td>$row[type]</td>
-                                <td>$row[status]</td>
-                                <td>$row[acquisition_date]</td>
-                                <td>
-                                    <a class='btn btn-primary btn-sm' onclick='openEditMachineModal($row[id])' href='javascript:void(0)'>Edit</a>
-                                    <a class='btn btn-success btn-sm' onclick='openHistoryModal($row[id])'>History</a>
-                                    <a class='btn btn-danger btn-sm' 
-                                       onclick=\"return confirm('Are you sure you want to delete $row[name]?');\" 
-                                       href='delete_machine.php?id=$row[id]&redirect=" . urlencode($statusFilter ?: 'Available') . "'>Delete</a>
-                                    <span class='reschedule-info-icon' data-tooltip='{$tooltipContent}'>⋯</span>
-                                </td> 
-                            </tr>
-                            ";
+                        } catch (Exception $e) {
                         }
                     }
-                    ?>
-                    </tbody>
-                </table>
-            </div>
+                }
+                
+                if (empty($notReturnedRows)) {
+                    echo "<p style='display: flex; justify-content: center; text-transform: capitalize;'>No Not Returned Machines Found.</p>";
+                } else {
+                    echo "<div class='table-scroll'>
+                          <table style='width:100%' class='table'>
+                            <thead>
+                                <tr>
+                                    <th>Farmer's Name</th>
+                                    <th>Machine Name</th>
+                                    <th>Schedule Date</th>
+                                    <th>End Date</th>
+                                    <th>Duration</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>";
+                    
+                    foreach ($notReturnedRows as $row) {
+                        $scheduleDate = $row['schedule_date'];
+                        $dateSpan = (int)$row['date_span'];
+                        $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
+                        $formattedStartDate = date('M d, Y', strtotime($scheduleDate));
+                        $formattedEndDate = date('M d, Y', strtotime($endDateStr));
+                        
+                        echo "
+                        <tr>
+                            <td>" . htmlspecialchars($row['farmer_name']) . "</td>
+                            <td>" . htmlspecialchars($row['machine_name']) . "</td>
+                            <td>{$formattedStartDate}</td>
+                            <td>{$formattedEndDate}</td>
+                            <td>{$dateSpan} day(s)</td>
+                            <td>
+                                <a class='btn btn-success btn-sm' 
+                                   onclick='openReturnModal(" . $row['schedule_id'] . ", \"" . 
+                                   htmlspecialchars($row['farmer_name'], ENT_QUOTES) . "\", \"" . 
+                                   htmlspecialchars($row['machine_name'], ENT_QUOTES) . "\", " . 
+                                   $row['machine_id'] . ")' 
+                                   href='javascript:void(0)'>Return</a>
+                            </td>
+                        </tr>
+                        ";
+                    }
+                    
+                    echo "</tbody></table></div>";
+                }
+            } else {
+                // Original machine listing code
+                if ($statusFilter) {
+                    $sql = "SELECT * FROM machines WHERE status = ?";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("s", $statusFilter);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                } else {
+                    $sql = "SELECT * FROM machines";
+                    $result = $conn->query($sql);
+                }
+
+                if (!$result) {
+                    die("Invalid query: " . $conn->error);
+                }
+
+                $machineRows = [];
+                while ($row = $result->fetch_assoc()) {
+                    $machineRows[] = $row;
+                }
+
+                if (empty($machineRows)) {
+                    $statusName = $statusFilter ?: 'Machines';
+                    echo "<p style='display: flex; justify-content: center; text-transform: capitalize;'>No {$statusName} machine(s).</p>";
+                } else {
+                    echo "<div class='table-scroll'>
+                          <table style='width:100%' class='table'>
+                            <thead>
+                                <tr>
+                                    <th>Machine ID</th>
+                                    <th>Machine Name</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Acquisition Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>";
+                    
+                    foreach ($machineRows as $row) {
+                        $historySQL = "SELECT f.name, s.schedule_date, s.date_span 
+                                      FROM schedules s
+                                      INNER JOIN farmers f ON s.farmer_id = f.id
+                                      WHERE s.machine_id = ? AND s.status IN ('Approved', 'Completed')
+                                      ORDER BY s.schedule_date DESC
+                                      LIMIT 1";
+                        $historyStmt = $conn->prepare($historySQL);
+                        $historyStmt->bind_param("i", $row['id']);
+                        $historyStmt->execute();
+                        $historyResult = $historyStmt->get_result();
+                        $historyData = $historyResult->fetch_assoc();
+                        $historyStmt->close();
+
+                        $tooltipContent = '';
+                        if ($historyData) {
+                            $usageDate = date('M d, Y', strtotime($historyData['schedule_date']));
+                            $endDate = date('M d, Y', strtotime($historyData['schedule_date'] . ' +' . $historyData['date_span'] . ' days'));
+                            $tooltipContent = "Last Used By: " . htmlspecialchars($historyData['name']) . "&#10;Date: {$usageDate} - {$endDate}";
+                        } else {
+                            $tooltipContent = "No usage history";
+                        }
+
+                        echo "
+                        <tr>
+                            <td>$row[id]</td>
+                            <td>$row[name]</td>
+                            <td>$row[type]</td>
+                            <td>$row[status]</td>
+                            <td>$row[acquisition_date]</td>
+                            <td>
+                                <a class='btn btn-primary btn-sm' onclick='openEditMachineModal($row[id])' href='javascript:void(0)'>Edit</a>
+                                <a class='btn btn-success btn-sm' onclick='openHistoryModal($row[id])'>History</a>
+                                <a class='btn btn-danger btn-sm' 
+                                   onclick=\"return confirm('Are you sure you want to delete $row[name]?');\" 
+                                   href='delete_machine.php?id=$row[id]&redirect=" . urlencode($statusFilter ?: 'Available') . "'>Delete</a>
+                                <span class='reschedule-info-icon' data-tooltip='{$tooltipContent}'>⋯</span>
+                            </td> 
+                        </tr>
+                        ";
+                    }
+                    
+                    echo "</tbody></table></div>";
+                }
+            }
+            ?>
         </main>
     </div>
 

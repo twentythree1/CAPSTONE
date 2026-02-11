@@ -202,24 +202,21 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         <span class="material-icons-sharp dropdown-icon">expand_more</span>
                     </a>
                     <div class="dropdown-menu">
-                        <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Not Returned">
-                            <span>Not Returned</span>
-                            <span
-                                class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
-                        </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Available">
                             <span>Available</span>
                             <span class="count-badge"><?= htmlspecialchars($machineCounts['Available'] ?? 0) ?></span>
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Partially Damaged">
                             <span>Partially Damaged</span>
-                            <span
-                                class="count-badge"><?= htmlspecialchars($machineCounts['Partially Damaged'] ?? 0) ?></span>
+                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Partially Damaged'] ?? 0) ?></span>
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Totally Damaged">
                             <span>Totally Damaged</span>
-                            <span
-                                class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
+                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Not Returned">
+                            <span>Not Returned</span>
+                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
                         </a>
                     </div>
                 </div>
