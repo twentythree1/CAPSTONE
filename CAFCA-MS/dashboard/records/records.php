@@ -279,6 +279,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
                 <table style='width:100%' class='table'>
                     <thead>
                         <tr>
+                            <th>No.</th>
                             <th>Brgy</th>
                             <th>RSBSA Reference No.</th>
                             <th>Name</th>
@@ -317,9 +318,11 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
                         die("Invalid query: " . $conn->error);
                     }
 
+                    $counter = 1; // Initialize counter for No. column
                     while ($row = $result->fetch_assoc()) {
                         echo "
                     <tr>
+                        <td>" . $counter . "</td>
                         <td>" . htmlspecialchars($row['brgy']) . "</td>
                         <td>" . htmlspecialchars($row['rsbsa_reference_no']) . "</td>
                         <td>" . htmlspecialchars($row['farmer_name']) . "</td>
@@ -338,6 +341,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
                         </td> 
                     </tr>
                     ";
+                        $counter++; // Increment counter
                     }
 
                     ?>
@@ -592,7 +596,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
         e.preventDefault();
         const formData = new FormData(this);
 
-        fetch('process_edit_record.php', {
+        fetch('process_edit_records.php', {
             method: 'POST',
             body: formData
         })

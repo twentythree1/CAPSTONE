@@ -37,7 +37,7 @@ if ($schedule_id <= 0) {
     exit();
 }
 
-if (empty($new_schedule_date) || empty($new_start_time) || empty($new_end_time) || $new_date_span <= 0 || empty($reschedule_reason)) {
+if (empty($new_schedule_date) || empty($new_start_time) || empty($new_end_time) || $new_date_span || empty($reschedule_reason)) {
     echo json_encode(['success' => false, 'message' => 'All fields are required']);
     exit();
 }

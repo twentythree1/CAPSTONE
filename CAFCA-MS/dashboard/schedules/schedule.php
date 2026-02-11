@@ -162,6 +162,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
     <link rel="stylesheet" href="../farmers_sec/farmerstyle.css">
     <!-- MATERIAL ICONS -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp">
+    <!-- HTML2CANVAS for image export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body>
@@ -422,7 +424,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     $end_date = date('m-d', strtotime($row['schedule_date'] . " +{$row['date_span']} days"));
                             
                     $edit_redirect = 'edit_schedule.php?id=' . $row['id'] . '&redirect=' . urlencode($status);
-                    $details_redirect = 'print_certificate.php?id=' . $row['id'] . '&redirect=' . urlencode($status);
                     echo "<tr>";
                     echo "<td>{$row['id']}</td>";
                     echo "<td>{$row['farmer_name']}</td>";
@@ -434,7 +435,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     echo "<td>$status</td>";
                     echo "<td>
                             <a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)'>Edit</a>
-                            <a class='btn btn-success btn-sm' href='$details_redirect'>Details</a>";
+                            <a class='btn btn-success btn-sm' onclick='openDetailsModal({$row['id']})' href='javascript:void(0)'>Details</a>";
                     if ($status === 'Pending') {
                         echo "<a class='btn btn-warning btn-sm' onclick=\"return confirm('Are you sure you want to approve " . htmlspecialchars($row['farmer_name']) . "\\'s schedule to use " . htmlspecialchars($row['machine_name']) . "?');\" style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
                         echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to cancel " . htmlspecialchars($row['farmer_name']) . "\\'s schedule?');\"  style='margin-left: 4px;' href='cancel_schedule.php?id={$row['id']}'>Cancel</a>";
@@ -501,7 +502,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
                     <div class="form-group">
                         <label for="date_span">Duration (Days) <span style="color: red;">*</span></label>
-                        <input type="number" id="date_span" name="date_span" min="1" max="30" required>
+                        <input type="number" id="date_span" name="date_span" min="0" max="30" required>
                     </div>
 
                     <div class="form-group">
@@ -527,6 +528,41 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         <button type="submit" class="btn btn-primary">Reschedule</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Schedule Details</h2>
+                <span class="close-modal" onclick="closeDetailsModal()">&times;</span>
+            </div>
+
+            <div class="modal-body">
+                <div class="schedule-info" id="scheduleDetailsContent" style="position: relative;">
+                    <img src="../../LandingPage/others/logo.png" alt="CAFCA Logo" style="position: absolute; top: 10px; right: 10px; width: 80px; height: 80px; object-fit: contain;">
+                    <h3>Schedule Information</h3>
+                    <p><strong>Schedule ID:</strong> <span id="details-id"></span></p>
+                    <p><strong>Farmer:</strong> <span id="details-farmer"></span></p>
+                    <p><strong>Machine:</strong> <span id="details-machine"></span></p>
+                    <p><strong>Start Date:</strong> <span id="details-start-date"></span></p>
+                    <p><strong>End Date:</strong> <span id="details-end-date"></span></p>
+                    <p><strong>Start Time:</strong> <span id="details-start-time"></span></p>
+                    <p><strong>End Time:</strong> <span id="details-end-time"></span></p>
+                    <p><strong>Duration:</strong> <span id="details-duration"></span> day(s)</p>
+                    <p><strong>Status:</strong> <span id="details-status"></span></p>
+                    <div id="details-reschedule-info" style="display: none; margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                        <p style="margin: 5px 0;"><strong>Rescheduled At:</strong> <span id="details-rescheduled-at"></span></p>
+                        <p style="margin: 5px 0;"><strong>Reschedule Reason:</strong> <span id="details-reschedule-reason"></span></p>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeDetailsModal()">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="printScheduleAsImage()">Download as Image</button>
+                </div>
             </div>
         </div>
     </div>
@@ -966,6 +1002,124 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 errorDiv.style.display = 'block';
                 console.error('Error:', error);
             });
+    });
+    </script>
+
+    <!-- DETAILS MODAL SCRIPT -->
+    <script>
+    function openDetailsModal(scheduleId) {
+        const modal = document.getElementById('detailsModal');
+        
+        fetch(`schedule.php?action=get_schedule&id=${scheduleId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const schedule = data.data;
+                    
+                    // Calculate end date
+                    const startDate = new Date(schedule.schedule_date);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + parseInt(schedule.date_span || 0));
+                    
+                    // Determine current status
+                    const now = new Date();
+                    const startDateTime = new Date(schedule.schedule_date + ' ' + schedule.start_time);
+                    const endDateTime = new Date(endDate.toISOString().split('T')[0] + ' ' + schedule.end_time);
+                    
+                    let currentStatus = schedule.status;
+                    if (schedule.status === 'Approved') {
+                        if (now >= startDateTime && now <= endDateTime) {
+                            currentStatus = 'On going';
+                        } else if (now > endDateTime) {
+                            currentStatus = 'Completed';
+                        }
+                    }
+                    
+                    // Populate modal fields
+                    document.getElementById('details-id').textContent = schedule.id;
+                    document.getElementById('details-farmer').textContent = schedule.farmer_name;
+                    document.getElementById('details-machine').textContent = schedule.machine_name;
+                    document.getElementById('details-start-date').textContent = formatDate(schedule.schedule_date);
+                    document.getElementById('details-end-date').textContent = formatDate(endDate.toISOString().split('T')[0]);
+                    document.getElementById('details-start-time').textContent = formatTime(schedule.start_time);
+                    document.getElementById('details-end-time').textContent = formatTime(schedule.end_time);
+                    document.getElementById('details-duration').textContent = schedule.date_span || 0;
+                    document.getElementById('details-status').textContent = currentStatus;
+                    
+                    // Show reschedule info if available
+                    if (schedule.reschedule_reason) {
+                        document.getElementById('details-reschedule-info').style.display = 'block';
+                        document.getElementById('details-rescheduled-at').textContent = 
+                            schedule.rescheduled_at ? new Date(schedule.rescheduled_at).toLocaleString() : 'N/A';
+                        document.getElementById('details-reschedule-reason').textContent = schedule.reschedule_reason;
+                    } else {
+                        document.getElementById('details-reschedule-info').style.display = 'none';
+                    }
+                    
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    alert('Error loading schedule details');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading schedule details');
+            });
+    }
+
+    function closeDetailsModal() {
+        const modal = document.getElementById('detailsModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    // PRINT SCHEDULE AS IMAGE
+    function printScheduleAsImage() {
+        const content = document.getElementById('scheduleDetailsContent');
+        const originalBg = content.style.backgroundColor;
+        const originalPadding = content.style.padding;
+        
+        content.style.backgroundColor = '#ffffff';
+        content.style.padding = '20px';
+        
+        html2canvas(content, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            logging: false,
+            useCORS: true,
+            allowTaint: true
+        }).then(canvas => {
+            content.style.backgroundColor = originalBg;
+            content.style.padding = originalPadding;
+            
+            // Convert canvas to blob
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                const scheduleId = document.getElementById('details-id').textContent;
+                const farmerName = document.getElementById('details-farmer').textContent;
+                
+                link.href = url;
+                link.download = `Schedule_${scheduleId}_${farmerName.replace(/\s+/g, '_')}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 'image/jpeg', 0.95);
+        }).catch(error => {
+            content.style.backgroundColor = originalBg;
+            content.style.padding = originalPadding;
+            console.error('Error generating image:', error);
+            alert('Error generating image. Please try again.');
+        });
+    }
+
+    window.addEventListener('click', function(event) {
+        const detailsModal = document.getElementById('detailsModal');
+        if (event.target === detailsModal) {
+            closeDetailsModal();
+        }
     });
     </script>
 
