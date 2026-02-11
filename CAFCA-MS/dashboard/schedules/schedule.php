@@ -16,19 +16,39 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Set timezone to ensure consistency between PHP and MySQL
+date_default_timezone_set('Asia/Manila');
+$conn->query("SET time_zone = '+08:00'");
+
 // Auto-expire pending schedules
 $now = new DateTime();
 $currentDateTime = $now->format('Y-m-d H:i:s');
 
+
 $expireSql = "UPDATE schedules 
               SET status = 'Expired' 
               WHERE status = 'Pending' 
-              AND CONCAT(schedule_date, ' ', start_time) <= ?";
+              AND CONCAT(schedule_date, ' ', start_time) < ?";
 $expireStmt = $conn->prepare($expireSql);
 if ($expireStmt) {
     $expireStmt->bind_param("s", $currentDateTime);
     $expireStmt->execute();
+    $affectedRows = $expireStmt->affected_rows;
+    
     $expireStmt->close();
+}
+
+$checkSql = "SELECT id, schedule_date, start_time, status FROM schedules WHERE status = 'Pending'";
+$checkResult = $conn->query($checkSql);
+if ($checkResult) {
+    while ($row = $checkResult->fetch_assoc()) {
+        $scheduleStartTime = $row['schedule_date'] . ' ' . $row['start_time'];
+        if ($scheduleStartTime < $currentDateTime) {
+            $updateId = $row['id'];
+            $conn->query("UPDATE schedules SET status = 'Expired' WHERE id = $updateId");
+        }
+    }
+    $checkResult->free();
 }
 
 // Count machines by status
@@ -350,7 +370,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 'Approved' => [],
                 'On going' => [],
                 'Completed' => [],
-                'Expired' => []
+                'Expired' => [],
+                'Cancelled' => []
             ];
 
             $sql = "
@@ -399,7 +420,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 }
 
                 $computedStatus = $dbStatus;
-                if ($dbStatus === 'Approved') {
+                
+                // Check if Pending schedule should be Expired
+                if ($dbStatus === 'Pending') {
+                    if ($now >= $startDt) {
+                        $computedStatus = 'Expired';
+                    }
+                }
+                // Check if Approved schedule is On going or Completed
+                elseif ($dbStatus === 'Approved') {
                     if ($now >= $startDt && $now <= $endDt) {
                         $computedStatus = 'On going';
                     } elseif ($now > $endDt) {
@@ -482,6 +511,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         }
                     } elseif ($status === 'Expired') {
                         echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to delete this expired schedule?');\" style='margin-left: 4px;' href='delete_schedule.php?id={$row['id']}'>Delete</a>";
+                    } elseif ($status === 'Cancelled') {
+                        echo "<a class='btn btn-resched btn-sm' style='margin-left: 4px;' onclick='openRescheduleModal({$row['id']}, \"" . htmlspecialchars($row['farmer_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['machine_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['schedule_date']) . "\", {$row['date_span']}, \"" . htmlspecialchars($row['start_time']) . "\", \"" . htmlspecialchars($row['end_time']) . "\", \"$status\")'>Reschedule</a>";
                     } else {
                         echo "<a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)' style='margin-left: 4px;'>Edit</a>";
                     }
@@ -502,6 +533,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 renderScheduleTable("On-Going Schedules", $schedules['On going'] ?? []);
                 renderScheduleTable("Completed Schedules", $schedules['Completed'] ?? []);
                 renderScheduleTable("Expired Schedules", $schedules['Expired'] ?? []);
+                renderScheduleTable("Cancelled Schedules", $schedules['Cancelled'] ?? []);
             }
             ?>
         </main>
@@ -530,6 +562,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
                 <form id="rescheduleForm" method="POST" action="process_reschedule.php">
                     <input type="hidden" id="schedule_id" name="schedule_id">
+                    <input type="hidden" id="original_status" name="original_status">
                     <input type="hidden" name="redirect" value="<?= htmlspecialchars($statusFilter ?? 'Approved') ?>">
 
                     <div class="form-group">
@@ -642,6 +675,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         document.getElementById('current-status').textContent = status;
 
         document.getElementById('schedule_id').value = id;
+        document.getElementById('original_status').value = status;
         document.getElementById('schedule_date').value = scheduleDate;
         document.getElementById('date_span').value = dateSpan;
         document.getElementById('start_time').value = startTime;
@@ -692,34 +726,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
     });
 
     document.getElementById('rescheduleForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
         if (!confirm('Are you sure you want to reschedule this appointment?')) {
-            return;
+            e.preventDefault();
+            return false;
         }
-
-        const formData = new FormData(this);
-
-        fetch('process_reschedule.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = 'schedule.php?status=' + data.redirect + '&rescheduled=1';
-                } else {
-                    const errorDiv = document.getElementById('errorMessage');
-                    errorDiv.textContent = data.message || 'Failed to reschedule. Please try again.';
-                    errorDiv.style.display = 'block';
-                }
-            })
-            .catch(error => {
-                const errorDiv = document.getElementById('errorMessage');
-                errorDiv.textContent = 'An error occurred. Please try again.';
-                errorDiv.style.display = 'block';
-                console.error('Error:', error);
-            });
+        // Allow the form to submit normally - process_reschedule.php will handle the redirect
+        return true;
     });
 
     document.querySelector('.close-modal').addEventListener('click', closeRescheduleModal);
@@ -1062,7 +1074,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     const endDateTime = new Date(endDate.toISOString().split('T')[0] + ' ' + schedule.end_time);
                     
                     let currentStatus = schedule.status;
-                    if (schedule.status === 'Approved') {
+                    
+                    // Check if Pending schedule should be Expired
+                    if (schedule.status === 'Pending') {
+                        if (now >= startDateTime) {
+                            currentStatus = 'Expired';
+                        }
+                    }
+                    // Check if Approved schedule is On going or Completed
+                    else if (schedule.status === 'Approved') {
                         if (now >= startDateTime && now <= endDateTime) {
                             currentStatus = 'On going';
                         } else if (now > endDateTime) {

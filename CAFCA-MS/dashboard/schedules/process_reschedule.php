@@ -1,10 +1,7 @@
 <?php
-
 session_start();
-header('Content-Type: application/json');
-
 if (!isset($_SESSION['username'])) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+    header("Location: /CAFCA-MS/login/logindex.php");
     exit();
 }
 
@@ -15,88 +12,107 @@ $database = "testdb";
 
 $conn = new mysqli($servername, $username, $password, $database);
 if ($conn->connect_error) {
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-    exit();
+    die("Connection failed: " . $conn->connect_error);
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-    exit();
-}
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $schedule_id = $_POST['schedule_id'] ?? null;
+    $schedule_date = $_POST['schedule_date'] ?? null;
+    $date_span = $_POST['date_span'] ?? null;
+    $start_time = $_POST['start_time'] ?? null;
+    $end_time = $_POST['end_time'] ?? null;
+    $reschedule_reason = $_POST['reschedule_reason'] ?? null;
+    $original_status = $_POST['original_status'] ?? 'Approved';
+    $redirect = $_POST['redirect'] ?? 'Approved';
 
-$schedule_id = isset($_POST['schedule_id']) ? intval($_POST['schedule_id']) : 0;
-$new_schedule_date = $_POST['schedule_date'] ?? '';
-$new_start_time = $_POST['start_time'] ?? '';
-$new_end_time = $_POST['end_time'] ?? '';
-$new_date_span = isset($_POST['date_span']) ? intval($_POST['date_span']) : 0;
-$reschedule_reason = $_POST['reschedule_reason'] ?? '';
-$redirect = $_POST['redirect'] ?? 'Approved';
+    // Validate required fields
+    if (!$schedule_id || !$schedule_date || !$start_time || !$end_time || !$reschedule_reason) {
+        header("Location: schedule.php?status=" . urlencode($redirect) . "&error=missing_fields");
+        exit();
+    }
 
-if ($schedule_id <= 0) {
-    echo json_encode(['success' => false, 'message' => 'Invalid schedule ID']);
-    exit();
-}
+    // Validate the schedule exists
+    $checkSql = "SELECT id, machine_id FROM schedules WHERE id = ?";
+    $checkStmt = $conn->prepare($checkSql);
+    $checkStmt->bind_param("i", $schedule_id);
+    $checkStmt->execute();
+    $result = $checkStmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        $checkStmt->close();
+        $conn->close();
+        header("Location: schedule.php?status=" . urlencode($redirect) . "&error=schedule_not_found");
+        exit();
+    }
+    
+    $row = $result->fetch_assoc();
+    $machine_id = $row['machine_id'];
+    $checkStmt->close();
 
-if (empty($new_schedule_date) || empty($new_start_time) || empty($new_end_time) || $new_date_span || empty($reschedule_reason)) {
-    echo json_encode(['success' => false, 'message' => 'All fields are required']);
-    exit();
-}
+    // Check for conflicts with other schedules on the same machine
+    $end_date = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
+    
+    $conflictSql = "SELECT id FROM schedules 
+                    WHERE machine_id = ? 
+                    AND id != ? 
+                    AND status IN ('Pending', 'Approved', 'On going')
+                    AND NOT (
+                        DATE_ADD(?, INTERVAL ? DAY) < schedule_date 
+                        OR ? > DATE_ADD(schedule_date, INTERVAL date_span DAY)
+                    )";
+    
+    $conflictStmt = $conn->prepare($conflictSql);
+    $conflictStmt->bind_param("iisis", $machine_id, $schedule_id, $schedule_date, $date_span, $schedule_date);
+    $conflictStmt->execute();
+    $conflictResult = $conflictStmt->get_result();
+    
+    if ($conflictResult->num_rows > 0) {
+        $conflictStmt->close();
+        $conn->close();
+        header("Location: schedule.php?status=" . urlencode($redirect) . "&error=conflict");
+        exit();
+    }
+    $conflictStmt->close();
 
-$date = DateTime::createFromFormat('Y-m-d', $new_schedule_date);
-if (!$date || $date->format('Y-m-d') !== $new_schedule_date) {
-    echo json_encode(['success' => false, 'message' => 'Invalid date format']);
-    exit();
-}
+    // If rescheduling from Cancelled, change to Pending so admin can approve
+    // If rescheduling from Approved, keep as Approved
+    if ($original_status === 'Cancelled') {
+        $new_status = 'Pending';
+        $redirect_to = 'Pending';
+    } else {
+        $new_status = 'Approved';
+        $redirect_to = $redirect;
+    }
 
-$today = new DateTime();
-$today->setTime(0, 0, 0);
-if ($date < $today) {
-    echo json_encode(['success' => false, 'message' => 'Cannot reschedule to a past date']);
-    exit();
-}
-
-if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $new_start_time) || 
-    !preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $new_end_time)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid time format']);
-    exit();
-}
-
-$check_sql = "SELECT id, status FROM schedules WHERE id = ?";
-$check_stmt = $conn->prepare($check_sql);
-$check_stmt->bind_param("i", $schedule_id);
-$check_stmt->execute();
-$check_result = $check_stmt->get_result();
-
-if ($check_result->num_rows === 0) {
-    echo json_encode(['success' => false, 'message' => 'Schedule not found']);
-    exit();
-}
-
-$check_stmt->close();
-
-$update_sql = "UPDATE schedules 
-               SET schedule_date = ?, 
-                   start_time = ?, 
-                   end_time = ?, 
-                   date_span = ?,
-                   reschedule_reason = ?,
-                   rescheduled_at = NOW()
-               WHERE id = ?";
-
-$update_stmt = $conn->prepare($update_sql);
-$update_stmt->bind_param("sssisi", $new_schedule_date, $new_start_time, $new_end_time, $new_date_span, $reschedule_reason, $schedule_id);
-
-if ($update_stmt->execute()) {
-    echo json_encode([
-        'success' => true, 
-        'message' => 'Schedule rescheduled successfully',
-        'redirect' => $redirect
-    ]);
+    // Update the schedule with new date, time, reason, and status
+    $updateSql = "UPDATE schedules 
+                  SET schedule_date = ?, 
+                      date_span = ?, 
+                      start_time = ?, 
+                      end_time = ?, 
+                      reschedule_reason = ?, 
+                      rescheduled_at = NOW(),
+                      status = ?
+                  WHERE id = ?";
+    
+    $updateStmt = $conn->prepare($updateSql);
+    $updateStmt->bind_param("sissssi", $schedule_date, $date_span, $start_time, $end_time, $reschedule_reason, $new_status, $schedule_id);
+    
+    if ($updateStmt->execute()) {
+        $updateStmt->close();
+        $conn->close();
+        header("Location: schedule.php?status=" . urlencode($redirect_to) . "&rescheduled=1");
+        exit();
+    } else {
+        // Log the error for debugging
+        error_log("Reschedule update failed: " . $updateStmt->error);
+        $updateStmt->close();
+        $conn->close();
+        header("Location: schedule.php?status=" . urlencode($redirect) . "&error=update_failed");
+        exit();
+    }
 } else {
-    echo json_encode(['success' => false, 'message' => 'Failed to update schedule: ' . $conn->error]);
+    header("Location: schedule.php");
+    exit();
 }
-
-$update_stmt->close();
-$conn->close();
-
 ?>

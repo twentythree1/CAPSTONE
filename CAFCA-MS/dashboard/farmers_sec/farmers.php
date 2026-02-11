@@ -128,6 +128,16 @@ $statusFilter = $_GET['status'] ?? null;
 // Total machine count
 $machine_count = array_sum($machineCounts);
 
+// Count total farmers
+$farmerCountSql = "SELECT COUNT(*) as count FROM farmers";
+$farmerCountResult = $conn->query($farmerCountSql);
+$farmer_count = 0;
+if ($farmerCountResult) {
+    $row = $farmerCountResult->fetch_assoc();
+    $farmer_count = $row['count'];
+    $farmerCountResult->free();
+}
+
 // Handle AJAX request for fetching farmer data
 if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id'])) {
     header('Content-Type: application/json');
