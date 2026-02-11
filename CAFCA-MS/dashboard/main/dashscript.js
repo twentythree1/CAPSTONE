@@ -33,6 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Wait for the DOM to be fully loaded before attaching event listeners
 document.addEventListener('DOMContentLoaded', () => {
     const dropdowns = document.querySelectorAll(".sidebar-dropdown");
     
@@ -84,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Normalize function to compare status values (handles null, undefined, and trims whitespace)
         const normalize = s => (s || '').toString().replace(/\s+/g, ' ').trim().toLowerCase();
         const params = new URLSearchParams(window.location.search);
         const urlStatus = normalize(params.get('status'));
@@ -118,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // Check localStorage for dropdown open state if URL doesn't match
         if (shouldOpen) {
             dropdown.classList.add('open');
             menu.style.display = 'flex';

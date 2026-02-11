@@ -76,13 +76,16 @@ $counts = [
     'Pending' => 0,
     'Approved' => 0,
     'On going' => 0,
-    'Completed' => 0
+    'Completed' => 0,
+    'Expired' => 0,
+    'Cancelled' => 0
 ];
 
 $now = new DateTime();
 
 $countSql = "SELECT schedule_date, start_time, end_time, date_span, status FROM schedules";
 $countResult = $conn->query($countSql);
+
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {
         $dbStatus = $r['status'];
@@ -117,14 +120,6 @@ if ($countResult) {
         $counts[$computedStatus]++;
     }
     $countResult->free();
-}
-
-$farmer_count = 0;
-$sql = "SELECT COUNT(*) AS cnt FROM farmers";
-if ($result = $conn->query($sql)) {
-    $row = $result->fetch_assoc();
-    $farmer_count = (int)($row['cnt'] ?? 0);
-    $result->free();
 }
 
 // Get status filter from URL
@@ -244,6 +239,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Completed">
                             <span>Completed</span>
                             <span class="count-badge"><?= htmlspecialchars($counts['Completed'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Expired">
+                            <span>Expired</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Expired'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Cancelled">
+                            <span>Cancelled</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Cancelled'] ?? 0) ?></span>
                         </a>
                     </div>
                 </div>

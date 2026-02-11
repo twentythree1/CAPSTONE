@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 09, 2026 at 01:40 PM
+-- Generation Time: Feb 11, 2026 at 12:42 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -30,18 +30,24 @@ SET time_zone = "+00:00";
 CREATE TABLE `records` (
   `id` int(255) NOT NULL,
   `farmer_id` int(255) NOT NULL,
-  `machine_id` int(255) NOT NULL,
-  `harvest_start_date` date DEFAULT NULL,
-  `harvest_end_date` date DEFAULT NULL,
-  `number_of_sacks` int(255) NOT NULL
+  `rsbsa_reference_no` varchar(100) DEFAULT NULL,
+  `ecosystem` varchar(255) NOT NULL,
+  `variety_planted` varchar(255) NOT NULL,
+  `area_harvested` decimal(10,2) NOT NULL,
+  `gross_yield` varchar(255) NOT NULL,
+  `avg_weight_per_sack` varchar(255) NOT NULL,
+  `total_yield` varchar(255) NOT NULL,
+  `avg_yield` decimal(10,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `records`
 --
 
-INSERT INTO `records` (`id`, `farmer_id`, `machine_id`, `harvest_start_date`, `harvest_end_date`, `number_of_sacks`) VALUES
-(4, 2, 1, '2026-02-04', '2026-02-04', 2342);
+INSERT INTO `records` (`id`, `farmer_id`, `rsbsa_reference_no`, `ecosystem`, `variety_planted`, `area_harvested`, `gross_yield`, `avg_weight_per_sack`, `total_yield`, `avg_yield`, `created_at`) VALUES
+(5, 14, '06-45-13-006-00023', 'Rainfed', '1', 0.01, '1', '1', '1', 0.01, '2026-02-11 09:40:08'),
+(6, 2, '06-45-13-006-00024', 'Rainfed', '1', 0.01, '1', '2', '1', 0.01, '2026-02-11 10:56:01');
 
 --
 -- Indexes for dumped tables
@@ -52,8 +58,7 @@ INSERT INTO `records` (`id`, `farmer_id`, `machine_id`, `harvest_start_date`, `h
 --
 ALTER TABLE `records`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `farmer_id` (`farmer_id`),
-  ADD KEY `machine_id` (`machine_id`);
+  ADD KEY `farmer_id` (`farmer_id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -63,7 +68,7 @@ ALTER TABLE `records`
 -- AUTO_INCREMENT for table `records`
 --
 ALTER TABLE `records`
-  MODIFY `id` int(255) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(255) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Constraints for dumped tables
@@ -73,8 +78,7 @@ ALTER TABLE `records`
 -- Constraints for table `records`
 --
 ALTER TABLE `records`
-  ADD CONSTRAINT `records_ibfk_1` FOREIGN KEY (`farmer_id`) REFERENCES `farmers` (`id`),
-  ADD CONSTRAINT `records_ibfk_2` FOREIGN KEY (`machine_id`) REFERENCES `machines` (`id`);
+  ADD CONSTRAINT `records_ibfk_1` FOREIGN KEY (`farmer_id`) REFERENCES `farmers` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

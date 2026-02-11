@@ -79,11 +79,16 @@ $counts = [
     'Pending' => 0,
     'Approved' => 0,
     'On going' => 0,
-    'Completed' => 0
+    'Completed' => 0,
+    'Expired' => 0,
+    'Cancelled' => 0
 ];
+
+$now = new DateTime();
 
 $countSql = "SELECT schedule_date, start_time, end_time, date_span, status FROM schedules";
 $countResult = $conn->query($countSql);
+
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {
         $dbStatus = $r['status'];
@@ -122,7 +127,6 @@ if ($countResult) {
 
 // Get status filter from URL
 $statusFilter = $_GET['status'] ?? null;
-
 // Total machine count
 $machine_count = array_sum($machineCounts);
 
@@ -213,9 +217,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         </a>
                     </div>
                 </div>
-                <div class="sidebar-dropdown <?= ($isSchedulePage && $statusParam) ? 'open' : '' ?>">
+                <div class="sidebar-dropdown <?= $schedulesStatus ? 'open' : '' ?>">
                     <a href="javascript:void(0)" class="dropdown-toggle"
-                        aria-expanded="<?= ($isSchedulePage && $statusParam) ? 'true' : 'false' ?>">
+                        aria-expanded="<?= $schedulesStatus ? 'true' : 'false' ?>">
                         <span class="material-icons-sharp">event</span>
                         <h3>Schedules</h3>
                         <span class="material-icons-sharp dropdown-icon">expand_more</span>
@@ -236,6 +240,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Completed">
                             <span>Completed</span>
                             <span class="count-badge"><?= htmlspecialchars($counts['Completed'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Expired">
+                            <span>Expired</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Expired'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Cancelled">
+                            <span>Cancelled</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Cancelled'] ?? 0) ?></span>
                         </a>
                     </div>
                 </div>

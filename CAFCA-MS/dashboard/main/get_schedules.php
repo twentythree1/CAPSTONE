@@ -22,6 +22,7 @@ $sql = "
         f.name AS farmer_name
     FROM schedules s
     LEFT JOIN farmers f ON s.farmer_id = f.id
+    WHERE s.status IN ('Approved', 'On going', 'Completed')
 ";
 
 $result = $conn->query($sql);

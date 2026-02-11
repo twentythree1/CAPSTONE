@@ -76,13 +76,16 @@ $counts = [
     'Pending' => 0,
     'Approved' => 0,
     'On going' => 0,
-    'Completed' => 0
+    'Completed' => 0,
+    'Expired' => 0,
+    'Cancelled' => 0
 ];
 
 $now = new DateTime();
 
 $countSql = "SELECT schedule_date, start_time, end_time, date_span, status FROM schedules";
 $countResult = $conn->query($countSql);
+
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {
         $dbStatus = $r['status'];
@@ -238,6 +241,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
                             <span>Completed</span>
                             <span class="count-badge"><?= htmlspecialchars($counts['Completed'] ?? 0) ?></span>
                         </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Expired">
+                            <span>Expired</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Expired'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Cancelled">
+                            <span>Cancelled</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Cancelled'] ?? 0) ?></span>
+                        </a>
                     </div>
                 </div>
                 <a href="../records/records.php" class="active">
@@ -338,7 +349,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
                         </td> 
                     </tr>
                     ";
-                        $counter++; // Increment counter
+                        $counter++; // auto increment counter
                     }
 
                     ?>

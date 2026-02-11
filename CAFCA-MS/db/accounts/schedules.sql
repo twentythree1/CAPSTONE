@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 09, 2026 at 01:40 PM
+-- Generation Time: Feb 11, 2026 at 12:55 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -35,44 +35,50 @@ CREATE TABLE `schedules` (
   `date_span` int(255) NOT NULL,
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
-  `status` enum('Pending','Approved','On going','Completed') DEFAULT 'Pending',
+  `status` enum('Pending','Approved','On going','Completed','Expired','Cancelled') DEFAULT 'Pending',
   `reschedule_reason` text DEFAULT NULL,
   `rescheduled_at` datetime DEFAULT NULL,
   `return_date` datetime DEFAULT NULL,
-  `return_notes` text DEFAULT NULL
+  `return_notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `schedules`
 --
 
-INSERT INTO `schedules` (`id`, `farmer_id`, `machine_id`, `schedule_date`, `date_span`, `start_time`, `end_time`, `status`, `reschedule_reason`, `rescheduled_at`, `return_date`, `return_notes`) VALUES
-(2, 2, 1, '2026-02-05', 3, '11:00:00', '23:00:00', 'Approved', NULL, NULL, NULL, NULL),
-(5, 4, 1, '2026-01-13', 1, '08:00:00', '17:00:00', 'Completed', NULL, NULL, '2026-02-07 00:14:23', 'dwadwadwa'),
-(6, 2, 1, '2026-01-14', 1, '15:32:00', '18:32:00', 'Completed', NULL, NULL, '2026-02-06 23:13:58', ''),
-(7, 3, 1, '2026-01-15', 1, '15:38:00', '20:38:00', 'Completed', NULL, NULL, '2026-02-06 23:51:25', ''),
-(8, 4, 1, '2026-01-29', 1, '08:33:00', '20:34:00', 'Completed', NULL, NULL, '2026-02-07 00:15:56', ''),
-(9, 5, 1, '2026-01-30', 1, '08:35:00', '20:35:00', 'Completed', NULL, NULL, '2026-02-07 12:19:33', ''),
-(10, 5, 1, '2026-01-31', 1, '08:51:00', '20:51:00', 'Completed', NULL, NULL, '2026-02-07 12:19:30', ''),
-(11, 2, 1, '2026-02-01', 1, '08:52:00', '20:52:00', 'Completed', NULL, NULL, '2026-02-06 23:38:46', ''),
-(12, 4, 1, '2026-02-02', 1, '09:02:00', '21:02:00', 'Completed', NULL, NULL, '2026-02-07 12:19:41', ''),
-(13, 5, 1, '2026-02-03', 1, '09:13:00', '21:13:00', 'Completed', NULL, NULL, '2026-02-07 12:19:24', ''),
-(14, 3, 1, '2026-02-04', 1, '09:14:00', '21:14:00', 'Completed', NULL, NULL, '2026-02-06 23:51:35', ''),
-(15, 5, 1, '2026-02-07', 1, '08:58:00', '20:58:00', 'Approved', 'basta lang', '2026-02-06 21:05:25', NULL, NULL),
-(16, 4, 1, '2026-02-22', 1, '08:26:00', '20:26:00', 'Approved', 'basta ah', '2026-02-07 00:15:29', NULL, NULL),
-(18, 13, 11, '2026-02-03', 2, '06:51:00', '18:51:00', '', NULL, NULL, NULL, NULL),
-(19, 4, 4, '2026-02-03', 1, '06:59:00', '18:59:00', 'Completed', NULL, NULL, '2026-02-07 00:17:55', ''),
-(21, 10, 4, '2026-02-05', 2, '07:03:00', '19:03:00', 'Approved', NULL, NULL, NULL, NULL),
-(22, 3, 1, '2026-02-09', 1, '07:30:00', '17:00:00', 'Approved', 'para timprano matapos', '2026-02-07 00:19:19', NULL, NULL),
-(23, 14, 7, '2026-02-05', 1, '07:31:00', '19:31:00', 'Completed', NULL, NULL, '2026-02-07 12:19:18', ''),
-(24, 13, 11, '2026-02-06', 0, '08:00:00', '17:00:00', '', NULL, NULL, NULL, NULL),
-(25, 10, 11, '2026-02-07', 0, '08:00:00', '17:00:00', '', NULL, NULL, NULL, NULL),
-(26, 10, 10, '2026-02-07', 0, '08:00:00', '17:00:00', '', NULL, NULL, NULL, NULL),
-(27, 10, 12, '2026-02-07', 0, '08:00:00', '17:00:00', 'Approved', NULL, NULL, NULL, NULL),
-(28, 14, 14, '2026-02-06', 0, '08:00:00', '17:00:00', 'Completed', NULL, NULL, '2026-02-07 00:19:45', ''),
-(29, 5, 8, '2026-02-07', 0, '08:00:00', '17:00:00', 'Approved', NULL, NULL, NULL, NULL),
-(30, 12, 14, '2026-02-09', 0, '08:00:00', '17:00:00', 'Approved', NULL, NULL, NULL, NULL),
-(31, 14, 17, '2026-02-08', 0, '08:00:00', '17:00:00', 'Approved', NULL, NULL, NULL, NULL);
+INSERT INTO `schedules` (`id`, `farmer_id`, `machine_id`, `schedule_date`, `date_span`, `start_time`, `end_time`, `status`, `reschedule_reason`, `rescheduled_at`, `return_date`, `return_notes`, `created_at`) VALUES
+(2, 2, 1, '2026-02-05', 3, '11:00:00', '23:00:00', 'Completed', NULL, NULL, '2026-02-10 21:49:43', '', '2026-02-11 11:09:41'),
+(5, 4, 1, '2026-01-13', 1, '08:00:00', '17:00:00', 'Completed', NULL, NULL, '2026-02-07 00:14:23', 'dwadwadwa', '2026-02-11 11:09:41'),
+(6, 2, 1, '2026-01-14', 1, '15:32:00', '18:32:00', 'Completed', NULL, NULL, '2026-02-06 23:13:58', '', '2026-02-11 11:09:41'),
+(7, 3, 1, '2026-01-15', 1, '15:38:00', '20:38:00', 'Completed', NULL, NULL, '2026-02-06 23:51:25', '', '2026-02-11 11:09:41'),
+(8, 4, 1, '2026-01-29', 1, '08:33:00', '20:34:00', 'Completed', NULL, NULL, '2026-02-07 00:15:56', '', '2026-02-11 11:09:41'),
+(9, 5, 1, '2026-01-30', 1, '08:35:00', '20:35:00', 'Completed', NULL, NULL, '2026-02-07 12:19:33', '', '2026-02-11 11:09:41'),
+(10, 5, 1, '2026-01-31', 1, '08:51:00', '20:51:00', 'Completed', NULL, NULL, '2026-02-07 12:19:30', '', '2026-02-11 11:09:41'),
+(11, 2, 1, '2026-02-01', 1, '08:52:00', '20:52:00', 'Completed', NULL, NULL, '2026-02-06 23:38:46', '', '2026-02-11 11:09:41'),
+(12, 4, 1, '2026-02-02', 1, '09:02:00', '21:02:00', 'Completed', NULL, NULL, '2026-02-07 12:19:41', '', '2026-02-11 11:09:41'),
+(13, 5, 1, '2026-02-03', 1, '09:13:00', '21:13:00', 'Completed', NULL, NULL, '2026-02-07 12:19:24', '', '2026-02-11 11:09:41'),
+(14, 3, 1, '2026-02-04', 1, '09:14:00', '21:14:00', 'Completed', NULL, NULL, '2026-02-06 23:51:35', '', '2026-02-11 11:09:41'),
+(15, 5, 1, '2026-02-07', 1, '08:58:00', '20:58:00', 'Approved', 'basta lang', '2026-02-06 21:05:25', NULL, NULL, '2026-02-11 11:09:41'),
+(16, 4, 1, '2026-02-22', 1, '08:26:00', '20:26:00', 'Approved', 'basta ah', '2026-02-07 00:15:29', NULL, NULL, '2026-02-11 11:09:41'),
+(18, 13, 11, '2026-02-03', 2, '06:51:00', '18:51:00', '', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(19, 4, 4, '2026-02-03', 1, '06:59:00', '18:59:00', 'Completed', NULL, NULL, '2026-02-07 00:17:55', '', '2026-02-11 11:09:41'),
+(21, 10, 4, '2026-02-05', 2, '07:03:00', '19:03:00', 'Approved', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(22, 3, 1, '2026-02-09', 1, '07:30:00', '17:00:00', 'Approved', 'para timprano matapos', '2026-02-07 00:19:19', NULL, NULL, '2026-02-11 11:09:41'),
+(23, 14, 7, '2026-02-05', 1, '07:31:00', '19:31:00', 'Completed', NULL, NULL, '2026-02-07 12:19:18', '', '2026-02-11 11:09:41'),
+(24, 13, 11, '2026-02-06', 0, '08:00:00', '17:00:00', '', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(25, 10, 11, '2026-02-07', 0, '08:00:00', '17:00:00', '', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(26, 10, 10, '2026-02-07', 0, '08:00:00', '17:00:00', '', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(27, 10, 12, '2026-02-07', 0, '08:00:00', '17:00:00', 'Approved', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(28, 14, 14, '2026-02-06', 0, '08:00:00', '17:00:00', 'Completed', NULL, NULL, '2026-02-07 00:19:45', '', '2026-02-11 11:09:41'),
+(29, 5, 8, '2026-02-07', 0, '08:00:00', '17:00:00', 'Approved', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(30, 12, 14, '2026-02-09', 0, '08:00:00', '17:00:00', 'Approved', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(31, 14, 17, '2026-02-08', 0, '08:00:00', '17:00:00', 'Approved', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(32, 13, 10, '2026-02-13', 0, '08:00:00', '17:00:00', 'Approved', 'te mong', '2026-02-11 17:51:34', NULL, NULL, '2026-02-11 11:09:41'),
+(33, 10, 12, '2026-02-12', 0, '08:00:00', '17:00:00', 'Approved', NULL, NULL, NULL, NULL, '2026-02-11 11:09:41'),
+(34, 10, 8, '2026-02-11', 0, '19:23:00', '20:00:00', 'Cancelled', NULL, NULL, NULL, NULL, '2026-02-11 11:21:05'),
+(35, 14, 9, '2026-02-11', 0, '19:42:00', '20:00:00', 'Cancelled', NULL, NULL, NULL, NULL, '2026-02-11 11:40:59'),
+(36, 5, 10, '2026-02-11', 0, '19:52:00', '20:00:00', 'Pending', NULL, NULL, NULL, NULL, '2026-02-11 11:50:34');
 
 --
 -- Indexes for dumped tables
@@ -95,7 +101,7 @@ ALTER TABLE `schedules`
 -- AUTO_INCREMENT for table `schedules`
 --
 ALTER TABLE `schedules`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- Constraints for dumped tables

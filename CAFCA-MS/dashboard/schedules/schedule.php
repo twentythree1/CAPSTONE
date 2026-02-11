@@ -16,6 +16,21 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Auto-expire pending schedules
+$now = new DateTime();
+$currentDateTime = $now->format('Y-m-d H:i:s');
+
+$expireSql = "UPDATE schedules 
+              SET status = 'Expired' 
+              WHERE status = 'Pending' 
+              AND CONCAT(schedule_date, ' ', start_time) <= ?";
+$expireStmt = $conn->prepare($expireSql);
+if ($expireStmt) {
+    $expireStmt->bind_param("s", $currentDateTime);
+    $expireStmt->execute();
+    $expireStmt->close();
+}
+
 // Count machines by status
 $machineCounts = [
     'Available' => 0,
@@ -76,7 +91,9 @@ $counts = [
     'Pending' => 0,
     'Approved' => 0,
     'On going' => 0,
-    'Completed' => 0
+    'Completed' => 0,
+    'Expired' => 0,
+    'Cancelled' => 0
 ];
 
 $now = new DateTime();
@@ -244,6 +261,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             <span>Completed</span>
                             <span class="count-badge"><?= htmlspecialchars($counts['Completed'] ?? 0) ?></span>
                         </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Expired">
+                            <span>Expired</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Expired'] ?? 0) ?></span>
+                        </a>
+                        <a href="/CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Cancelled">
+                            <span>Cancelled</span>
+                            <span class="count-badge"><?= htmlspecialchars($counts['Cancelled'] ?? 0) ?></span>
+                        </a>
                     </div>
                 </div>
                 <a href="../records/records.php">
@@ -285,6 +310,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     </div>
                 </div>
                 <?php endif; ?>
+                <?php if (isset($_GET['deleted'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert" style="position: relative;">
+                    Expired schedule was deleted successfully!
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner"></div>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <button id="menu-btn">
                     <span class="material-icons-sharp">menu</span>
                 </button>
@@ -316,7 +349,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 'Pending' => [],
                 'Approved' => [],
                 'On going' => [],
-                'Completed' => []
+                'Completed' => [],
+                'Expired' => []
             ];
 
             $sql = "
@@ -431,12 +465,13 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     echo "<td>{$row['end_time']}</td>";
                     echo "<td>$status</td>";
                     echo "<td>
-                            <a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)'>Edit</a>
                             <a class='btn btn-success btn-sm' onclick='openDetailsModal({$row['id']})' href='javascript:void(0)'>Details</a>";
                     if ($status === 'Pending') {
+                        echo "<a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)' style='margin-left: 4px;'>Edit</a>";
                         echo "<a class='btn btn-warning btn-sm' onclick=\"return confirm('Are you sure you want to approve " . htmlspecialchars($row['farmer_name']) . "\\'s schedule to use " . htmlspecialchars($row['machine_name']) . "?');\" style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
                         echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to cancel " . htmlspecialchars($row['farmer_name']) . "\\'s schedule?');\"  style='margin-left: 4px;' href='cancel_schedule.php?id={$row['id']}'>Cancel</a>";
                     } elseif ($status === 'Approved') {
+                        echo "<a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)' style='margin-left: 4px;'>Edit</a>";
                         echo "<a class='btn btn-resched btn-sm' style='margin-left: 4px;' onclick='openRescheduleModal({$row['id']}, \"" . htmlspecialchars($row['farmer_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['machine_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['schedule_date']) . "\", {$row['date_span']}, \"" . htmlspecialchars($row['start_time']) . "\", \"" . htmlspecialchars($row['end_time']) . "\", \"$status\")'>Reschedule</a>";
                         
                         // Show ellipses with tooltip if there's a reschedule reason
@@ -445,6 +480,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             $rescheduled_date = !empty($row['rescheduled_at']) ? date('M d, Y g:i A', strtotime($row['rescheduled_at'])) : 'N/A';
                             echo "<span class='reschedule-info-icon' data-tooltip='Rescheduled on: $rescheduled_date&#10;Reason: $reason'>⋯</span>";
                         }
+                    } elseif ($status === 'Expired') {
+                        echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to delete this expired schedule?');\" style='margin-left: 4px;' href='delete_schedule.php?id={$row['id']}'>Delete</a>";
+                    } else {
+                        echo "<a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)' style='margin-left: 4px;'>Edit</a>";
                     }
                     echo "</td>";
                     echo "</tr>";
@@ -462,6 +501,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 renderScheduleTable("Approved Schedules", $schedules['Approved'] ?? []);
                 renderScheduleTable("On-Going Schedules", $schedules['On going'] ?? []);
                 renderScheduleTable("Completed Schedules", $schedules['Completed'] ?? []);
+                renderScheduleTable("Expired Schedules", $schedules['Expired'] ?? []);
             }
             ?>
         </main>
@@ -1013,12 +1053,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 if (data.success) {
                     const schedule = data.data;
                     
-                    // Calculate end date
                     const startDate = new Date(schedule.schedule_date);
                     const endDate = new Date(startDate);
                     endDate.setDate(startDate.getDate() + parseInt(schedule.date_span || 0));
                     
-                    // Determine current status
                     const now = new Date();
                     const startDateTime = new Date(schedule.schedule_date + ' ' + schedule.start_time);
                     const endDateTime = new Date(endDate.toISOString().split('T')[0] + ' ' + schedule.end_time);
@@ -1032,7 +1070,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         }
                     }
                     
-                    // Populate modal fields
                     document.getElementById('details-id').textContent = schedule.id;
                     document.getElementById('details-farmer').textContent = schedule.farmer_name;
                     document.getElementById('details-machine').textContent = schedule.machine_name;
