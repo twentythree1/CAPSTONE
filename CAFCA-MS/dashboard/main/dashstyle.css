@@ -204,7 +204,7 @@ aside .sidebar a span {
 
 aside .sidebar .logout a {
     position: absolute;
-    bottom: 5rem;
+    bottom: 1rem;
     width: 100%;
     color: var(--color-danger);
 }
