@@ -23,20 +23,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($password !== $passwordConfirm) {
             $errorMessage = 'Passwords do not match!';
         } else {
-            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
-            if ($stmt) {
-                $stmt->bind_param('ss', $username, $passwordHash);
-                if ($stmt->execute()) {
-                    $_SESSION['success_message'] = "Registration successful! You can now log in.";
-                    header("Location: logindex.php");
-                    exit;
-                } else {
-                    $errorMessage = "Registration failed: " . $stmt->error;
-                }
-                $stmt->close();
+            // Check if username already exists
+            $checkStmt = $conn->prepare('SELECT id FROM users WHERE username = ?');
+            if ($checkStmt) {
+                $checkStmt->bind_param('s', $username);
+                $checkStmt->execute();
+                $checkStmt->store_result();
+                $usernameExists = $checkStmt->num_rows > 0;
+                $checkStmt->close();
             } else {
                 $errorMessage = "Database error. Please try again.";
+                $usernameExists = false;
+            }
+
+            if ($usernameExists) {
+                $errorMessage = "Username already taken. Please choose a different one.";
+            } elseif (empty($errorMessage)) {
+                $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
+                if ($stmt) {
+                    $stmt->bind_param('ss', $username, $passwordHash);
+                    if ($stmt->execute()) {
+                        $_SESSION['success_message'] = "Registration successful! You can now log in.";
+                        header("Location: logindex.php");
+                        exit;
+                    } else {
+                        $errorMessage = "Registration failed: " . $stmt->error;
+                    }
+                    $stmt->close();
+                } else {
+                    $errorMessage = "Database error. Please try again.";
+                }
             }
         }
     } else {
