@@ -287,14 +287,29 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                 </div>
             </div>
             <div class="title">
-                <h2>List of Machines</h2>
-                <?php 
-                $currentStatus = $statusFilter ?: 'Available';
-                if ($statusFilter !== 'Not Returned'): ?>
-                <a href="javascript:void(0)" onclick="openAddMachineModal()" class="btn btn-primary machine" role="button">Add Machine</a>
-                <?php endif; ?>
+                <h2 class="machine-count">List of Machines</h2>
+                <div class="title-actions">
+                    <span class="results-count" id="resultsCount"></span>
+                    <div class="search-expand-wrap" id="searchWrap">
+                        <div class="search-fields" id="searchFields">
+                            <div class="search-input-wrap">
+                                <input type="text" id="machineSearch" placeholder="Search machines..." autocomplete="off">
+                                <button class="clear-search" id="clearSearch" title="Clear" style="display:none;">
+                                    <span class="material-icons-sharp">close</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="search-icon-btn" id="searchToggleBtn" title="Search machines" type="button">
+                            <span class="material-icons-sharp">search</span>
+                        </button>
+                    </div>
+                    <?php 
+                    $currentStatus = $statusFilter ?: 'Available';
+                    if ($statusFilter !== 'Not Returned'): ?>
+                    <a href="javascript:void(0)" onclick="openAddMachineModal()" class="btn btn-primary farmer-btn" role="button">Add Machine</a>
+                    <?php endif; ?>
+                </div>
             </div>
-            <br>
             <?php
             // Prepare data first to check if table should be shown
             if ($statusFilter === 'Not Returned') {
@@ -353,11 +368,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
                         $formattedStartDate = date('M d, Y', strtotime($scheduleDate));
                         $formattedEndDate = date('M d, Y', strtotime($endDateStr));
+                        $safeFarmer  = htmlspecialchars($row['farmer_name'], ENT_QUOTES, 'UTF-8');
+                        $safeMachine = htmlspecialchars($row['machine_name'], ENT_QUOTES, 'UTF-8');
                         
                         echo "
-                        <tr>
-                            <td>" . htmlspecialchars($row['farmer_name']) . "</td>
-                            <td>" . htmlspecialchars($row['machine_name']) . "</td>
+                        <tr class='machine-row'
+                            data-name='" . strtolower($safeMachine) . "'
+                            data-farmer='" . strtolower($safeFarmer) . "'>
+                            <td>{$safeFarmer}</td>
+                            <td>{$safeMachine}</td>
                             <td>{$formattedStartDate}</td>
                             <td>{$formattedEndDate}</td>
                             <td>{$dateSpan} day(s)</td>
@@ -373,9 +392,17 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         ";
                     }
                     
-                    echo "</tbody></table></div>";
-                }
-            } else {
+                    echo "</tbody>
+                          <tr id='noResultsRow' style='display:none;'>
+                              <td colspan='6' style='text-align:center; padding:2rem; color:var(--color-dark-variant);'>
+                                  <span class='material-icons-sharp' style='font-size:2rem;display:block;margin-bottom:0.5rem;'>search_off</span>
+                                  No machines found matching your search.
+                              </td>
+                          </tr>
+                          </table></div>";
+                } // end else (notReturnedRows not empty)
+            } // end if ($statusFilter === 'Not Returned')
+            else {
                 // Original machine listing code
                 if ($statusFilter) {
                     $sql = "SELECT * FROM machines WHERE status = ?";
@@ -438,28 +465,43 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                             $tooltipContent = "No usage history";
                         }
 
+                        $safeName   = htmlspecialchars($row['name'],   ENT_QUOTES, 'UTF-8');
+                        $safeType   = htmlspecialchars($row['type'],   ENT_QUOTES, 'UTF-8');
+                        $safeStatus = htmlspecialchars($row['status'], ENT_QUOTES, 'UTF-8');
+                        $safeId     = intval($row['id']);
+
                         echo "
-                        <tr>
-                            <td>$row[id]</td>
-                            <td>$row[name]</td>
-                            <td>$row[type]</td>
-                            <td>$row[status]</td>
-                            <td>$row[acquisition_date]</td>
+                        <tr class='machine-row'
+                            data-name='" . strtolower($safeName) . "'
+                            data-type='" . strtolower($safeType) . "'
+                            data-status='{$safeStatus}'>
+                            <td>{$safeId}</td>
+                            <td>{$safeName}</td>
+                            <td>{$safeType}</td>
+                            <td>{$safeStatus}</td>
+                            <td>" . htmlspecialchars($row['acquisition_date'], ENT_QUOTES, 'UTF-8') . "</td>
                             <td>
-                                <a class='btn btn-primary btn-sm' onclick='openEditMachineModal($row[id])' href='javascript:void(0)'>Edit</a>
-                                <a class='btn btn-success btn-sm' onclick='openHistoryModal($row[id])'>History</a>
+                                <a class='btn btn-primary btn-sm' onclick='openEditMachineModal({$safeId})' href='javascript:void(0)'>Edit</a>
+                                <a class='btn btn-success btn-sm' onclick='openHistoryModal({$safeId})'>History</a>
                                 <a class='btn btn-danger btn-sm' 
-                                   onclick=\"return confirm('Are you sure you want to delete $row[name]?');\" 
-                                   href='delete_machine.php?id=$row[id]&redirect=" . urlencode($statusFilter ?: 'Available') . "'>Delete</a>
+                                   onclick=\"return confirm('Are you sure you want to delete {$safeName}?');\" 
+                                   href='delete_machine.php?id={$safeId}&redirect=" . urlencode($statusFilter ?: 'Available') . "'>Delete</a>
                                 <span class='reschedule-info-icon' data-tooltip='{$tooltipContent}'>⋯</span>
                             </td> 
                         </tr>
                         ";
                     }
                     
-                    echo "</tbody></table></div>";
-                }
-            }
+                    echo "</tbody>
+                          <tr id='noResultsRow' style='display:none;'>
+                              <td colspan='6' style='text-align:center; padding:2rem; color:var(--color-dark-variant);'>
+                                  <span class='material-icons-sharp' style='font-size:2rem;display:block;margin-bottom:0.5rem;'>search_off</span>
+                                  No machines found matching your search.
+                              </td>
+                          </tr>
+                          </table></div>";
+                } // end else (machineRows not empty)
+            } // end else (not Not Returned view)
             ?>
         </main>
     </div>
@@ -926,6 +968,150 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                 console.error('Error:', error);
             });
     });
+    </script>
+
+    <!-- SEARCH & FILTER SCRIPT -->
+    <script>
+    (function () {
+        const STORAGE_KEY_QUERY = 'machineSearch_query';
+        const STORAGE_KEY_OPEN  = 'machineSearch_open';
+
+        const searchInput  = document.getElementById('machineSearch');
+        const clearBtn     = document.getElementById('clearSearch');
+        const resultsCount = document.getElementById('resultsCount');
+        const noResultsRow = document.getElementById('noResultsRow');
+        const searchWrap   = document.getElementById('searchWrap');
+        const toggleBtn    = document.getElementById('searchToggleBtn');
+
+        if (!searchInput) return; // no table rendered (empty state)
+
+        // Detect which view we're on
+        const isNotReturned = <?= json_encode($statusFilter === 'Not Returned') ?>;
+
+        // Columns to highlight:
+        // Regular view  — name(1), type(2), status(3)
+        // Not Returned  — farmer(0), machine name(1)
+        const SEARCHABLE_COLS = isNotReturned ? [0, 1] : [1, 2, 3];
+
+        /* ---- expand / collapse ---- */
+        function openSearch() {
+            searchWrap.classList.add('expanded');
+            localStorage.setItem(STORAGE_KEY_OPEN, '1');
+            setTimeout(() => searchInput.focus(), 250);
+        }
+
+        function closeSearch() {
+            searchWrap.classList.remove('expanded');
+            localStorage.removeItem(STORAGE_KEY_OPEN);
+        }
+
+        toggleBtn.addEventListener('click', function () {
+            if (searchWrap.classList.contains('expanded')) {
+                searchInput.value = '';
+                localStorage.removeItem(STORAGE_KEY_QUERY);
+                applyFilters();
+                closeSearch();
+            } else {
+                openSearch();
+            }
+        });
+
+        searchWrap.addEventListener('focusout', function (e) {
+            if (!searchWrap.contains(e.relatedTarget)) {
+                if (!searchInput.value) {
+                    closeSearch();
+                }
+            }
+        });
+
+        /* ---- filtering ---- */
+        function applyFilters() {
+            const query = searchInput.value.trim().toLowerCase();
+            const rows  = document.querySelectorAll('.machine-row');
+
+            // Persist query to localStorage
+            if (query) {
+                localStorage.setItem(STORAGE_KEY_QUERY, query);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_QUERY);
+            }
+
+            clearBtn.style.display = query ? 'flex' : 'none';
+
+            let visible = 0;
+
+            rows.forEach(row => {
+                const name   = row.dataset.name   || '';
+                const type   = row.dataset.type   || '';
+                const farmer = row.dataset.farmer || '';
+                const status = row.dataset.status ? row.dataset.status.toLowerCase() : '';
+
+                const matchesSearch = !query ||
+                    name.includes(query) ||
+                    type.includes(query) ||
+                    farmer.includes(query) ||
+                    status.includes(query);
+
+                if (matchesSearch) {
+                    row.style.display = '';
+                    visible++;
+
+                    SEARCHABLE_COLS.forEach(colIdx => {
+                        const cell = row.cells[colIdx];
+                        if (!cell) return;
+                        if (cell.dataset.original === undefined) {
+                            cell.dataset.original = cell.textContent;
+                        }
+                        const original = cell.dataset.original;
+                        if (query) {
+                            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+                            cell.innerHTML = original.replace(regex, '<mark class="search-highlight">$1</mark>');
+                        } else {
+                            cell.textContent = original;
+                        }
+                    });
+                } else {
+                    row.style.display = 'none';
+                    SEARCHABLE_COLS.forEach(colIdx => {
+                        const cell = row.cells[colIdx];
+                        if (cell && cell.dataset.original !== undefined) {
+                            cell.textContent = cell.dataset.original;
+                        }
+                    });
+                }
+            });
+
+            if (noResultsRow) noResultsRow.style.display = visible === 0 ? '' : 'none';
+
+            const total = rows.length;
+            resultsCount.textContent = query ? `${visible} of ${total} shown` : '';
+        }
+
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        searchInput.addEventListener('input', applyFilters);
+
+        clearBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            localStorage.removeItem(STORAGE_KEY_QUERY);
+            applyFilters();
+            searchInput.focus();
+        });
+
+        /* ---- Restore state on page load ---- */
+        const savedQuery = localStorage.getItem(STORAGE_KEY_QUERY);
+        const savedOpen  = localStorage.getItem(STORAGE_KEY_OPEN);
+
+        if (savedQuery || savedOpen) {
+            searchWrap.classList.add('expanded');
+        }
+        if (savedQuery) {
+            searchInput.value = savedQuery;
+            applyFilters();
+        }
+    })();
     </script>
 
     <script src="../main/dashscript.js"></script>

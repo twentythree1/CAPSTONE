@@ -300,9 +300,33 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                 <h2 class="farmers-count">List of Farmers
                     <span><?= htmlspecialchars($farmer_count, ENT_QUOTES, 'UTF-8'); ?></span>
                 </h2>
-                <a href="javascript:void(0)" onclick="openAddFarmerModal()" class="btn btn-primary farmer" role="button">Add Farmer</a>
+                <div class="title-actions">
+                    <span class="results-count" id="resultsCount"></span>
+                    <div class="search-expand-wrap" id="searchWrap">
+                        <div class="search-fields" id="searchFields">
+                            <select id="filterUnit" title="Filter by land unit">
+                                <option value="">All Units</option>
+                                <option value="cm²">cm²</option>
+                                <option value="m²">m²</option>
+                                <option value="km²">km²</option>
+                                <option value="hectare(s)">hectare(s)</option>
+                                <option value="acre(s)">acre(s)</option>
+                            </select>
+                            <div class="search-input-wrap">
+                                <input type="text" id="farmerSearch" placeholder="Search name, address, contact..." autocomplete="off">
+                                <button class="clear-search" id="clearSearch" title="Clear" style="display:none;">
+                                    <span class="material-icons-sharp">close</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="search-icon-btn" id="searchToggleBtn" title="Search Farmers" type="button">
+                            <span class="material-icons-sharp">search</span>
+                        </button>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openAddFarmerModal()" class="btn btn-primary farmer-btn" role="button">Add Farmer</a>
+                </div>
             </div>
-            <br>
+
             <div class='table-scroll'>
                 <table style='width:100%' class='table'>
                     <thead>
@@ -332,23 +356,32 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                         $birthday = new DateTime($row['birthday']);
                         $today = new DateTime();
                         $age = $birthday->diff($today)->y;
+                        $safeName    = htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8');
+                        $safeAddress = htmlspecialchars($row['address'], ENT_QUOTES, 'UTF-8');
+                        $safePhone   = htmlspecialchars($row['phone'], ENT_QUOTES, 'UTF-8');
+                        $safeUnit    = htmlspecialchars($row['unit'], ENT_QUOTES, 'UTF-8');
+                        $safeId      = intval($row['id']);
                         
                         echo "
-                    <tr>
-                        <td>$row[id]</td>
-                        <td>$row[name]</td>
-                        <td>$row[birthday]</td>
+                    <tr class='farmer-row'
+                        data-name='" . strtolower($safeName) . "'
+                        data-address='" . strtolower($safeAddress) . "'
+                        data-phone='" . strtolower($safePhone) . "'
+                        data-unit='$safeUnit'>
+                        <td>$safeId</td>
+                        <td>$safeName</td>
+                        <td>" . htmlspecialchars($row['birthday'], ENT_QUOTES, 'UTF-8') . "</td>
                         <td>$age</td>
-                        <td>$row[address]</td>
-                        <td>$row[land]</td>
-                        <td>$row[unit]</td>
-                        <td>$row[phone]</td>
-                        <td>$row[created_at]</td>
+                        <td>$safeAddress</td>
+                        <td>" . htmlspecialchars($row['land'], ENT_QUOTES, 'UTF-8') . "</td>
+                        <td>$safeUnit</td>
+                        <td>$safePhone</td>
+                        <td>" . htmlspecialchars($row['created_at'], ENT_QUOTES, 'UTF-8') . "</td>
                         <td>
-                            <a class='btn btn-primary btn-sm' onclick='openEditFarmerModal($row[id])'>Edit</a>
+                            <a class='btn btn-primary btn-sm' onclick='openEditFarmerModal($safeId)'>Edit</a>
                             <a class='btn btn-danger btn-sm' 
-                                            onclick=\"return confirm('Are you sure you want to delete $row[name]?');\" 
-                                            href='delete.php?id=$row[id]'>Delete</a>
+                                            onclick=\"return confirm('Are you sure you want to delete $safeName?');\" 
+                                            href='delete.php?id=$safeId'>Delete</a>
                         </td> 
                     </tr>
                     ";
@@ -356,6 +389,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
 
                     ?>
 
+                        <tr id="noResultsRow" style="display:none;">
+                            <td colspan="10" style="text-align:center; padding: 2rem; color: var(--color-dark-variant);">
+                                <span class="material-icons-sharp" style="font-size:2rem; display:block; margin-bottom:0.5rem;">search_off</span>
+                                No farmers found matching your search.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -632,6 +671,126 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
     });
     </script>
 
+
+    <!-- SEARCH & FILTER SCRIPT -->
+    <script>
+    (function () {
+        const searchInput  = document.getElementById('farmerSearch');
+        const filterUnit   = document.getElementById('filterUnit');
+        const clearBtn     = document.getElementById('clearSearch');
+        const resultsCount = document.getElementById('resultsCount');
+        const noResultsRow = document.getElementById('noResultsRow');
+        const searchWrap   = document.getElementById('searchWrap');
+        const toggleBtn    = document.getElementById('searchToggleBtn');
+
+        // Columns to search: name (1), address (4), phone (7)
+        const SEARCHABLE_COLS = [1, 4, 7];
+
+        /* ---- expand / collapse ---- */
+        function openSearch() {
+            searchWrap.classList.add('expanded');
+            setTimeout(() => searchInput.focus(), 250);
+        }
+
+        function closeSearch() {
+            // Only collapse if nothing is typed and no unit filter active
+            if (!searchInput.value && !filterUnit.value) {
+                searchWrap.classList.remove('expanded');
+            }
+        }
+
+        toggleBtn.addEventListener('click', function () {
+            if (searchWrap.classList.contains('expanded')) {
+                searchInput.value = '';
+                filterUnit.value  = '';
+                applyFilters();
+                searchWrap.classList.remove('expanded');
+            } else {
+                openSearch();
+            }
+        });
+
+        // Keep open while hovering the whole wrap
+        searchWrap.addEventListener('focusout', function (e) {
+            if (!searchWrap.contains(e.relatedTarget)) closeSearch();
+        });
+
+        // filtering function
+        function applyFilters() {
+            const query      = searchInput.value.trim().toLowerCase();
+            const unitFilter = filterUnit.value;
+            const rows       = document.querySelectorAll('.farmer-row');
+
+            clearBtn.style.display = query ? 'flex' : 'none';
+
+            let visible = 0;
+
+            rows.forEach(row => {
+                const name    = row.dataset.name    || '';
+                const address = row.dataset.address || '';
+                const phone   = row.dataset.phone   || '';
+                const unit    = row.dataset.unit    || '';
+
+                const matchesSearch = !query ||
+                    name.includes(query) ||
+                    address.includes(query) ||
+                    phone.includes(query);
+
+                const matchesUnit = !unitFilter || unit === unitFilter;
+
+                if (matchesSearch && matchesUnit) {
+                    row.style.display = '';
+                    visible++;
+
+                    SEARCHABLE_COLS.forEach(colIdx => {
+                        const cell = row.cells[colIdx];
+                        if (!cell) return;
+                        if (cell.dataset.original === undefined) {
+                            cell.dataset.original = cell.textContent;
+                        }
+                        const original = cell.dataset.original;
+                        if (query) {
+                            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+                            cell.innerHTML = original.replace(regex, '<mark class="search-highlight">$1</mark>');
+                        } else {
+                            cell.textContent = original;
+                        }
+                    });
+                } else {
+                    row.style.display = 'none';
+                    SEARCHABLE_COLS.forEach(colIdx => {
+                        const cell = row.cells[colIdx];
+                        if (cell && cell.dataset.original !== undefined) {
+                            cell.textContent = cell.dataset.original;
+                        }
+                    });
+                }
+            });
+
+            noResultsRow.style.display = visible === 0 ? '' : 'none';
+
+            const total = rows.length;
+            if (query || unitFilter) {
+                resultsCount.textContent = `${visible} of ${total} shown`;
+            } else {
+                resultsCount.textContent = '';
+            }
+        }
+
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        searchInput.addEventListener('input', applyFilters);
+        filterUnit.addEventListener('change', applyFilters);
+
+        clearBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            applyFilters();
+            searchInput.focus();
+        });
+    })();
+    </script>
 
     <script src="../main/dashscript.js"></script>
 </body>

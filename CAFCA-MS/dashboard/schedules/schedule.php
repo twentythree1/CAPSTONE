@@ -354,10 +354,25 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             </div>
             <div class="title">
                 <h2>List of Schedules</h2>
-                <?php
-                    $currentStatus = isset($_GET['status']) ? $_GET['status'] : 'Pending'; ?>
-                <a href="javascript:void(0)" onclick="openAddScheduleModal()" class="btn btn-primary schedule"
-                    role="button">Add Schedule</a>
+                <?php $currentStatus = isset($_GET['status']) ? $_GET['status'] : 'Pending'; ?>
+                <div class="title-actions">
+                    <span class="results-count-schedule" id="resultsCount"></span>
+                    <a href="javascript:void(0)" onclick="openAddScheduleModal()" class="btn btn-primary schedule"
+                        role="button">Add Schedule</a>
+                    <div class="search-expand-wrap" id="searchWrap">
+                        <div class="schedule-placeholder search-fields" id="searchFields">
+                            <div class="search-input-wrap">
+                                <input type="text" id="scheduleSearch" placeholder="Search schedules..." autocomplete="off">
+                                <button class="clear-search" id="clearSearch" title="Clear" style="display:none;">
+                                    <span class="material-icons-sharp">close</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="search-icon-btn schedule-search" id="searchToggleBtn" title="Search schedules" type="button">
+                            <span class="material-icons-sharp">search</span>
+                        </button>
+                    </div>
+                </div>
             </div>
             <br>
 
@@ -451,6 +466,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             }
                             
             function renderScheduleTable($title, $data) {
+                static $tableIndex = 0;
+                $tableIndex++;
+                $tableId = 'scheduleTable_' . $tableIndex;
                 echo "<h3 style='margin-top: -1rem; margin-bottom: 1.2rem; padding-left: 1rem;'>$title</h3>";
                             
                 if (empty($data)) {
@@ -460,7 +478,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             
                 echo "
                 <div class='table-scroll'>
-                <table style='width:100%' class='table'>
+                <table id='{$tableId}' style='width:100%' class='table'>
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -484,7 +502,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     $end_date = date('m-d', strtotime($row['schedule_date'] . " +{$row['date_span']} days"));
                             
                     $edit_redirect = 'edit_schedule.php?id=' . $row['id'] . '&redirect=' . urlencode($status);
-                    echo "<tr>";
+                    $safefarmer  = htmlspecialchars(strtolower($row['farmer_name']),  ENT_QUOTES, 'UTF-8');
+                    $safemachine = htmlspecialchars(strtolower($row['machine_name']), ENT_QUOTES, 'UTF-8');
+                    $safestatus  = htmlspecialchars(strtolower($status),              ENT_QUOTES, 'UTF-8');
+                    echo "<tr class='schedule-row' data-farmer='{$safefarmer}' data-machine='{$safemachine}' data-status='{$safestatus}'>";
                     echo "<td>{$row['id']}</td>";
                     echo "<td>{$row['farmer_name']}</td>";
                     echo "<td>{$row['machine_name']}</td>";
@@ -521,6 +542,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 }
                             
                 echo "</tbody>
+                <tr class='no-results-row' style='display:none;'>
+                    <td colspan='9' style='text-align:center; padding:2rem; color:var(--color-dark-variant);'>
+                        <span class='material-icons-sharp' style='font-size:2rem;display:block;margin-bottom:0.5rem;'>search_off</span>
+                        No schedules found matching your search.
+                    </td>
+                </tr>
                 </table>
                 </div><br>";
             }
@@ -1248,6 +1275,149 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             closeDetailsModal();
         }
     });
+    </script>
+
+    <!-- SEARCH & FILTER SCRIPT -->
+    <script>
+    (function () {
+        const STORAGE_KEY_QUERY = 'scheduleSearch_query';
+        const STORAGE_KEY_OPEN  = 'scheduleSearch_open';
+
+        const searchInput  = document.getElementById('scheduleSearch');
+        const clearBtn     = document.getElementById('clearSearch');
+        const resultsCount = document.getElementById('resultsCount');
+        const searchWrap   = document.getElementById('searchWrap');
+        const toggleBtn    = document.getElementById('searchToggleBtn');
+
+        if (!searchInput) return;
+
+        // Columns to highlight: farmer(1), machine(2), status(7)
+        const SEARCHABLE_COLS = [1, 2, 7];
+
+        /* ---- expand / collapse ---- */
+        function openSearch() {
+            searchWrap.classList.add('expanded');
+            localStorage.setItem(STORAGE_KEY_OPEN, '1');
+            setTimeout(() => searchInput.focus(), 250);
+        }
+
+        function closeSearch() {
+            searchWrap.classList.remove('expanded');
+            localStorage.removeItem(STORAGE_KEY_OPEN);
+        }
+
+        toggleBtn.addEventListener('click', function () {
+            if (searchWrap.classList.contains('expanded')) {
+                searchInput.value = '';
+                localStorage.removeItem(STORAGE_KEY_QUERY);
+                applyFilters();
+                closeSearch();
+            } else {
+                openSearch();
+            }
+        });
+
+        searchWrap.addEventListener('focusout', function (e) {
+            if (!searchWrap.contains(e.relatedTarget)) {
+                if (!searchInput.value) {
+                    closeSearch();
+                }
+            }
+        });
+
+        /* ---- filtering ---- */
+        function applyFilters() {
+            const query = searchInput.value.trim().toLowerCase();
+            const rows  = document.querySelectorAll('.schedule-row');
+
+            // Persist query to localStorage
+            if (query) {
+                localStorage.setItem(STORAGE_KEY_QUERY, query);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_QUERY);
+            }
+
+            clearBtn.style.display = query ? 'flex' : 'none';
+
+            let totalVisible = 0;
+            let totalRows = rows.length;
+
+            rows.forEach(row => {
+                const farmer  = row.dataset.farmer  || '';
+                const machine = row.dataset.machine || '';
+                const status  = row.dataset.status  || '';
+
+                const matchesSearch = !query ||
+                    farmer.includes(query)  ||
+                    machine.includes(query) ||
+                    status.includes(query);
+
+                if (matchesSearch) {
+                    row.style.display = '';
+                    totalVisible++;
+
+                    SEARCHABLE_COLS.forEach(colIdx => {
+                        const cell = row.cells[colIdx];
+                        if (!cell) return;
+                        if (cell.dataset.original === undefined) {
+                            cell.dataset.original = cell.textContent;
+                        }
+                        const original = cell.dataset.original;
+                        if (query) {
+                            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+                            cell.innerHTML = original.replace(regex, '<mark class="search-highlight">$1</mark>');
+                        } else {
+                            cell.textContent = original;
+                        }
+                    });
+                } else {
+                    row.style.display = 'none';
+                    SEARCHABLE_COLS.forEach(colIdx => {
+                        const cell = row.cells[colIdx];
+                        if (cell && cell.dataset.original !== undefined) {
+                            cell.textContent = cell.dataset.original;
+                        }
+                    });
+                }
+            });
+
+            // Show/hide "no results" row per table
+            document.querySelectorAll('.table').forEach(table => {
+                const tableRows    = table.querySelectorAll('.schedule-row');
+                const noResultsRow = table.querySelector('.no-results-row');
+                if (!noResultsRow) return;
+                const anyVisible   = Array.from(tableRows).some(r => r.style.display !== 'none');
+                noResultsRow.style.display = (tableRows.length > 0 && !anyVisible) ? '' : 'none';
+            });
+
+            resultsCount.textContent = query ? `${totalVisible} of ${totalRows} shown` : '';
+        }
+
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        searchInput.addEventListener('input', applyFilters);
+
+        clearBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            localStorage.removeItem(STORAGE_KEY_QUERY);
+            applyFilters();
+            searchInput.focus();
+        });
+
+        /* ---- Restore state on page load ---- */
+        const savedQuery = localStorage.getItem(STORAGE_KEY_QUERY);
+        const savedOpen  = localStorage.getItem(STORAGE_KEY_OPEN);
+
+        if (savedQuery || savedOpen) {
+            searchWrap.classList.add('expanded');
+        }
+        if (savedQuery) {
+            searchInput.value = savedQuery;
+            applyFilters();
+        }
+    })();
     </script>
 
     <script src="../main/dashscript.js"></script>

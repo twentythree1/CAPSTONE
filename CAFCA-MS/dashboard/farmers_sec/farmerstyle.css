@@ -358,16 +358,21 @@ main .title a {
     display: flex;
 }
 
-main .title a.farmer {
-    position: absolute;
-    margin-top: 2rem;
-    right: 5rem;
-}
-
 main .title a.schedule {
     position: absolute;
-    margin-top: 4rem;
+    top: 7.2rem;
     right: 5rem;
+    white-space: nowrap;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.88rem;
+    border-radius: 8px;
+    background: seagreen;
+    color: white;
+    transition: all 0.2s ease-in-out;
+}
+
+main .title a.schedule:hover {
+    background: green;
 }
 
 main .title a.machine {
@@ -431,18 +436,24 @@ main .btn:hover {
 
 main .btn-resched {
     background: #EB5B00;
+    transition: all 0.2s ease;
 }
 
 main .btn-resched:hover {
-    background: #ff7b3d;
+    background: #723417;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 main .btn-danger {
     background: #C5172E;
+    transition: all 0.2s ease;
 }
 
 main .btn-danger:hover {
     background: red;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 main .btn-success {
@@ -456,6 +467,8 @@ main .btn-success {
 
 main .btn-success:hover {
     background-color: blue;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 main table {
@@ -1106,4 +1119,234 @@ main .top .alert-success {
 #historyContent .no-history p {
     font-size: 16px;
     margin: 0;
+}
+
+
+/* ===================================
+   TITLE ACTION BAR + EXPANDABLE SEARCH
+   =================================== */
+main .title a.farmer {
+    position: static;
+    margin-top: 0;
+    right: auto;
+}
+
+.title-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+/* "Add Farmer" button inside the actions bar */
+.btn.farmer-btn {
+    position: static;
+    margin: 0;
+    white-space: nowrap;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.88rem;
+    border-radius: 8px;
+    background: seagreen;
+    color: white;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn.farmer-btn:hover {
+    background: green;
+}
+
+/* Results counter text */
+.results-count {
+    font-size: 0.78rem;
+    color: var(--color-dark-variant);
+    white-space: nowrap;
+    min-width: 0;
+    transition: opacity 0.2s;
+}
+
+.results-count-schedule {
+    position: absolute;
+    top: 7.85rem;
+    right: 34.5rem;
+}
+
+/* ---- Expandable search container ---- */
+.search-expand-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: relative;
+}
+
+/* The sliding panel that holds input + select */
+.search-fields {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity   0.25s ease,
+                gap       0.3s ease;
+    pointer-events: none;
+}
+
+.search-expand-wrap.expanded .search-fields {
+    max-width: 460px;
+    opacity: 1;
+    pointer-events: auto;
+    gap: 0.45rem;
+}
+
+/* Text input wrapper (has the clear ×) */
+.search-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#farmerSearch,
+#machineSearch,
+#scheduleSearch,
+#recordSearch {
+    width: 240px;
+    padding: 0.52rem 2rem 0.52rem 0.75rem;
+    border: 1px solid var(--color-light);
+    border-radius: var(--border-radius-1);
+    font-size: 0.85rem;
+    background: var(--color-white);
+    color: var(--color-dark);
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#farmerSearch:focus,
+#machineSearch:focus,
+#scheduleSearch:focus,
+#recordSearch:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(160, 200, 120, 0.2);
+}
+
+/* Clear (×) button inside the input */
+.clear-search {
+    position: absolute;
+    right: 0.4rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-dark-variant);
+    display: flex;
+    align-items: center;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.clear-search:hover {
+    color: var(--color-danger);
+}
+
+.clear-search .material-icons-sharp {
+    font-size: 0.95rem;
+}
+
+/* Unit / Status filter selects */
+#filterUnit,
+#filterStatus {
+    padding: 0.52rem 0.75rem;
+    border: 1px solid var(--color-light);
+    border-radius: var(--border-radius-1);
+    font-size: 0.82rem;
+    background: var(--color-white);
+    color: var(--color-dark);
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: border-color 0.2s;
+}
+
+#filterUnit:focus,
+#filterStatus:focus {
+    border-color: var(--color-primary);
+}
+
+/* The search icon button */
+.search-icon-btn {
+    margin-left: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    border: none;
+    background: var(--color-light);
+    color: var(--color-dark-variant);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, transform 0.15s;
+    flex-shrink: 0;
+}
+
+.search-icon-btn:hover,
+.search-expand-wrap.expanded .search-icon-btn {
+    background: var(--color-primary);
+    color: white;
+}
+
+.search-expand-wrap.expanded .search-icon-btn {
+    transform: rotate(90deg);
+    margin-left: 0.5rem;
+}
+
+.search-icon-btn .material-icons-sharp {
+    font-size: 1.15rem;
+}
+
+.dark-theme-variables #farmerSearch,
+.dark-theme-variables #machineSearch,
+.dark-theme-variables #scheduleSearch,
+.dark-theme-variables #recordSearch,
+.dark-theme-variables #filterUnit,
+.dark-theme-variables #filterStatus {
+    background: var(--color-white);
+    color: var(--color-dark);
+    border-color: var(--color-light);
+}
+
+.search-highlight {
+    background-color: rgba(255, 213, 0, 0.45);
+    border-radius: 2px;
+    font-weight: 600;
+}
+
+.schedule-search {
+    position: absolute;
+    top: 0.9rem;
+    right: 10.5rem;
+}
+
+.schedule-placeholder {
+    position: absolute;
+    top: 0.8rem;
+    right: 13.3rem;
+}
+
+.record-search {
+    position: absolute;
+    top: -0.5em;
+    right: 8.5rem;
+}
+
+.record-placeholder {
+    position: absolute;
+    top: -0.6em;
+    right: 11.3rem;
+}
+
+.results-count-record {
+    position: absolute;
+    top: 6.5rem;
+    right: 32rem;
 }

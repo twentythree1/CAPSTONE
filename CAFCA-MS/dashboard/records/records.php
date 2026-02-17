@@ -280,10 +280,25 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
             </div>
             <div class="title">
                 <h2 class="machine-count">List of Records</h2>
-                <a href="javascript:void(0)" onclick="openAddRecordModal()" class="btn btn-primary records" role="button">Add Record</a>
+                <div class="title-actions">
+                    <span class="results-count-record" id="resultsCount"></span>
+                    <div class="search-expand-wrap" id="searchWrap">
+                        <div class="record-placeholder search-fields" id="searchFields">
+                            <div class="search-input-wrap">
+                                <input type="text" id="recordSearch" placeholder="Search name, barangay, etc..." autocomplete="off">
+                                <button class="clear-search" id="clearSearch" title="Clear" style="display:none;">
+                                    <span class="material-icons-sharp">close</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="search-icon-btn record-search" id="searchToggleBtn" title="Search Records" type="button">
+                            <span class="material-icons-sharp">search</span>
+                        </button>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openAddRecordModal()" class="btn btn-primary records" role="button">Add Record</a>
+                </div>
             </div>
-            <br>
-            <div class='table-scroll'>
+            <div class='table-scroll' style='margin-top: 1.5rem;'>
                 <table style='width:100%' class='table'>
                     <thead>
                         <tr>
@@ -328,24 +343,33 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
 
                     $counter = 1; // Initialize counter for No. column
                     while ($row = $result->fetch_assoc()) {
+                        $safeName  = htmlspecialchars($row['farmer_name'], ENT_QUOTES, 'UTF-8');
+                        $safeBrgy  = htmlspecialchars($row['brgy'], ENT_QUOTES, 'UTF-8');
+                        $safeRsbsa = htmlspecialchars($row['rsbsa_reference_no'], ENT_QUOTES, 'UTF-8');
+                        $safeEco   = htmlspecialchars($row['ecosystem'], ENT_QUOTES, 'UTF-8');
+                        $safeId    = intval($row['id']);
                         echo "
-                    <tr>
+                    <tr class='record-row'
+                        data-name='" . strtolower($safeName) . "'
+                        data-brgy='" . strtolower($safeBrgy) . "'
+                        data-rsbsa='" . strtolower($safeRsbsa) . "'
+                        data-ecosystem='$safeEco'>
                         <td>" . $counter . "</td>
-                        <td>" . htmlspecialchars($row['brgy']) . "</td>
-                        <td>" . htmlspecialchars($row['rsbsa_reference_no']) . "</td>
-                        <td>" . htmlspecialchars($row['farmer_name']) . "</td>
-                        <td>" . htmlspecialchars($row['ecosystem']) . "</td>
-                        <td>" . htmlspecialchars($row['variety_planted']) . "</td>
-                        <td>" . htmlspecialchars($row['area_harvested']) . "</td>
-                        <td>" . htmlspecialchars($row['gross_yield']) . "</td>
-                        <td>" . htmlspecialchars($row['avg_weight_per_sack']) . "</td>
-                        <td>" . htmlspecialchars($row['total_yield']) . "</td>
-                        <td>" . htmlspecialchars($row['avg_yield']) . "</td>
+                        <td>$safeBrgy</td>
+                        <td>$safeRsbsa</td>
+                        <td>$safeName</td>
+                        <td>$safeEco</td>
+                        <td>" . htmlspecialchars($row['variety_planted'], ENT_QUOTES, 'UTF-8') . "</td>
+                        <td>" . htmlspecialchars($row['area_harvested'], ENT_QUOTES, 'UTF-8') . "</td>
+                        <td>" . htmlspecialchars($row['gross_yield'], ENT_QUOTES, 'UTF-8') . "</td>
+                        <td>" . htmlspecialchars($row['avg_weight_per_sack'], ENT_QUOTES, 'UTF-8') . "</td>
+                        <td>" . htmlspecialchars($row['total_yield'], ENT_QUOTES, 'UTF-8') . "</td>
+                        <td>" . htmlspecialchars($row['avg_yield'], ENT_QUOTES, 'UTF-8') . "</td>
                         <td>
-                            <a class='btn btn-primary btn-sm' href='javascript:void(0)' onclick='openEditRecordModal(" . htmlspecialchars($row['id']) . ")'>Edit</a>
+                            <a class='btn btn-primary btn-sm' href='javascript:void(0)' onclick='openEditRecordModal($safeId)'>Edit</a>
                             <a class='btn btn-danger btn-sm' 
-                                            onclick=\"return confirm('Are you sure you want to delete " . htmlspecialchars($row['farmer_name']) . "\\'s record?');\" 
-                                            href='delete_records.php?id=" . htmlspecialchars($row['id']) . "'>Delete</a>
+                                            onclick=\"return confirm('Are you sure you want to delete $safeName\\'s record?');\" 
+                                            href='delete_records.php?id=$safeId'>Delete</a>
                         </td> 
                     </tr>
                     ";
@@ -354,6 +378,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
 
                     ?>
 
+                        <tr id="noResultsRow" style="display:none;">
+                            <td colspan="12" style="text-align:center; padding: 2rem; color: var(--color-dark-variant);">
+                                <span class="material-icons-sharp" style="font-size:2rem; display:block; margin-bottom:0.5rem;">search_off</span>
+                                No records found matching your search.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -625,6 +655,116 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
             errorDiv.style.display = 'block';
         });
     });
+    </script>
+
+    <!-- SEARCH & FILTER SCRIPT -->
+    <script>
+    (function () {
+        const searchInput  = document.getElementById('recordSearch');
+        const clearBtn     = document.getElementById('clearSearch');
+        const resultsCount = document.getElementById('resultsCount');
+        const noResultsRow = document.getElementById('noResultsRow');
+        const searchWrap   = document.getElementById('searchWrap');
+        const toggleBtn    = document.getElementById('searchToggleBtn');
+
+        // Columns to highlight: Brgy (1), RSBSA (2), Name (3)
+        const SEARCHABLE_COLS = [1, 2, 3];
+
+        /* ---- expand / collapse ---- */
+        function openSearch() {
+            searchWrap.classList.add('expanded');
+            setTimeout(() => searchInput.focus(), 250);
+        }
+
+        function closeSearch() {
+            if (!searchInput.value) {
+                searchWrap.classList.remove('expanded');
+            }
+        }
+
+        toggleBtn.addEventListener('click', function () {
+            if (searchWrap.classList.contains('expanded')) {
+                searchInput.value = '';
+                applyFilters();
+                searchWrap.classList.remove('expanded');
+            } else {
+                openSearch();
+            }
+        });
+
+        searchWrap.addEventListener('focusout', function (e) {
+            if (!searchWrap.contains(e.relatedTarget)) closeSearch();
+        });
+
+        function applyFilters() {
+            const query = searchInput.value.trim().toLowerCase();
+            const rows  = document.querySelectorAll('.record-row');
+
+            clearBtn.style.display = query ? 'flex' : 'none';
+
+            let visible = 0;
+
+            rows.forEach(row => {
+                const name  = row.dataset.name  || '';
+                const brgy  = row.dataset.brgy  || '';
+                const rsbsa = row.dataset.rsbsa || '';
+
+                const matchesSearch = !query ||
+                    name.includes(query)  ||
+                    brgy.includes(query)  ||
+                    rsbsa.includes(query);
+
+                if (matchesSearch) {
+                    row.style.display = '';
+                    visible++;
+
+                    SEARCHABLE_COLS.forEach(colIdx => {
+                        const cell = row.cells[colIdx];
+                        if (!cell) return;
+                        if (cell.dataset.original === undefined) {
+                            cell.dataset.original = cell.textContent;
+                        }
+                        const original = cell.dataset.original;
+                        if (query) {
+                            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+                            cell.innerHTML = original.replace(regex, '<mark class="search-highlight">$1</mark>');
+                        } else {
+                            cell.textContent = original;
+                        }
+                    });
+                } else {
+                    row.style.display = 'none';
+                    SEARCHABLE_COLS.forEach(colIdx => {
+                        const cell = row.cells[colIdx];
+                        if (cell && cell.dataset.original !== undefined) {
+                            cell.textContent = cell.dataset.original;
+                        }
+                    });
+                }
+            });
+
+            noResultsRow.style.display = visible === 0 ? '' : 'none';
+
+            const total = rows.length;
+            if (query) {
+                resultsCount.textContent = `${visible} of ${total} shown`;
+            } else {
+                resultsCount.textContent = '';
+            }
+        }
+
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        searchInput.addEventListener('input', applyFilters);
+
+        clearBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            applyFilters();
+            searchInput.focus();
+        });
+    })();
     </script>
 
     <script src="../main/dashscript.js"></script>
