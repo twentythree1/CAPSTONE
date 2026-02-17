@@ -518,7 +518,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             <a class='btn btn-success btn-sm' onclick='openDetailsModal({$row['id']})' href='javascript:void(0)'>Details</a>";
                     if ($status === 'Pending') {
                         echo "<a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)' style='margin-left: 4px;'>Edit</a>";
-                        echo "<a class='btn btn-warning btn-sm' onclick=\"return confirm('Are you sure you want to approve " . htmlspecialchars($row['farmer_name']) . "\\'s schedule to use " . htmlspecialchars($row['machine_name']) . "?');\" style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
+                        echo "<a class='btn btn-primary btn-sm' onclick=\"return confirm('Are you sure you want to approve " . htmlspecialchars($row['farmer_name']) . "\\'s schedule to use " . htmlspecialchars($row['machine_name']) . "?');\" style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
                         echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to cancel " . htmlspecialchars($row['farmer_name']) . "\\'s schedule?');\"  style='margin-left: 4px;' href='cancel_schedule.php?id={$row['id']}'>Cancel</a>";
                     } elseif ($status === 'Approved') {
                         echo "<a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)' style='margin-left: 4px;'>Edit</a>";
@@ -590,6 +590,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 <form id="rescheduleForm" method="POST" action="process_reschedule.php">
                     <input type="hidden" id="schedule_id" name="schedule_id">
                     <input type="hidden" id="original_status" name="original_status">
+                    <input type="hidden" id="original_date" name="original_date">
                     <input type="hidden" name="redirect" value="<?= htmlspecialchars($statusFilter ?? 'Approved') ?>">
 
                     <div class="form-group">
@@ -703,6 +704,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
         document.getElementById('schedule_id').value = id;
         document.getElementById('original_status').value = status;
+        document.getElementById('original_date').value = scheduleDate;
         document.getElementById('schedule_date').value = scheduleDate;
         document.getElementById('date_span').value = dateSpan;
         document.getElementById('start_time').value = startTime;
@@ -753,6 +755,20 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
     });
 
     document.getElementById('rescheduleForm').addEventListener('submit', function(e) {
+        const originalDate = document.getElementById('original_date').value;
+        const newDate = document.getElementById('schedule_date').value;
+        const errorMsg = document.getElementById('errorMessage');
+
+        if (newDate === originalDate) {
+            e.preventDefault();
+            errorMsg.textContent = 'You must change the date when rescheduling.';
+            errorMsg.style.display = 'block';
+            errorMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return false;
+        }
+
+        errorMsg.style.display = 'none';
+
         if (!confirm('Are you sure you want to reschedule this appointment?')) {
             e.preventDefault();
             return false;

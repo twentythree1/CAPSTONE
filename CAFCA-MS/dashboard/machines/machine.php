@@ -428,8 +428,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     $statusName = $statusFilter ?: 'Machines';
                     echo "<p style='display: flex; justify-content: center; text-transform: capitalize;'>No {$statusName} machine(s).</p>";
                 } else {
-                    echo "<div class='table-scroll'>
-                          <table style='width:100%' class='table'>
+                    echo "<div class='table-scroll' style='margin-top: 1.5rem;'>
+                          <table style='width:100%;' class='table'>
                             <thead>
                                 <tr>
                                     <th>Machine ID</th>
@@ -807,7 +807,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                             <option value="">--- Select status ---</option>
                             <option value="Available">Available</option>
                             <option value="Partially Damaged">Partially Damaged</option>
-                            <option value="Damaged">Damaged</option>
                             <option value="Totally Damaged">Totally Damaged</option>
                         </select>
                     </div>
@@ -983,14 +982,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
         const searchWrap   = document.getElementById('searchWrap');
         const toggleBtn    = document.getElementById('searchToggleBtn');
 
-        if (!searchInput) return; // no table rendered (empty state)
+        if (!searchInput) return;
 
-        // Detect which view we're on
         const isNotReturned = <?= json_encode($statusFilter === 'Not Returned') ?>;
 
-        // Columns to highlight:
-        // Regular view  — name(1), type(2), status(3)
-        // Not Returned  — farmer(0), machine name(1)
         const SEARCHABLE_COLS = isNotReturned ? [0, 1] : [1, 2, 3];
 
         /* ---- expand / collapse ---- */
