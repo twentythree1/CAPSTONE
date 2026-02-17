@@ -284,6 +284,11 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
                     <span class="results-count-record" id="resultsCount"></span>
                     <div class="search-expand-wrap" id="searchWrap">
                         <div class="record-placeholder search-fields" id="searchFields">
+                            <select id="filterEcosystem" title="Filter by ecosystem">
+                                <option value="">All Ecosystems</option>
+                                <option value="Irrigated">Irrigated</option>
+                                <option value="Rainfed">Rainfed</option>
+                            </select>
                             <div class="search-input-wrap">
                                 <input type="text" id="recordSearch" placeholder="Search name, barangay, etc..." autocomplete="off">
                                 <button class="clear-search" id="clearSearch" title="Clear" style="display:none;">
@@ -661,6 +666,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
     <script>
     (function () {
         const searchInput  = document.getElementById('recordSearch');
+        const filterEco    = document.getElementById('filterEcosystem');
         const clearBtn     = document.getElementById('clearSearch');
         const resultsCount = document.getElementById('resultsCount');
         const noResultsRow = document.getElementById('noResultsRow');
@@ -677,7 +683,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
         }
 
         function closeSearch() {
-            if (!searchInput.value) {
+            if (!searchInput.value && !filterEco.value) {
                 searchWrap.classList.remove('expanded');
             }
         }
@@ -685,6 +691,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
         toggleBtn.addEventListener('click', function () {
             if (searchWrap.classList.contains('expanded')) {
                 searchInput.value = '';
+                filterEco.value   = '';
                 applyFilters();
                 searchWrap.classList.remove('expanded');
             } else {
@@ -697,24 +704,28 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
         });
 
         function applyFilters() {
-            const query = searchInput.value.trim().toLowerCase();
-            const rows  = document.querySelectorAll('.record-row');
+            const query     = searchInput.value.trim().toLowerCase();
+            const ecoFilter = filterEco.value;
+            const rows      = document.querySelectorAll('.record-row');
 
             clearBtn.style.display = query ? 'flex' : 'none';
 
             let visible = 0;
 
             rows.forEach(row => {
-                const name  = row.dataset.name  || '';
-                const brgy  = row.dataset.brgy  || '';
-                const rsbsa = row.dataset.rsbsa || '';
+                const name      = row.dataset.name  || '';
+                const brgy      = row.dataset.brgy  || '';
+                const rsbsa     = row.dataset.rsbsa || '';
+                const ecosystem = row.dataset.ecosystem || '';
 
                 const matchesSearch = !query ||
                     name.includes(query)  ||
                     brgy.includes(query)  ||
                     rsbsa.includes(query);
 
-                if (matchesSearch) {
+                const matchesEco = !ecoFilter || ecosystem === ecoFilter;
+
+                if (matchesSearch && matchesEco) {
                     row.style.display = '';
                     visible++;
 
@@ -746,7 +757,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
             noResultsRow.style.display = visible === 0 ? '' : 'none';
 
             const total = rows.length;
-            if (query) {
+            if (query || ecoFilter) {
                 resultsCount.textContent = `${visible} of ${total} shown`;
             } else {
                 resultsCount.textContent = '';
@@ -758,6 +769,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
         }
 
         searchInput.addEventListener('input', applyFilters);
+        filterEco.addEventListener('change', applyFilters);
 
         clearBtn.addEventListener('click', function () {
             searchInput.value = '';

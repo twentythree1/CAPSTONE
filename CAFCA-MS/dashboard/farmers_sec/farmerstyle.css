@@ -1254,7 +1254,8 @@ main .title a.farmer {
 
 /* Unit / Status filter selects */
 #filterUnit,
-#filterStatus {
+#filterStatus,
+#filterEcosystem {
     padding: 0.52rem 0.75rem;
     border: 1px solid var(--color-light);
     border-radius: var(--border-radius-1);
