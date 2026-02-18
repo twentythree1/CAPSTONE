@@ -51,9 +51,28 @@ $end_date_esc = $conn->real_escape_string($end_date);
 $start_time_esc = $conn->real_escape_string($start_time);
 $end_time_esc = $conn->real_escape_string($end_time);
 
+// Get the total quantity of this machine
+$quantityQuery = "SELECT quantity FROM machines WHERE id = '$machine_id_esc'";
+$quantityResult = $conn->query($quantityQuery);
+
+if (!$quantityResult || $quantityResult->num_rows === 0) {
+    echo json_encode(['success' => false, 'message' => 'Machine not found.']);
+    exit;
+}
+
+$machineData = $quantityResult->fetch_assoc();
+$totalQuantity = (int)$machineData['quantity'];
+
+if ($totalQuantity <= 0) {
+    echo json_encode(['success' => false, 'message' => 'This machine has no available quantity.']);
+    exit;
+}
+
+// Count how many of this machine are already booked for the overlapping date range
 $conflictQuery = "
-    SELECT * FROM schedules 
+    SELECT COUNT(*) as booked_count FROM schedules 
     WHERE machine_id = '$machine_id_esc'
+      AND status IN ('Pending', 'Approved', 'On going')
       AND (
             DATE_ADD(schedule_date, INTERVAL date_span DAY) >= '$schedule_date_esc'
             AND schedule_date <= '$end_date_esc'
@@ -64,8 +83,20 @@ $conflictQuery = "
 ";
 
 $conflictResult = $conn->query($conflictQuery);
-if ($conflictResult && $conflictResult->num_rows > 0) {
-    echo json_encode(['success' => false, 'message' => 'Machine is already scheduled during this date/time.']);
+if (!$conflictResult) {
+    echo json_encode(['success' => false, 'message' => 'Error checking availability: ' . $conn->error]);
+    exit;
+}
+
+$conflictData = $conflictResult->fetch_assoc();
+$bookedCount = (int)$conflictData['booked_count'];
+
+// Check if there's still availability
+if ($bookedCount >= $totalQuantity) {
+    echo json_encode([
+        'success' => false, 
+        'message' => "All units of this machine are already booked during this date/time. (Booked: $bookedCount / Available: $totalQuantity)"
+    ]);
     exit;
 }
 

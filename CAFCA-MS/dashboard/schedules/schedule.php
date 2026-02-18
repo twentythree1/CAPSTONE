@@ -825,22 +825,26 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
                     <div class="form-group">
                         <label for="machine_id">Machine <span style="color: red;">*</span></label>
-                        <select name="machine_id" id="machine_id" required class="form-select" onchange="checkMachineStatus(this, 'addMachineWarning')">
+                        <select name="machine_id" id="machine_id" required class="form-select" onchange="checkMachineAvailability()">
                             <option value="">Select a Machine</option>
                             <?php
-                            $machineList = $conn->query("SELECT id, name, status FROM machines ORDER BY name ASC");
+                            $machineList = $conn->query("SELECT id, name, status, quantity FROM machines ORDER BY name ASC");
                             while ($row = $machineList->fetch_assoc()):
                                 $isTotallyDamaged = ($row['status'] === 'Totally Damaged');
+                                $quantity = intval($row['quantity']);
                             ?>
                             <option value="<?= $row['id'] ?>"
                                 data-status="<?= htmlspecialchars($row['status']) ?>"
+                                data-quantity="<?= $quantity ?>"
                                 <?= $isTotallyDamaged ? 'disabled style="color: #aaa;"' : '' ?>>
-                                <?= htmlspecialchars($row['name']) ?><?= $isTotallyDamaged ? ' (Totally Damaged — Unavailable)' : '' ?>
+                                <?= htmlspecialchars($row['name']) ?> (Qty: <?= $quantity ?>)<?= $isTotallyDamaged ? ' — Unavailable' : '' ?>
                             </option>
                             <?php endwhile; ?>
                         </select>
-                        <div id="addMachineWarning" class="alert-error" style="display: none; margin-top: 0.5rem; transition: all 0.2s;">
-                            ⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.
+                        <div id="addMachineWarning" class="alert-error" style="display: none; margin-top: 0.5rem; transition: all 0.2s;"></div>
+                        <div id="addMachineAvailability" style="margin-top: 0.5rem; padding: 0.75rem; background: #e3f2fd; border-radius: 4px; display: none; border-left: 4px solid #2196F3;">
+                            <small style="display: block; margin-bottom: 0.25rem;"><strong>📊 Availability Check:</strong></small>
+                            <small id="availabilityMessage" style="color: #1565C0;"></small>
                         </div>
                     </div>
 
@@ -902,22 +906,26 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
                     <div class="form-group">
                         <label for="edit_machine_id">Machine <span style="color: red;">*</span></label>
-                        <select id="edit_machine_id" name="machine_id" required onchange="checkMachineStatus(this, 'editMachineWarning')">
+                        <select id="edit_machine_id" name="machine_id" required onchange="checkEditMachineAvailability()">
                             <option value="">Select a Machine</option>
                             <?php
-                            $machineList = $conn->query("SELECT id, name, status FROM machines ORDER BY name");
+                            $machineList = $conn->query("SELECT id, name, status, quantity FROM machines ORDER BY name");
                             while ($row = $machineList->fetch_assoc()):
                                 $isTotallyDamaged = ($row['status'] === 'Totally Damaged');
+                                $quantity = intval($row['quantity']);
                             ?>
                                 <option value="<?= $row['id'] ?>"
                                     data-status="<?= htmlspecialchars($row['status']) ?>"
+                                    data-quantity="<?= $quantity ?>"
                                     <?= $isTotallyDamaged ? 'disabled style="color: #aaa;"' : '' ?>>
-                                    <?= htmlspecialchars($row['name']) ?><?= $isTotallyDamaged ? ' (Totally Damaged — Unavailable)' : '' ?>
+                                    <?= htmlspecialchars($row['name']) ?> (Qty: <?= $quantity ?>)<?= $isTotallyDamaged ? ' — Unavailable' : '' ?>
                                 </option>
                             <?php endwhile; ?>
                         </select>
-                        <div id="editMachineWarning" class="alert-error" style="display: none; margin-top: 0.5rem; transition: all 0.2s;">
-                            ⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.
+                        <div id="editMachineWarning" class="alert-error" style="display: none; margin-top: 0.5rem; transition: all 0.2s;"></div>
+                        <div id="editMachineAvailability" style="margin-top: 0.5rem; padding: 0.75rem; background: #e3f2fd; border-radius: 4px; display: none; border-left: 4px solid #2196F3;">
+                            <small style="display: block; margin-bottom: 0.25rem;"><strong>📊 Availability Check:</strong></small>
+                            <small id="editAvailabilityMessage" style="color: #1565C0;"></small>
                         </div>
                     </div>
 
@@ -958,27 +966,93 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
     <!-- ADD SCHEDULE MODAL SCRIPT -->
     <script>
-    // Shared helper: show warning based on selected machine status
-    function checkMachineStatus(selectEl, warningId) {
-        const selectedOption = selectEl.options[selectEl.selectedIndex];
-        const status = selectedOption ? selectedOption.getAttribute('data-status') : '';
-        const warningDiv = document.getElementById(warningId);
+    // Function to check machine availability in real-time
+    function checkMachineAvailability() {
+        const machineSelect = document.getElementById('machine_id');
+        const scheduleDate = document.getElementById('add_schedule_date').value;
+        const endDate = document.getElementById('add_end_date').value;
+        const startTime = document.getElementById('add_start_time').value;
+        const endTime = document.getElementById('add_end_time').value;
+        
+        const selectedOption = machineSelect.options[machineSelect.selectedIndex];
+        const warningDiv = document.getElementById('addMachineWarning');
+        const availabilityDiv = document.getElementById('addMachineAvailability');
+        const availabilityMsg = document.getElementById('availabilityMessage');
+        
+        // Hide both divs initially
+        warningDiv.style.display = 'none';
+        availabilityDiv.style.display = 'none';
+        
+        if (!selectedOption || !selectedOption.value) {
+            return;
+        }
+        
+        const status = selectedOption.getAttribute('data-status');
+        const quantity = parseInt(selectedOption.getAttribute('data-quantity') || '0');
+        const machineId = selectedOption.value;
+        
+        // Check status first
         if (status === 'Totally Damaged') {
             warningDiv.innerHTML = '⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.';
             warningDiv.style.background = '#fde8e8';
-            warningDiv.style.borderColor = '#f44336';
             warningDiv.style.color = '#b71c1c';
             warningDiv.style.display = 'block';
-        } else if (status === 'Partially Damaged') {
+            return;
+        }
+        
+        if (status === 'Partially Damaged') {
             warningDiv.innerHTML = '⚠️ This machine is <strong>Partially Damaged</strong>. You will be asked to confirm before booking.';
             warningDiv.style.background = '#fff8e1';
-            warningDiv.style.borderColor = '#ffc107';
             warningDiv.style.color = '#7a5000';
             warningDiv.style.display = 'block';
+        }
+        
+        // If dates and times are filled, check real-time availability
+        if (scheduleDate && endDate && startTime && endTime) {
+            fetch('check_availability.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `machine_id=${machineId}&schedule_date=${scheduleDate}&end_date=${endDate}&start_time=${startTime}&end_time=${endTime}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const available = data.available;
+                    const booked = data.booked;
+                    const total = data.total;
+                    
+                    availabilityDiv.style.display = 'block';
+                    if (available > 0) {
+                        availabilityDiv.style.background = '#e8f5e9';
+                        availabilityDiv.style.borderColor = '#4CAF50';
+                        availabilityMsg.style.color = '#2e7d32';
+                        availabilityMsg.innerHTML = `✅ <strong>${available}</strong> unit(s) available (${booked} booked / ${total} total)`;
+                    } else {
+                        availabilityDiv.style.background = '#ffebee';
+                        availabilityDiv.style.borderColor = '#f44336';
+                        availabilityMsg.style.color = '#c62828';
+                        availabilityMsg.innerHTML = `❌ <strong>Fully booked</strong> (${booked} booked / ${total} total)`;
+                    }
+                }
+            })
+            .catch(error => console.error('Error checking availability:', error));
         } else {
-            warningDiv.style.display = 'none';
+            // Show quantity info even without dates
+            availabilityDiv.style.display = 'block';
+            availabilityMsg.innerHTML = `Total quantity: <strong>${quantity}</strong> unit(s). Select dates to check availability.`;
         }
     }
+    
+    // Add event listeners to trigger availability check when dates/times change
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateTimeInputs = ['add_schedule_date', 'add_end_date', 'add_start_time', 'add_end_time'];
+        dateTimeInputs.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', checkMachineAvailability);
+            }
+        });
+    });
 
     function openAddScheduleModal() {
         const modal = document.getElementById('addScheduleModal');
@@ -986,6 +1060,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         document.getElementById('addScheduleForm').reset();
         document.getElementById('addScheduleErrorMessage').style.display = 'none';
         document.getElementById('addMachineWarning').style.display = 'none';
+        document.getElementById('addMachineAvailability').style.display = 'none';
         
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
@@ -1057,11 +1132,95 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
     <!-- EDIT SCHEDULE MODAL SCRIPT -->
     <script>
+    // Function to check machine availability for edit modal
+    function checkEditMachineAvailability() {
+        const machineSelect = document.getElementById('edit_machine_id');
+        const scheduleDate = document.getElementById('edit_schedule_date').value;
+        const dateSpan = document.getElementById('edit_date_span').value;
+        const startTime = document.getElementById('edit_start_time').value;
+        const endTime = document.getElementById('edit_end_time').value;
+        const scheduleId = document.getElementById('edit_schedule_id').value;
+        
+        const selectedOption = machineSelect.options[machineSelect.selectedIndex];
+        const warningDiv = document.getElementById('editMachineWarning');
+        const availabilityDiv = document.getElementById('editMachineAvailability');
+        const availabilityMsg = document.getElementById('editAvailabilityMessage');
+        
+        // Hide both divs initially
+        warningDiv.style.display = 'none';
+        availabilityDiv.style.display = 'none';
+        
+        if (!selectedOption || !selectedOption.value) {
+            return;
+        }
+        
+        const status = selectedOption.getAttribute('data-status');
+        const quantity = parseInt(selectedOption.getAttribute('data-quantity') || '0');
+        const machineId = selectedOption.value;
+        
+        // Check status first
+        if (status === 'Totally Damaged') {
+            warningDiv.innerHTML = '⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.';
+            warningDiv.style.background = '#fde8e8';
+            warningDiv.style.color = '#b71c1c';
+            warningDiv.style.display = 'block';
+            return;
+        }
+        
+        if (status === 'Partially Damaged') {
+            warningDiv.innerHTML = '⚠️ This machine is <strong>Partially Damaged</strong>. You will be asked to confirm before updating.';
+            warningDiv.style.background = '#fff8e1';
+            warningDiv.style.color = '#7a5000';
+            warningDiv.style.display = 'block';
+        }
+        
+        // If dates and times are filled, check real-time availability
+        if (scheduleDate && dateSpan && startTime && endTime) {
+            // Calculate end date
+            const startDateObj = new Date(scheduleDate);
+            startDateObj.setDate(startDateObj.getDate() + parseInt(dateSpan));
+            const endDate = startDateObj.toISOString().split('T')[0];
+            
+            fetch('check_availability.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `machine_id=${machineId}&schedule_date=${scheduleDate}&end_date=${endDate}&start_time=${startTime}&end_time=${endTime}&exclude_schedule_id=${scheduleId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const available = data.available;
+                    const booked = data.booked;
+                    const total = data.total;
+                    
+                    availabilityDiv.style.display = 'block';
+                    if (available > 0) {
+                        availabilityDiv.style.background = '#e8f5e9';
+                        availabilityDiv.style.borderColor = '#4CAF50';
+                        availabilityMsg.style.color = '#2e7d32';
+                        availabilityMsg.innerHTML = `✅ <strong>${available}</strong> unit(s) available (${booked} booked / ${total} total)`;
+                    } else {
+                        availabilityDiv.style.background = '#ffebee';
+                        availabilityDiv.style.borderColor = '#f44336';
+                        availabilityMsg.style.color = '#c62828';
+                        availabilityMsg.innerHTML = `❌ <strong>Fully booked</strong> (${booked} booked / ${total} total)`;
+                    }
+                }
+            })
+            .catch(error => console.error('Error checking availability:', error));
+        } else {
+            // Show quantity info even without dates
+            availabilityDiv.style.display = 'block';
+            availabilityMsg.innerHTML = `Total quantity: <strong>${quantity}</strong> unit(s). Select dates to check availability.`;
+        }
+    }
+    
     function openEditScheduleModal(scheduleId) {
         const modal = document.getElementById('editScheduleModal');
         const errorDiv = document.getElementById('editScheduleErrorMessage');
         errorDiv.style.display = 'none';
         document.getElementById('editMachineWarning').style.display = 'none';
+        document.getElementById('editMachineAvailability').style.display = 'none';
         
         fetch(`schedule.php?action=get_schedule&id=${scheduleId}`)
             .then(response => response.json())
@@ -1076,6 +1235,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     document.getElementById('edit_end_time').value = data.data.end_time;
                     
                     updateEditEndDate();
+                    checkEditMachineAvailability();
                     
                     modal.style.display = 'block';
                     document.body.style.overflow = 'hidden';
@@ -1118,10 +1278,26 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
     document.addEventListener('DOMContentLoaded', function() {
         const editScheduleDate = document.getElementById('edit_schedule_date');
         const editDateSpan = document.getElementById('edit_date_span');
+        const editStartTime = document.getElementById('edit_start_time');
+        const editEndTime = document.getElementById('edit_end_time');
         
         if (editScheduleDate && editDateSpan) {
-            editScheduleDate.addEventListener('change', updateEditEndDate);
-            editDateSpan.addEventListener('input', updateEditEndDate);
+            editScheduleDate.addEventListener('change', function() {
+                updateEditEndDate();
+                checkEditMachineAvailability();
+            });
+            editDateSpan.addEventListener('input', function() {
+                updateEditEndDate();
+                checkEditMachineAvailability();
+            });
+        }
+        
+        if (editStartTime) {
+            editStartTime.addEventListener('change', checkEditMachineAvailability);
+        }
+        
+        if (editEndTime) {
+            editEndTime.addEventListener('change', checkEditMachineAvailability);
         }
     });
 

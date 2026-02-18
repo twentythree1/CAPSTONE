@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 09, 2026 at 01:39 PM
+-- Generation Time: Feb 18, 2026 at 03:07 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -30,7 +30,7 @@ SET time_zone = "+00:00";
 CREATE TABLE `machines` (
   `id` int(255) NOT NULL,
   `name` varchar(255) NOT NULL,
-  `type` varchar(255) NOT NULL,
+  `quantity` int(255) NOT NULL DEFAULT 0,
   `status` varchar(255) NOT NULL,
   `acquisition_date` date NOT NULL,
   `last_returned` datetime DEFAULT NULL
@@ -40,17 +40,17 @@ CREATE TABLE `machines` (
 -- Dumping data for table `machines`
 --
 
-INSERT INTO `machines` (`id`, `name`, `type`, `status`, `acquisition_date`, `last_returned`) VALUES
-(1, 'Hand Tractor', 'dalhdwad', 'Totally Damaged', '2016-03-12', '2026-02-07 12:19:41'),
-(4, 'Harvester', 'dawdawdwa', 'Partially Damaged', '2026-02-04', '2026-02-07 00:17:55'),
-(7, 'Sprayers & Spreaders', 'dawdwadwa', 'Partially Damaged', '2026-02-03', '2026-02-07 12:19:18'),
-(8, 'Hay & Forage Machinery', 'adwdwa', 'Totally Damaged', '2026-02-03', NULL),
-(9, 'Plow', 'dawdaw', 'Available', '2026-02-04', NULL),
-(10, 'Harrow', 'dwadwa', 'Available', '2026-02-04', NULL),
-(11, 'Planter', 'dadaw', 'Available', '2026-02-04', NULL),
-(12, 'Combine Harvester', 'adwa', 'Partially Damaged', '2026-02-04', NULL),
-(14, 'Thresher', 'dawdawdwa', 'Available', '2026-02-03', '2026-02-07 00:19:45'),
-(17, 'Sample', 'dawdwadwa', 'Available', '2026-02-01', NULL);
+INSERT INTO `machines` (`id`, `name`, `quantity`, `status`, `acquisition_date`, `last_returned`) VALUES
+(1, 'Hand Tractor', 0, 'Totally Damaged', '2016-03-12', '2026-02-17 16:17:19'),
+(4, 'Harvester', 0, 'Partially Damaged', '2026-02-04', '2026-02-17 16:17:31'),
+(7, 'Sprayers & Spreaders', 1, 'Available', '2026-02-03', '2026-02-07 12:19:18'),
+(8, 'Hay & Forage Machinery', 1, 'Available', '2026-02-03', '2026-02-17 16:17:36'),
+(9, 'Plow', 0, 'Available', '2026-02-04', NULL),
+(10, 'Harrow', 0, 'Available', '2026-02-04', '2026-02-17 16:17:42'),
+(11, 'Planter', 0, 'Available', '2026-02-04', NULL),
+(12, 'Combine Harvester', 0, 'Available', '2026-02-04', '2026-02-17 16:17:56'),
+(14, 'Thresher', 0, 'Available', '2026-02-03', '2026-02-17 16:18:04'),
+(17, 'Sample', 0, 'Available', '2026-02-01', '2026-02-17 16:18:15');
 
 --
 -- Indexes for dumped tables

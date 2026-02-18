@@ -55,6 +55,60 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
+        // Get the total quantity of the selected machine
+        $quantityQuery = "SELECT quantity FROM machines WHERE id = ?";
+        $qtyStmt = $conn->prepare($quantityQuery);
+        $qtyStmt->bind_param("i", $machine_id);
+        $qtyStmt->execute();
+        $qtyResult = $qtyStmt->get_result();
+        
+        if ($qtyResult->num_rows === 0) {
+            $qtyStmt->close();
+            $errorMessage = "Machine not found.";
+            break;
+        }
+        
+        $machineData = $qtyResult->fetch_assoc();
+        $totalQuantity = (int)$machineData['quantity'];
+        $qtyStmt->close();
+        
+        if ($totalQuantity <= 0) {
+            $errorMessage = "This machine has no available quantity.";
+            break;
+        }
+        
+        // Calculate end date for overlap checking
+        $end_date = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
+        
+        // Count how many of this machine are already booked (excluding current schedule)
+        $conflictQuery = "
+            SELECT COUNT(*) as booked_count FROM schedules 
+            WHERE machine_id = ? 
+              AND id != ?
+              AND status IN ('Pending', 'Approved', 'On going')
+              AND (
+                    DATE_ADD(schedule_date, INTERVAL date_span DAY) >= ?
+                    AND schedule_date <= ?
+                )
+              AND (
+                    (start_time < ? AND end_time > ?)
+                )
+        ";
+        
+        $conflictStmt = $conn->prepare($conflictQuery);
+        $conflictStmt->bind_param("iissss", $machine_id, $id, $schedule_date, $end_date, $end_time, $start_time);
+        $conflictStmt->execute();
+        $conflictResult = $conflictStmt->get_result();
+        $conflictData = $conflictResult->fetch_assoc();
+        $bookedCount = (int)$conflictData['booked_count'];
+        $conflictStmt->close();
+        
+        // Check if there's still availability
+        if ($bookedCount >= $totalQuantity) {
+            $errorMessage = "All units of this machine are already booked during this date/time. (Booked: $bookedCount / Available: $totalQuantity)";
+            break;
+        }
+
         $sql = "UPDATE schedules 
                 SET farmer_id = ?, machine_id = ?, schedule_date = ?, date_span = ?, start_time = ?, end_time = ? 
                 WHERE id = ?";

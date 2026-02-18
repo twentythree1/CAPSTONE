@@ -434,7 +434,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                                 <tr>
                                     <th>Machine ID</th>
                                     <th>Machine Name</th>
-                                    <th>Type</th>
+                                    <th>Quantity</th>
                                     <th>Status</th>
                                     <th>Acquisition Date</th>
                                     <th>Action</th>
@@ -465,19 +465,19 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                             $tooltipContent = "No usage history";
                         }
 
-                        $safeName   = htmlspecialchars($row['name'],   ENT_QUOTES, 'UTF-8');
-                        $safeType   = htmlspecialchars($row['type'],   ENT_QUOTES, 'UTF-8');
-                        $safeStatus = htmlspecialchars($row['status'], ENT_QUOTES, 'UTF-8');
-                        $safeId     = intval($row['id']);
+                        $safeName     = htmlspecialchars($row['name'],     ENT_QUOTES, 'UTF-8');
+                        $safeQuantity = htmlspecialchars($row['quantity'], ENT_QUOTES, 'UTF-8');
+                        $safeStatus   = htmlspecialchars($row['status'],   ENT_QUOTES, 'UTF-8');
+                        $safeId       = intval($row['id']);
 
                         echo "
                         <tr class='machine-row'
                             data-name='" . strtolower($safeName) . "'
-                            data-type='" . strtolower($safeType) . "'
+                            data-quantity='" . strtolower($safeQuantity) . "'
                             data-status='{$safeStatus}'>
                             <td>{$safeId}</td>
                             <td>{$safeName}</td>
-                            <td>{$safeType}</td>
+                            <td>{$safeQuantity}</td>
                             <td>{$safeStatus}</td>
                             <td>" . htmlspecialchars($row['acquisition_date'], ENT_QUOTES, 'UTF-8') . "</td>
                             <td>
@@ -759,8 +759,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     </div>
 
                     <div class="form-group">
-                        <label for="machine_type">Type <span style="color: red;">*</span></label>
-                        <input type="text" id="machine_type" name="type" placeholder="Enter machine type (e.g., tractor, harvester)" required>
+                        <label for="machine_quantity">Quantity <span style="color: red;">*</span></label>
+                        <input type="number" id="machine_quantity" name="quantity" placeholder="Enter quantity" min="0" required>
                     </div>
 
                     <div class="form-group">
@@ -797,8 +797,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     </div>
 
                     <div class="form-group">
-                        <label for="edit_machine_type">Type <span style="color: red;">*</span></label>
-                        <input type="text" id="edit_machine_type" name="type" placeholder="Enter machine type" required>
+                        <label for="edit_machine_quantity">Quantity <span style="color: red;">*</span></label>
+                        <input type="number" id="edit_machine_quantity" name="quantity" placeholder="Enter quantity" min="0" required>
                     </div>
 
                     <div class="form-group">
@@ -919,7 +919,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                 if (data.success) {
                     document.getElementById('edit_machine_id').value = data.data.id;
                     document.getElementById('edit_machine_name').value = data.data.name;
-                    document.getElementById('edit_machine_type').value = data.data.type;
+                    document.getElementById('edit_machine_quantity').value = data.data.quantity;
                     document.getElementById('edit_machine_status').value = data.data.status;
                     document.getElementById('edit_acquisition_date').value = data.data.acquisition_date;
                     
@@ -1036,14 +1036,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
             let visible = 0;
 
             rows.forEach(row => {
-                const name   = row.dataset.name   || '';
-                const type   = row.dataset.type   || '';
-                const farmer = row.dataset.farmer || '';
-                const status = row.dataset.status ? row.dataset.status.toLowerCase() : '';
+                const name     = row.dataset.name     || '';
+                const quantity = row.dataset.quantity || '';
+                const farmer   = row.dataset.farmer   || '';
+                const status   = row.dataset.status ? row.dataset.status.toLowerCase() : '';
 
                 const matchesSearch = !query ||
                     name.includes(query) ||
-                    type.includes(query) ||
+                    quantity.includes(query) ||
                     farmer.includes(query) ||
                     status.includes(query);
 

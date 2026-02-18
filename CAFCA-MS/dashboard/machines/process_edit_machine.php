@@ -14,7 +14,7 @@ if ($conn->connect_error) {
 
 $id = "";
 $name = "";
-$type = "";
+$quantity = "";
 $status = "";
 $acquisition_date = "";
 
@@ -23,12 +23,12 @@ $errorMessage = "";
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $id = trim($_POST["id"]);
     $name = trim($_POST["name"]);
-    $type = trim($_POST["type"]);
+    $quantity = trim($_POST["quantity"]);
     $status = trim($_POST["status"]);
     $acquisition_date = trim($_POST["acquisition_date"]);
 
     do {
-        if (empty($id) || empty($name) || empty($type) || empty($status) || empty($acquisition_date)) {
+        if (empty($id) || empty($name) || empty($quantity) || empty($status) || empty($acquisition_date)) {
             $errorMessage = "All fields are required!";
             break;
         }
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
-        $sql = "UPDATE machines SET name = ?, type = ?, status = ?, acquisition_date = ? WHERE id = ?";
+        $sql = "UPDATE machines SET name = ?, quantity = ?, status = ?, acquisition_date = ? WHERE id = ?";
         $stmt = $conn->prepare($sql);
 
         if (!$stmt) {
@@ -64,7 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
-        $stmt->bind_param("ssssi", $name, $type, $status, $acquisition_date, $id);
+        $quantity = intval($quantity); // Convert to integer
+        $stmt->bind_param("sissi", $name, $quantity, $status, $acquisition_date, $id);
 
         if (!$stmt->execute()) {
             $errorMessage = "Error updating machine: " . $stmt->error;

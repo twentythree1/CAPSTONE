@@ -525,11 +525,6 @@ main .insights .attendance svg circle {
     stroke-dasharray: 80;
 }
 
-main .insights .machines svg circle {
-    stroke-dashoffset: 35;
-    stroke-dasharray: 110;
-}
-
 main .insights .progress .number {
     position: absolute;
     top: 0;
@@ -543,10 +538,13 @@ main .insights .progress .number {
 
 main .top {
     margin-top: -0.7rem;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
 }
 
 main .top .theme-toggler {
-    margin-top: 0.5rem;
     background: var(--color-light);
     display: flex;
     justify-content: space-between;
@@ -555,8 +553,9 @@ main .top .theme-toggler {
     width: 4.2rem;
     cursor: pointer;
     border-radius: var(--border-radius-1);
-    position: absolute;
-    right: 7rem;
+    flex-shrink: 0;
+    order: 1;
+    margin-top: -1.15rem;
 }
 
 main .top .theme-toggler span {
@@ -584,6 +583,7 @@ main .top .profile {
     flex-direction: column;
     gap: 0.2rem;
     text-align: right;
+    order: 2;
 }
 
 #calendar-container {

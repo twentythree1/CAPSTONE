@@ -19,27 +19,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $name = $_POST["name"] ?? "";
-$type = $_POST["type"] ?? "";
+$quantity = $_POST["quantity"] ?? "";
 $acquisition_date = $_POST["acquisition_date"] ?? "";
 $redirect = $_POST["redirect"] ?? "Available";
 
 // Validate required fields
-if (empty($name) || empty($type) || empty($acquisition_date)) {
+if (empty($name) || empty($quantity) || empty($acquisition_date)) {
     echo json_encode(['success' => false, 'message' => 'All fields are required!']);
     exit;
 }
 
 // Sanitize inputs
 $name = $conn->real_escape_string(trim($name));
-$type = $conn->real_escape_string(trim($type));
+$quantity = intval($quantity); // Convert to integer
 $acquisition_date = $conn->real_escape_string($acquisition_date);
 
 // Automatically set status to "Available"
 $status = "Available";
 
 // Insert new machine
-$sql = "INSERT INTO machines (name, type, status, acquisition_date) 
-        VALUES ('$name', '$type', '$status', '$acquisition_date')";
+$sql = "INSERT INTO machines (name, quantity, status, acquisition_date) 
+        VALUES ('$name', $quantity, '$status', '$acquisition_date')";
 
 $result = $conn->query($sql);
 

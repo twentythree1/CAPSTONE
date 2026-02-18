@@ -569,8 +569,9 @@ main table tbody tr:last-child td {
 .top {
     margin-top: 0.7rem;
     display: flex;
-    justify-content: end;
-    gap: 2rem;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
 }
 
 .right .top button {
@@ -578,7 +579,6 @@ main table tbody tr:last-child td {
 }
 
 main .top .theme-toggler {
-    margin-top: 0.5rem;
     background: var(--color-light);
     display: flex;
     justify-content: space-between;
@@ -587,6 +587,9 @@ main .top .theme-toggler {
     width: 4.2rem;
     cursor: pointer;
     border-radius: var(--border-radius-1);
+    flex-shrink: 0;
+    order: 1;
+    margin-top: -1.15rem;
 }
 
 main .top .theme-toggler span {
@@ -614,6 +617,7 @@ main .top .profile {
     flex-direction: column;
     gap: 0.2rem;
     text-align: right;
+    order: 2;
 }
 
 .btn {
