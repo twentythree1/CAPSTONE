@@ -387,16 +387,33 @@ if ($result = $conn->query($sql)) {
                 const thisDate =
                 `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-                // add events for this date (could be multiple)
+                // add events for this date - expand multi-day spans via date_span
                 events.forEach(ev => {
-                    if (ev.date === thisDate) {
+                    const spanDays = (ev.date_span || 0);
+                    const startDate = new Date(ev.date + 'T00:00:00');
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + spanDays);
+                    const cellDate = new Date(thisDate + 'T00:00:00');
+
+                    if (cellDate >= startDate && cellDate <= endDate) {
                         const eventDiv = document.createElement("div");
                         eventDiv.className = "event";
-                        eventDiv.textContent = ev.title || "";
-                        // store farmer name in data attribute for custom tooltip and also set title
-                        if (ev.farmer_name) {
-                            eventDiv.setAttribute('data-farmer', ev.farmer_name);
-                            eventDiv.title = ev.farmer_name;
+
+                        // Show time on first day only; other days show continuation
+                        if (cellDate.getTime() === startDate.getTime()) {
+                            eventDiv.textContent = ev.title || "";
+                        } else {
+                            eventDiv.textContent = "📍 (cont.)";
+                        }
+
+                        // Tooltip: farmer - machine
+                        const tooltipParts = [];
+                        if (ev.farmer_name) tooltipParts.push(ev.farmer_name);
+                        if (ev.machine_name) tooltipParts.push(ev.machine_name);
+                        const tooltipText = tooltipParts.join(' - ');
+                        if (tooltipText) {
+                            eventDiv.setAttribute('data-farmer', tooltipText);
+                            eventDiv.title = tooltipText;
                         }
                         cell.appendChild(eventDiv);
                     }
