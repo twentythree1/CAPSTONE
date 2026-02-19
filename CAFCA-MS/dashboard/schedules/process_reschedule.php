@@ -15,6 +15,9 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Include the machine availability helper function
+require_once('../machines/update_machine_availability.php');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $schedule_id = $_POST['schedule_id'] ?? null;
     $schedule_date = $_POST['schedule_date'] ?? null;
@@ -50,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $checkStmt->close();
 
     // Get the total quantity of this machine
-    $quantityQuery = "SELECT quantity FROM machines WHERE id = ?";
+    $quantityQuery = "SELECT quantity, unavailable_from, unavailable_until FROM machines WHERE id = ?";
     $qtyStmt = $conn->prepare($quantityQuery);
     $qtyStmt->bind_param("i", $machine_id);
     $qtyStmt->execute();
@@ -65,12 +68,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $machineData = $qtyResult->fetch_assoc();
     $totalQuantity = (int)$machineData['quantity'];
+    $unavailableFrom = $machineData['unavailable_from'];
+    $unavailableUntil = $machineData['unavailable_until'];
     $qtyStmt->close();
     
     if ($totalQuantity <= 0) {
         $conn->close();
         header("Location: schedule.php?status=" . urlencode($redirect) . "&error=no_quantity");
         exit();
+    }
+
+    // Check if the requested time period overlaps with machine's unavailable period
+    if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
+        try {
+            $end_date = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
+            
+            $requestStart = new DateTime($schedule_date . ' ' . $start_time);
+            $requestEnd = new DateTime($end_date . ' ' . $end_time);
+            $machineUnavailableStart = new DateTime($unavailableFrom);
+            $machineUnavailableEnd = new DateTime($unavailableUntil);
+            
+            // Check if there's any overlap
+            if ($requestStart < $machineUnavailableEnd && $requestEnd > $machineUnavailableStart) {
+                $conn->close();
+                header("Location: schedule.php?status=" . urlencode($redirect) . "&error=machine_unavailable");
+                exit();
+            }
+        } catch (Exception $e) {
+            // If date parsing fails, continue with availability check
+        }
     }
 
     // Count how many of this machine are already booked for the overlapping date range (excluding current schedule)
@@ -125,6 +151,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updateStmt->bind_param("sissssi", $schedule_date, $date_span, $start_time, $end_time, $reschedule_reason, $new_status, $schedule_id);
     
     if ($updateStmt->execute()) {
+        // Update machine availability dates if status is Approved
+        if ($new_status === 'Approved') {
+            updateMachineAvailability($conn, $machine_id);
+        }
+        
         $updateStmt->close();
         $conn->close();
         header("Location: schedule.php?status=" . urlencode($redirect_to) . "&rescheduled=1");

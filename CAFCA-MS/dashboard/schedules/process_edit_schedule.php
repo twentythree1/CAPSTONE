@@ -11,6 +11,9 @@ if ($conn->connect_error) {
     exit;
 }
 
+// Include the machine availability helper function
+require_once('../machines/update_machine_availability.php');
+
 $id = "";
 $farmer_id = "";
 $machine_id = "";
@@ -55,8 +58,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
+        // Get the old machine_id before updating (in case it changed)
+        $oldMachineSql = "SELECT machine_id, status FROM schedules WHERE id = ?";
+        $oldMachineStmt = $conn->prepare($oldMachineSql);
+        $oldMachineStmt->bind_param("i", $id);
+        $oldMachineStmt->execute();
+        $oldMachineResult = $oldMachineStmt->get_result();
+        $oldMachineData = $oldMachineResult->fetch_assoc();
+        $oldMachineId = $oldMachineData ? $oldMachineData['machine_id'] : null;
+        $scheduleStatus = $oldMachineData ? $oldMachineData['status'] : null;
+        $oldMachineStmt->close();
+
         // Get the total quantity of the selected machine
-        $quantityQuery = "SELECT quantity FROM machines WHERE id = ?";
+        $quantityQuery = "SELECT quantity, unavailable_from, unavailable_until FROM machines WHERE id = ?";
         $qtyStmt = $conn->prepare($quantityQuery);
         $qtyStmt->bind_param("i", $machine_id);
         $qtyStmt->execute();
@@ -70,11 +84,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         $machineData = $qtyResult->fetch_assoc();
         $totalQuantity = (int)$machineData['quantity'];
+        $unavailableFrom = $machineData['unavailable_from'];
+        $unavailableUntil = $machineData['unavailable_until'];
         $qtyStmt->close();
         
         if ($totalQuantity <= 0) {
             $errorMessage = "This machine has no available quantity.";
             break;
+        }
+        
+        // Check if the requested time period overlaps with machine's unavailable period
+        if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
+            try {
+                // Calculate end date for this schedule
+                $end_date = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
+                
+                $requestStart = new DateTime($schedule_date . ' ' . $start_time);
+                $requestEnd = new DateTime($end_date . ' ' . $end_time);
+                $machineUnavailableStart = new DateTime($unavailableFrom);
+                $machineUnavailableEnd = new DateTime($unavailableUntil);
+                
+                // Check if there's any overlap
+                if ($requestStart < $machineUnavailableEnd && $requestEnd > $machineUnavailableStart) {
+                    $fromFormatted = $machineUnavailableStart->format('M d, Y g:i A');
+                    $untilFormatted = $machineUnavailableEnd->format('M d, Y g:i A');
+                    $errorMessage = "This machine is unavailable from $fromFormatted to $untilFormatted";
+                    break;
+                }
+            } catch (Exception $e) {
+                // If date parsing fails, continue with availability check
+            }
         }
         
         // Calculate end date for overlap checking
@@ -128,6 +167,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         $stmt->close();
+
+        // Update machine availability if the schedule is Approved or On going
+        if ($scheduleStatus === 'Approved' || $scheduleStatus === 'On going') {
+            // Update the new machine's availability
+            updateMachineAvailability($conn, $machine_id);
+            
+            // If machine was changed, update the old machine's availability too
+            if ($oldMachineId && $oldMachineId != $machine_id) {
+                updateMachineAvailability($conn, $oldMachineId);
+            }
+        }
 
         header('Content-Type: application/json');
         echo json_encode(['success' => true, 'message' => 'Schedule successfully updated!']);

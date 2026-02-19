@@ -26,15 +26,16 @@ if (isset($_GET['id'])) {
     $result = $checkStmt->get_result();
     
     if ($row = $result->fetch_assoc()) {
-        if ($row['status'] === 'Expired') {
+        $status = $row['status'];
+        if ($status === 'Expired' || $status === 'Cancelled') {
             $deleteSql = "DELETE FROM schedules WHERE id = ?";
             $deleteStmt = $conn->prepare($deleteSql);
             $deleteStmt->bind_param("i", $id);
             
             if ($deleteStmt->execute()) {
-                header("Location: schedule.php?status=Expired&deleted=1");
+                header("Location: schedule.php?status=" . urlencode($status) . "&deleted=1");
             } else {
-                header("Location: schedule.php?status=Expired&error=delete_failed");
+                header("Location: schedule.php?status=" . urlencode($status) . "&error=delete_failed");
             }
             $deleteStmt->close();
         } else {

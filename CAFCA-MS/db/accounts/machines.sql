@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 18, 2026 at 03:07 PM
+-- Generation Time: Feb 19, 2026 at 05:30 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -33,6 +33,9 @@ CREATE TABLE `machines` (
   `quantity` int(255) NOT NULL DEFAULT 0,
   `status` varchar(255) NOT NULL,
   `acquisition_date` date NOT NULL,
+  `unavailable_from` datetime DEFAULT NULL,
+  `unavailable_until` datetime DEFAULT NULL,
+  `unavailable_count` int(255) DEFAULT 1,
   `last_returned` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -40,17 +43,16 @@ CREATE TABLE `machines` (
 -- Dumping data for table `machines`
 --
 
-INSERT INTO `machines` (`id`, `name`, `quantity`, `status`, `acquisition_date`, `last_returned`) VALUES
-(1, 'Hand Tractor', 0, 'Totally Damaged', '2016-03-12', '2026-02-17 16:17:19'),
-(4, 'Harvester', 0, 'Partially Damaged', '2026-02-04', '2026-02-17 16:17:31'),
-(7, 'Sprayers & Spreaders', 1, 'Available', '2026-02-03', '2026-02-07 12:19:18'),
-(8, 'Hay & Forage Machinery', 1, 'Available', '2026-02-03', '2026-02-17 16:17:36'),
-(9, 'Plow', 0, 'Available', '2026-02-04', NULL),
-(10, 'Harrow', 0, 'Available', '2026-02-04', '2026-02-17 16:17:42'),
-(11, 'Planter', 0, 'Available', '2026-02-04', NULL),
-(12, 'Combine Harvester', 0, 'Available', '2026-02-04', '2026-02-17 16:17:56'),
-(14, 'Thresher', 0, 'Available', '2026-02-03', '2026-02-17 16:18:04'),
-(17, 'Sample', 0, 'Available', '2026-02-01', '2026-02-17 16:18:15');
+INSERT INTO `machines` (`id`, `name`, `quantity`, `status`, `acquisition_date`, `unavailable_from`, `unavailable_until`, `unavailable_count`, `last_returned`) VALUES
+(1, 'Thresher', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
+(2, 'Field Master', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
+(3, 'Riding Type Rice Transplanting', 1, 'Available', '2026-02-01', '2026-02-20 08:00:00', '2026-02-21 17:00:00', 1, NULL),
+(4, 'Combine Harvester', 2, 'Available', '2026-02-01', '2026-02-19 22:57:00', '2026-02-20 04:00:00', 1, '2026-02-19 22:50:04'),
+(5, 'Tractor', 2, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
+(6, 'Floating Tiller', 2, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
+(7, 'Precision Seeder', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
+(8, 'Seed Cleaner', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
+(9, 'Water Pump', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL);
 
 --
 -- Indexes for dumped tables
@@ -61,7 +63,8 @@ INSERT INTO `machines` (`id`, `name`, `quantity`, `status`, `acquisition_date`, 
 --
 ALTER TABLE `machines`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_machines_last_returned` (`last_returned`);
+  ADD KEY `idx_machines_last_returned` (`last_returned`),
+  ADD KEY `idx_unavailable_dates` (`unavailable_from`,`unavailable_until`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -71,7 +74,7 @@ ALTER TABLE `machines`
 -- AUTO_INCREMENT for table `machines`
 --
 ALTER TABLE `machines`
-  MODIFY `id` int(255) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(255) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

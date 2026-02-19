@@ -52,7 +52,7 @@ $start_time_esc = $conn->real_escape_string($start_time);
 $end_time_esc = $conn->real_escape_string($end_time);
 
 // Get the total quantity of this machine
-$quantityQuery = "SELECT quantity FROM machines WHERE id = '$machine_id_esc'";
+$quantityQuery = "SELECT quantity, unavailable_from, unavailable_until FROM machines WHERE id = '$machine_id_esc'";
 $quantityResult = $conn->query($quantityQuery);
 
 if (!$quantityResult || $quantityResult->num_rows === 0) {
@@ -62,10 +62,30 @@ if (!$quantityResult || $quantityResult->num_rows === 0) {
 
 $machineData = $quantityResult->fetch_assoc();
 $totalQuantity = (int)$machineData['quantity'];
+$unavailableFrom = $machineData['unavailable_from'];
+$unavailableUntil = $machineData['unavailable_until'];
 
 if ($totalQuantity <= 0) {
     echo json_encode(['success' => false, 'message' => 'This machine has no available quantity.']);
     exit;
+}
+
+// Check if the requested time period overlaps with machine's unavailable period
+$unavailableUnitCount = 0;
+if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
+    try {
+        $requestStart = new DateTime($schedule_date . ' ' . $start_time);
+        $requestEnd = new DateTime($end_date . ' ' . $end_time);
+        $machineUnavailableStart = new DateTime($unavailableFrom);
+        $machineUnavailableEnd = new DateTime($unavailableUntil);
+        
+        // If there is overlap, 1 unit is under maintenance (not all units blocked)
+        if ($requestStart < $machineUnavailableEnd && $requestEnd > $machineUnavailableStart) {
+            $unavailableUnitCount = 1;
+        }
+    } catch (Exception $e) {
+        // If date parsing fails, continue
+    }
 }
 
 // Count how many of this machine are already booked for the overlapping date range
@@ -92,10 +112,10 @@ $conflictData = $conflictResult->fetch_assoc();
 $bookedCount = (int)$conflictData['booked_count'];
 
 // Check if there's still availability
-if ($bookedCount >= $totalQuantity) {
+if ($bookedCount + $unavailableUnitCount >= $totalQuantity) {
     echo json_encode([
         'success' => false, 
-        'message' => "All units of this machine are already booked during this date/time. (Booked: $bookedCount / Available: $totalQuantity)"
+        'message' => "All units of this machine are already booked during this date/time. (Booked: $bookedCount + 1 under maintenance / Total: $totalQuantity)"
     ]);
     exit;
 }

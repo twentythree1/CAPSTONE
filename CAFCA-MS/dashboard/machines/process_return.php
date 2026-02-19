@@ -19,6 +19,9 @@ if ($conn->connect_error) {
     exit();
 }
 
+// Include the machine availability helper function
+require_once('update_machine_availability.php');
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit();
@@ -95,7 +98,7 @@ try {
     }
     $update_machine_stmt->close();
     
-    // Insert into machine history if needed (optional - you may want to track status changes)
+    // Record in machine history if there are notes or status changed
     if (!empty($return_notes) || $machine_status !== 'Available') {
         $history_sql = "INSERT INTO machine_history (machine_id, schedule_id, status_before, status_after, notes, changed_by, changed_at)
                        VALUES (?, ?, 'In Use', ?, ?, ?, NOW())";
@@ -106,8 +109,8 @@ try {
         $history_stmt->execute();
         $history_stmt->close();
     }
+    updateMachineAvailability($conn, $machine_id);
     
-    // Commit transaction
     $conn->commit();
     
     echo json_encode([
@@ -117,7 +120,6 @@ try {
     ]);
     
 } catch (Exception $e) {
-    // Rollback on error
     $conn->rollback();
     echo json_encode(['success' => false, 'message' => 'Failed to process return: ' . $e->getMessage()]);
 }

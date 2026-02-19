@@ -17,6 +17,8 @@ $name = "";
 $quantity = "";
 $status = "";
 $acquisition_date = "";
+$unavailable_from = null;
+$unavailable_until = null;
 
 $errorMessage = "";
 
@@ -26,6 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $quantity = trim($_POST["quantity"]);
     $status = trim($_POST["status"]);
     $acquisition_date = trim($_POST["acquisition_date"]);
+    $unavailable_from = !empty($_POST["unavailable_from"]) ? trim($_POST["unavailable_from"]) : null;
+    $unavailable_until = !empty($_POST["unavailable_until"]) ? trim($_POST["unavailable_until"]) : null;
 
     do {
         if (empty($id) || empty($name) || empty($quantity) || empty($status) || empty($acquisition_date)) {
@@ -56,7 +60,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
-        $sql = "UPDATE machines SET name = ?, quantity = ?, status = ?, acquisition_date = ? WHERE id = ?";
+        // Validate unavailable dates if both are provided
+        if ($unavailable_from !== null && $unavailable_until !== null) {
+            try {
+                $fromDate = new DateTime($unavailable_from);
+                $untilDate = new DateTime($unavailable_until);
+                
+                if ($fromDate >= $untilDate) {
+                    $errorMessage = "Unavailable Until date must be after Unavailable From date.";
+                    break;
+                }
+            } catch (Exception $e) {
+                $errorMessage = "Invalid unavailable date format.";
+                break;
+            }
+        }
+
+        $sql = "UPDATE machines SET name = ?, quantity = ?, status = ?, acquisition_date = ?, unavailable_from = ?, unavailable_until = ? WHERE id = ?";
         $stmt = $conn->prepare($sql);
 
         if (!$stmt) {
@@ -65,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         $quantity = intval($quantity); // Convert to integer
-        $stmt->bind_param("sissi", $name, $quantity, $status, $acquisition_date, $id);
+        $stmt->bind_param("sissssi", $name, $quantity, $status, $acquisition_date, $unavailable_from, $unavailable_until, $id);
 
         if (!$stmt->execute()) {
             $errorMessage = "Error updating machine: " . $stmt->error;

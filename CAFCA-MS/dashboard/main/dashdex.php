@@ -19,6 +19,18 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+
+// Set timezone
+date_default_timezone_set('Asia/Manila');
+$conn->query("SET time_zone = '+08:00'");
+
+// Sync schedule statuses in DB before counting
+$now = new DateTime();
+$currentDateTime = $now->format('Y-m-d H:i:s');
+
+// Auto-expire past pending schedules
+$conn->query("UPDATE schedules SET status = 'Expired' WHERE status = 'Pending' AND CONCAT(schedule_date, ' ', start_time) < '$currentDateTime'");
+
 // Count machines by status
 $machineCounts = [
     'Available' => 0,
@@ -27,52 +39,61 @@ $machineCounts = [
     'Not Returned' => 0
 ];
 
-$countSql = "SELECT status FROM machines";
+$countSql = "SELECT status, quantity FROM machines";
 $countResult = $conn->query($countSql);
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {
         $status = $r['status'];
+        $qty = intval($r['quantity']);
         if (isset($machineCounts[$status])) {
-            $machineCounts[$status]++;
+            $machineCounts[$status] += $qty;
         }
     }
     $countResult->free();
 }
 
-$now = new DateTime();
-$notReturnedSql = "SELECT DISTINCT s.machine_id, s.schedule_date, s.date_span, s.start_time, s.end_time, s.return_date, s.status
-                   FROM schedules s
-                   WHERE s.status IN ('Approved', 'Completed')";
-$notReturnedResult = $conn->query($notReturnedSql);
+// Count on-going and not-returned using the same logic as schedule.php
+$ongoingCount     = 0;
 $notReturnedCount = 0;
 
-if ($notReturnedResult) {
-    while ($r = $notReturnedResult->fetch_assoc()) {
-        $scheduleDate = $r['schedule_date'] ?? '';
-        $startTime = $r['start_time'] ?? '00:00:00';
-        $endTime = $r['end_time'] ?? '23:59:59';
-        $dateSpan = $r['date_span'] ?? 0;
-        $returnDate = $r['return_date'];
-        $scheduleStatus = $r['status'];
+$activeSql = "SELECT schedule_date, date_span, start_time, end_time, status, return_date
+              FROM schedules WHERE status IN ('Approved', 'Completed')";
+$activeResult = $conn->query($activeSql);
+if ($activeResult) {
+    $tz    = new DateTimeZone('Asia/Manila');
+    $nowDt = new DateTime('now', $tz);
+    while ($row = $activeResult->fetch_assoc()) {
+        $dbStatus    = $row['status'];
+        $span        = (int)$row['date_span'];
+        $startTime   = $row['start_time'] ?: '00:00:00';
+        $endTime     = $row['end_time']   ?: '23:59:59';
+        $returnDate  = $row['return_date'];
+        $hasReturned = ($returnDate !== null && $returnDate !== '');
 
-        if (!empty($scheduleDate)) {
-            try {
-                $startDt = new DateTime($scheduleDate . ' ' . $startTime);
-                $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
-                $endDt = new DateTime($endDateStr . ' ' . $endTime);
+        // DB-stored 'Completed': if return_date is missing, machine was not returned
+        if ($dbStatus === 'Completed') {
+            if (!$hasReturned) $notReturnedCount++;
+            continue;
+        }
 
-                if ($now > $endDt && empty($returnDate)) {
-                    $notReturnedCount++;
-                }
-            } catch (Exception $e) {
-            }
+        // 'Approved': compute actual start/end with midnight-crossing support
+        $startDt = new DateTime($row['schedule_date'] . ' ' . $startTime, $tz);
+        $endBase  = new DateTime($row['schedule_date'], $tz);
+        $endBase->modify("+{$span} days");
+        $endDt = new DateTime($endBase->format('Y-m-d') . ' ' . $endTime, $tz);
+        if ($endDt <= $startDt) $endDt->modify('+1 day'); // crosses midnight
+
+        if ($nowDt >= $startDt && $nowDt <= $endDt) {
+            $ongoingCount++;
+        } elseif ($nowDt > $endDt && !$hasReturned) {
+            $notReturnedCount++;
         }
     }
-    $notReturnedResult->free();
+    $activeResult->free();
 }
 
-// Update the Not Returned count
 $machineCounts['Not Returned'] = $notReturnedCount;
+$machineCounts['Available']    = max(0, $machineCounts['Available'] - $notReturnedCount - $ongoingCount);
 
 // Count schedules by status
 $counts = [
@@ -97,21 +118,26 @@ if ($countResult) {
         $endTime = $r['end_time'] ?: '23:59:59';
         $dateSpan = isset($r['date_span']) ? (int)$r['date_span'] : 0;
 
+        $tz = new DateTimeZone('Asia/Manila');
         try {
-            $startDt = new DateTime($scheduleDate . ' ' . $startTime);
+            $startDt = new DateTime($scheduleDate . ' ' . $startTime, $tz);
         } catch (Exception $e) {
-            $startDt = new DateTime($scheduleDate . ' 00:00:00');
+            $startDt = new DateTime($scheduleDate . ' 00:00:00', $tz);
         }
 
         $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
         try {
-            $endDt = new DateTime($endDateStr . ' ' . $endTime);
+            $endDt = new DateTime($endDateStr . ' ' . $endTime, $tz);
         } catch (Exception $e) {
-            $endDt = new DateTime($endDateStr . ' 23:59:59');
+            $endDt = new DateTime($endDateStr . ' 23:59:59', $tz);
         }
 
         $computedStatus = $dbStatus;
-        if ($dbStatus === 'Approved') {
+        if ($dbStatus === 'Pending') {
+            if ($now >= $startDt) {
+                $computedStatus = 'Expired';
+            }
+        } elseif ($dbStatus === 'Approved') {
             if ($now >= $startDt && $now <= $endDt) {
                 $computedStatus = 'On going';
             } elseif ($now > $endDt) {
@@ -137,7 +163,7 @@ if ($result = $conn->query($sql)) {
 }
 
 $machine_count = 0;
-$sql = "SELECT COUNT(*) AS cnt FROM machines";
+$sql = "SELECT SUM(quantity) AS cnt FROM machines";
 if ($result = $conn->query($sql)) {
     $row = $result->fetch_assoc();
     $machine_count = (int)($row['cnt'] ?? 0);

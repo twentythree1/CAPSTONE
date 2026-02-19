@@ -21,12 +21,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $name = $_POST["name"] ?? "";
 $quantity = $_POST["quantity"] ?? "";
 $acquisition_date = $_POST["acquisition_date"] ?? "";
+$unavailable_from = $_POST["unavailable_from"] ?? null;
+$unavailable_until = $_POST["unavailable_until"] ?? null;
 $redirect = $_POST["redirect"] ?? "Available";
 
 // Validate required fields
 if (empty($name) || empty($quantity) || empty($acquisition_date)) {
-    echo json_encode(['success' => false, 'message' => 'All fields are required!']);
+    echo json_encode(['success' => false, 'message' => 'All required fields must be filled!']);
     exit;
+}
+
+// Validate unavailable dates if provided
+if (!empty($unavailable_from) && !empty($unavailable_until)) {
+    $fromDate = new DateTime($unavailable_from);
+    $untilDate = new DateTime($unavailable_until);
+    
+    if ($fromDate >= $untilDate) {
+        echo json_encode(['success' => false, 'message' => 'Unavailable Until date must be after Unavailable From date']);
+        exit;
+    }
 }
 
 // Sanitize inputs
@@ -37,9 +50,27 @@ $acquisition_date = $conn->real_escape_string($acquisition_date);
 // Automatically set status to "Available"
 $status = "Available";
 
-// Insert new machine
-$sql = "INSERT INTO machines (name, quantity, status, acquisition_date) 
-        VALUES ('$name', $quantity, '$status', '$acquisition_date')";
+// Prepare SQL based on whether unavailable dates are provided
+if (!empty($unavailable_from) && !empty($unavailable_until)) {
+    $unavailable_from = $conn->real_escape_string($unavailable_from);
+    $unavailable_until = $conn->real_escape_string($unavailable_until);
+    
+    $sql = "INSERT INTO machines (name, quantity, status, acquisition_date, unavailable_from, unavailable_until) 
+            VALUES ('$name', $quantity, '$status', '$acquisition_date', '$unavailable_from', '$unavailable_until')";
+} elseif (!empty($unavailable_from)) {
+    $unavailable_from = $conn->real_escape_string($unavailable_from);
+    
+    $sql = "INSERT INTO machines (name, quantity, status, acquisition_date, unavailable_from) 
+            VALUES ('$name', $quantity, '$status', '$acquisition_date', '$unavailable_from')";
+} elseif (!empty($unavailable_until)) {
+    $unavailable_until = $conn->real_escape_string($unavailable_until);
+    
+    $sql = "INSERT INTO machines (name, quantity, status, acquisition_date, unavailable_until) 
+            VALUES ('$name', $quantity, '$status', '$acquisition_date', '$unavailable_until')";
+} else {
+    $sql = "INSERT INTO machines (name, quantity, status, acquisition_date) 
+            VALUES ('$name', $quantity, '$status', '$acquisition_date')";
+}
 
 $result = $conn->query($sql);
 

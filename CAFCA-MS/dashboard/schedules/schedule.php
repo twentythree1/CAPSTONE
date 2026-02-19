@@ -59,52 +59,66 @@ $machineCounts = [
     'Not Returned' => 0
 ];
 
-$countSql = "SELECT status FROM machines";
+$countSql = "SELECT status, quantity FROM machines";
 $countResult = $conn->query($countSql);
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {
         $status = $r['status'];
+        $qty = intval($r['quantity']);
         if (isset($machineCounts[$status])) {
-            $machineCounts[$status]++;
+            $machineCounts[$status] += $qty;
         }
     }
     $countResult->free();
 }
 
-$now = new DateTime();
-$notReturnedSql = "SELECT DISTINCT s.machine_id, s.schedule_date, s.date_span, s.start_time, s.end_time, s.return_date, s.status
-                   FROM schedules s
-                   WHERE s.status IN ('Approved', 'Completed')";
-$notReturnedResult = $conn->query($notReturnedSql);
+// Calculate on-going and not-returned counts by looping in PHP
+// so we use the SAME end-datetime logic as the sidebar status computation.
+$ongoingCount     = 0;
 $notReturnedCount = 0;
 
-if ($notReturnedResult) {
-    while ($r = $notReturnedResult->fetch_assoc()) {
-        $scheduleDate = $r['schedule_date'] ?? '';
-        $startTime = $r['start_time'] ?? '00:00:00';
-        $endTime = $r['end_time'] ?? '23:59:59';
-        $dateSpan = $r['date_span'] ?? 0;
-        $returnDate = $r['return_date'];
-        $scheduleStatus = $r['status'];
+$activeSql = "SELECT schedule_date, date_span, start_time, end_time, status, return_date
+              FROM schedules WHERE status IN ('Approved', 'Completed')";
+$activeResult = $conn->query($activeSql);
+if ($activeResult) {
+    $tz    = new DateTimeZone('Asia/Manila');
+    $nowDt = new DateTime('now', $tz);
+    while ($row = $activeResult->fetch_assoc()) {
+        $dbStatus   = $row['status'];
+        $span       = (int)$row['date_span'];
+        $startTime  = $row['start_time'] ?: '00:00:00';
+        $endTime    = $row['end_time']   ?: '23:59:59';
+        $returnDate = $row['return_date'];
+        $hasReturned = ($returnDate !== null && $returnDate !== '');
 
-        if (!empty($scheduleDate)) {
-            try {
-                $startDt = new DateTime($scheduleDate . ' ' . $startTime);
-                $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
-                $endDt = new DateTime($endDateStr . ' ' . $endTime);
-
-                if ($now > $endDt && empty($returnDate)) {
-                    $notReturnedCount++;
-                }
-            } catch (Exception $e) {
+        // DB-stored 'Completed': if return_date is missing, machine was not returned
+        if ($dbStatus === 'Completed') {
+            if (!$hasReturned) {
+                $notReturnedCount++;
             }
+            continue;
+        }
+
+        // 'Approved': compute actual start/end with midnight-crossing support
+        $startDt = new DateTime($row['schedule_date'] . ' ' . $startTime, $tz);
+        $endBase  = new DateTime($row['schedule_date'], $tz);
+        $endBase->modify("+{$span} days");
+        $endDt = new DateTime($endBase->format('Y-m-d') . ' ' . $endTime, $tz);
+        if ($endDt <= $startDt) {
+            $endDt->modify('+1 day'); // crosses midnight
+        }
+
+        if ($nowDt >= $startDt && $nowDt <= $endDt) {
+            $ongoingCount++;
+        } elseif ($nowDt > $endDt && !$hasReturned) {
+            $notReturnedCount++;
         }
     }
-    $notReturnedResult->free();
+    $activeResult->free();
 }
 
-// Update the Not Returned count
 $machineCounts['Not Returned'] = $notReturnedCount;
+$machineCounts['Available']    = max(0, $machineCounts['Available'] - $notReturnedCount - $ongoingCount);
 
 // Count schedules by status
 $counts = [
@@ -143,7 +157,11 @@ if ($countResult) {
         }
 
         $computedStatus = $dbStatus;
-        if ($dbStatus === 'Approved') {
+        if ($dbStatus === 'Pending') {
+            if ($now >= $startDt) {
+                $computedStatus = 'Expired';
+            }
+        } elseif ($dbStatus === 'Approved') {
             if ($now >= $startDt && $now <= $endDt) {
                 $computedStatus = 'On going';
             } elseif ($now > $endDt) {
@@ -245,15 +263,18 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Partially Damaged">
                             <span>Partially Damaged</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Partially Damaged'] ?? 0) ?></span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Partially Damaged'] ?? 0) ?></span>
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Totally Damaged">
                             <span>Totally Damaged</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Not Returned">
                             <span>Not Returned</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
                         </a>
                     </div>
                 </div>
@@ -332,9 +353,31 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 <?php endif; ?>
                 <?php if (isset($_GET['deleted'])): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert" style="position: relative;">
-                    Expired schedule was deleted successfully!
+                    Schedule was deleted successfully!
                     <div class="progress-bar">
                         <div class="progress-bar-inner"></div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <?php if (isset($_GET['error'])): ?>
+                <?php
+                    $errorMessages = [
+                        'missing_fields' => 'Please fill in all required fields.',
+                        'schedule_not_found' => 'Schedule not found.',
+                        'machine_not_found' => 'Machine not found.',
+                        'no_quantity' => 'This machine has no available quantity.',
+                        'machine_unavailable' => 'This machine is unavailable during the selected time period (maintenance/blocked).',
+                        'fully_booked' => 'All units of this machine are already booked for the selected time.',
+                        'update_failed' => 'Failed to update the schedule. Please try again.'
+                    ];
+                    $errorKey = $_GET['error'];
+                    $errorMessage = isset($errorMessages[$errorKey]) ? $errorMessages[$errorKey] : 'An error occurred. Please try again.';
+                    ?>
+                <div class="alert alert-error alert-dismissible fade show" role="alert"
+                    style="position: relative; background: #ffebee; color: #c62828; border-left: 4px solid #f44336;">
+                    <?= htmlspecialchars($errorMessage) ?>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="background: #f44336;"></div>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -362,13 +405,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     <div class="search-expand-wrap" id="searchWrap">
                         <div class="schedule-placeholder search-fields" id="searchFields">
                             <div class="search-input-wrap">
-                                <input type="text" id="scheduleSearch" placeholder="Search schedules..." autocomplete="off">
+                                <input type="text" id="scheduleSearch" placeholder="Search schedules..."
+                                    autocomplete="off">
                                 <button class="clear-search" id="clearSearch" title="Clear" style="display:none;">
                                     <span class="material-icons-sharp">close</span>
                                 </button>
                             </div>
                         </div>
-                        <button class="search-icon-btn schedule-search" id="searchToggleBtn" title="Search schedules" type="button">
+                        <button class="search-icon-btn schedule-search" id="searchToggleBtn" title="Search schedules"
+                            type="button">
                             <span class="material-icons-sharp">search</span>
                         </button>
                     </div>
@@ -521,9 +566,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         echo "<a class='btn btn-primary btn-sm' onclick=\"return confirm('Are you sure you want to approve " . htmlspecialchars($row['farmer_name']) . "\\'s schedule to use " . htmlspecialchars($row['machine_name']) . "?');\" style='margin-left: 4px;' href='approve_schedule.php?id={$row['id']}'>Approve</a>";
                         echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to cancel " . htmlspecialchars($row['farmer_name']) . "\\'s schedule?');\"  style='margin-left: 4px;' href='cancel_schedule.php?id={$row['id']}'>Cancel</a>";
                     } elseif ($status === 'Approved') {
-                        echo "<a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)' style='margin-left: 4px;'>Edit</a>";
                         echo "<a class='btn btn-resched btn-sm' style='margin-left: 4px;' onclick='openRescheduleModal({$row['id']}, \"" . htmlspecialchars($row['farmer_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['machine_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['schedule_date']) . "\", {$row['date_span']}, \"" . htmlspecialchars($row['start_time']) . "\", \"" . htmlspecialchars($row['end_time']) . "\", \"$status\")'>Reschedule</a>";
-                        
                         // Show ellipses with tooltip if there's a reschedule reason
                         if (!empty($row['reschedule_reason'])) {
                             $reason = htmlspecialchars($row['reschedule_reason'], ENT_QUOTES);
@@ -534,9 +577,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to delete this expired schedule?');\" style='margin-left: 4px;' href='delete_schedule.php?id={$row['id']}'>Delete</a>";
                     } elseif ($status === 'Cancelled') {
                         echo "<a class='btn btn-resched btn-sm' style='margin-left: 4px;' onclick='openRescheduleModal({$row['id']}, \"" . htmlspecialchars($row['farmer_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['machine_name'], ENT_QUOTES) . "\", \"" . htmlspecialchars($row['schedule_date']) . "\", {$row['date_span']}, \"" . htmlspecialchars($row['start_time']) . "\", \"" . htmlspecialchars($row['end_time']) . "\", \"$status\")'>Reschedule</a>";
-                    } else {
-                        echo "<a class='btn btn-primary btn-sm' onclick='openEditScheduleModal({$row['id']})' href='javascript:void(0)' style='margin-left: 4px;'>Edit</a>";
+                        echo "<a class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure you want to delete this cancelled schedule?');\" style='margin-left: 4px;' href='delete_schedule.php?id={$row['id']}'>Delete</a>";
                     }
+                    
                     echo "</td>";
                     echo "</tr>";
                 }
@@ -640,7 +683,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
             <div class="modal-body">
                 <div class="schedule-info" id="scheduleDetailsContent" style="position: relative;">
-                    <img src="../../LandingPage/others/logo.png" alt="CAFCA Logo" style="position: absolute; top: 10px; right: 10px; width: 80px; height: 80px; object-fit: contain;">
+                    <img src="../../LandingPage/others/logo.png" alt="CAFCA Logo"
+                        style="position: absolute; top: 10px; right: 10px; width: 80px; height: 80px; object-fit: contain;">
                     <h3>Schedule Information</h3>
                     <p><strong>Schedule ID:</strong> <span id="details-id"></span></p>
                     <p><strong>Farmer:</strong> <span id="details-farmer"></span></p>
@@ -651,15 +695,19 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     <p><strong>End Time:</strong> <span id="details-end-time"></span></p>
                     <p><strong>Duration:</strong> <span id="details-duration"></span> day(s)</p>
                     <p><strong>Status:</strong> <span id="details-status"></span></p>
-                    <div id="details-reschedule-info" style="display: none; margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
-                        <p style="margin: 5px 0;"><strong>Rescheduled At:</strong> <span id="details-rescheduled-at"></span></p>
-                        <p style="margin: 5px 0;"><strong>Reschedule Reason:</strong> <span id="details-reschedule-reason"></span></p>
+                    <div id="details-reschedule-info"
+                        style="display: none; margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                        <p style="margin: 5px 0;"><strong>Rescheduled At:</strong> <span
+                                id="details-rescheduled-at"></span></p>
+                        <p style="margin: 5px 0;"><strong>Reschedule Reason:</strong> <span
+                                id="details-reschedule-reason"></span></p>
                     </div>
                 </div>
 
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeDetailsModal()">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="printScheduleAsImage()">Download as Image</button>
+                    <button type="button" class="btn btn-primary" onclick="printScheduleAsImage()">Download as
+                        Image</button>
                 </div>
             </div>
         </div>
@@ -763,7 +811,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             e.preventDefault();
             errorMsg.textContent = 'You must change the date when rescheduling.';
             errorMsg.style.display = 'block';
-            errorMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            errorMsg.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
             return false;
         }
 
@@ -782,12 +833,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
     // TOOLTIP FOR RESCHEDULE REASON
     document.addEventListener('DOMContentLoaded', function() {
         const infoIcons = document.querySelectorAll('.reschedule-info-icon');
-        
+
         infoIcons.forEach(icon => {
             icon.addEventListener('mouseenter', function(e) {
                 const rect = this.getBoundingClientRect();
                 const tooltip = window.getComputedStyle(this, '::before');
-                
+
                 this.style.setProperty('--tooltip-left', rect.left + (rect.width / 2) + 'px');
                 this.style.setProperty('--tooltip-top', (rect.top - 10) + 'px');
             });
@@ -825,32 +876,43 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
                     <div class="form-group">
                         <label for="machine_id">Machine <span style="color: red;">*</span></label>
-                        <select name="machine_id" id="machine_id" required class="form-select" onchange="checkMachineAvailability()">
+                        <select name="machine_id" id="machine_id" required class="form-select"
+                            onchange="checkMachineAvailability()">
                             <option value="">Select a Machine</option>
                             <?php
-                            $machineList = $conn->query("SELECT id, name, status, quantity FROM machines ORDER BY name ASC");
+                            $machineList = $conn->query("SELECT id, name, status, quantity, unavailable_from, unavailable_until, COALESCE(unavailable_count, 1) AS unavailable_count FROM machines ORDER BY name ASC");
                             while ($row = $machineList->fetch_assoc()):
                                 $isTotallyDamaged = ($row['status'] === 'Totally Damaged');
                                 $quantity = intval($row['quantity']);
+                                
+                                // Check if machine has unavailable dates set
+                                $unavailableInfo = '';
+                                if (!empty($row['unavailable_from']) && !empty($row['unavailable_until'])) {
+                                    $fromDate = new DateTime($row['unavailable_from']);
+                                    $untilDate = new DateTime($row['unavailable_until']);
+                                    $unavailableInfo = ' ' . $row['unavailable_count'] . ' unit(s) unavailable: ' . $fromDate->format('M d') . ' - ' . $untilDate->format('M d, Y');
+                                }
                             ?>
-                            <option value="<?= $row['id'] ?>"
-                                data-status="<?= htmlspecialchars($row['status']) ?>"
+                            <option value="<?= $row['id'] ?>" data-status="<?= htmlspecialchars($row['status']) ?>"
                                 data-quantity="<?= $quantity ?>"
+                                data-unavailable-from="<?= htmlspecialchars($row['unavailable_from'] ?? '') ?>"
+                                data-unavailable-until="<?= htmlspecialchars($row['unavailable_until'] ?? '') ?>"
+                                data-unavailable-count="<?= intval($row['unavailable_count'] ?? 1) ?>"
                                 <?= $isTotallyDamaged ? 'disabled style="color: #aaa;"' : '' ?>>
-                                <?= htmlspecialchars($row['name']) ?> (Qty: <?= $quantity ?>)<?= $isTotallyDamaged ? ' — Unavailable' : '' ?>
+                                <?= htmlspecialchars($row['name']) ?> (Qty:
+                                <?= $quantity ?>)<?= $isTotallyDamaged ? ' — Unavailable' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
                             </option>
                             <?php endwhile; ?>
                         </select>
-                        <div id="addMachineWarning" class="alert-error" style="display: none; margin-top: 0.5rem; transition: all 0.2s;"></div>
-                        <div id="addMachineAvailability" style="margin-top: 0.5rem; padding: 0.75rem; background: #e3f2fd; border-radius: 4px; display: none; border-left: 4px solid #2196F3;">
-                            <small style="display: block; margin-bottom: 0.25rem;"><strong>📊 Availability Check:</strong></small>
-                            <small id="availabilityMessage" style="color: #1565C0;"></small>
-                        </div>
+                        <div id="addMachineWarning" class="alert-error"
+                            style="display: none; margin-top: 0.5rem; transition: all 0.2s;"></div>
+
                     </div>
 
                     <div class="form-group">
                         <label for="add_schedule_date">Schedule Date <span style="color: red;">*</span></label>
-                        <input type="date" id="add_schedule_date" name="schedule_date" min="<?= date('Y-m-d') ?>" required>
+                        <input type="date" id="add_schedule_date" name="schedule_date" min="<?= date('Y-m-d') ?>"
+                            required>
                     </div>
 
                     <div class="form-group">
@@ -869,8 +931,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     </div>
 
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeAddScheduleModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50;">Create Schedule</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeAddScheduleModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50;">Create
+                            Schedule</button>
                     </div>
                 </form>
             </div>
@@ -899,45 +963,62 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             $farmerList = $conn->query("SELECT id, name FROM farmers ORDER BY name");
                             while ($row = $farmerList->fetch_assoc()):
                             ?>
-                                <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
+                            <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
                             <?php endwhile; ?>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label for="edit_machine_id">Machine <span style="color: red;">*</span></label>
-                        <select id="edit_machine_id" name="machine_id" required onchange="checkEditMachineAvailability()">
+                        <select id="edit_machine_id" name="machine_id" required
+                            onchange="checkEditMachineAvailability()">
                             <option value="">Select a Machine</option>
                             <?php
-                            $machineList = $conn->query("SELECT id, name, status, quantity FROM machines ORDER BY name");
+                            $machineList = $conn->query("SELECT id, name, status, quantity, unavailable_from, unavailable_until, COALESCE(unavailable_count, 1) AS unavailable_count FROM machines ORDER BY name");
                             while ($row = $machineList->fetch_assoc()):
                                 $isTotallyDamaged = ($row['status'] === 'Totally Damaged');
                                 $quantity = intval($row['quantity']);
+                                
+                                // Check if machine has unavailable dates set
+                                $unavailableInfo = '';
+                                if (!empty($row['unavailable_from']) && !empty($row['unavailable_until'])) {
+                                    $fromDate = new DateTime($row['unavailable_from']);
+                                    $untilDate = new DateTime($row['unavailable_until']);
+                                    $unavailableInfo = ' [Unavailable: ' . $fromDate->format('M d') . ' - ' . $untilDate->format('M d, Y') . ']';
+                                }
                             ?>
-                                <option value="<?= $row['id'] ?>"
-                                    data-status="<?= htmlspecialchars($row['status']) ?>"
-                                    data-quantity="<?= $quantity ?>"
-                                    <?= $isTotallyDamaged ? 'disabled style="color: #aaa;"' : '' ?>>
-                                    <?= htmlspecialchars($row['name']) ?> (Qty: <?= $quantity ?>)<?= $isTotallyDamaged ? ' — Unavailable' : '' ?>
-                                </option>
+                            <option value="<?= $row['id'] ?>" data-status="<?= htmlspecialchars($row['status']) ?>"
+                                data-quantity="<?= $quantity ?>"
+                                data-unavailable-from="<?= htmlspecialchars($row['unavailable_from'] ?? '') ?>"
+                                data-unavailable-until="<?= htmlspecialchars($row['unavailable_until'] ?? '') ?>"
+                                data-unavailable-count="<?= intval($row['unavailable_count'] ?? 1) ?>"
+                                <?= $isTotallyDamaged ? 'disabled style="color: #aaa;"' : '' ?>>
+                                <?= htmlspecialchars($row['name']) ?> (Qty:
+                                <?= $quantity ?>)<?= $isTotallyDamaged ? ' — Unavailable' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
+                            </option>
                             <?php endwhile; ?>
                         </select>
-                        <div id="editMachineWarning" class="alert-error" style="display: none; margin-top: 0.5rem; transition: all 0.2s;"></div>
-                        <div id="editMachineAvailability" style="margin-top: 0.5rem; padding: 0.75rem; background: #e3f2fd; border-radius: 4px; display: none; border-left: 4px solid #2196F3;">
-                            <small style="display: block; margin-bottom: 0.25rem;"><strong>📊 Availability Check:</strong></small>
+                        <div id="editMachineWarning" class="alert-error"
+                            style="display: none; margin-top: 0.5rem; transition: all 0.2s;"></div>
+                        <div id="editMachineAvailability"
+                            style="margin-top: 0.5rem; padding: 0.75rem; background: #e3f2fd; border-radius: 4px; display: none; border-left: 4px solid #2196F3;">
+                            <small style="display: block; margin-bottom: 0.25rem;"><strong>📊 Availability
+                                    Check:</strong></small>
                             <small id="editAvailabilityMessage" style="color: #1565C0;"></small>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="edit_schedule_date">Schedule Date <span style="color: red;">*</span></label>
-                        <input type="date" id="edit_schedule_date" name="schedule_date" min="<?= date('Y-m-d') ?>" required>
+                        <input type="date" id="edit_schedule_date" name="schedule_date" min="<?= date('Y-m-d') ?>"
+                            required>
                     </div>
 
                     <div class="form-group">
                         <label for="edit_date_span">Date Span (days) <span style="color: red;">*</span></label>
                         <input type="number" id="edit_date_span" name="date_span" min="0" required>
-                        <small style="color: var(--color-dark-variant); display: block; margin-top: 0.25rem;">Number of days to add to the schedule date to get the end date.</small>
+                        <small style="color: var(--color-dark-variant); display: block; margin-top: 0.25rem;">Number of
+                            days to add to the schedule date to get the end date.</small>
                     </div>
 
                     <div class="form-group">
@@ -956,8 +1037,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     </div>
 
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeEditScheduleModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50;">Save Changes</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeEditScheduleModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50;">Save
+                            Changes</button>
                     </div>
                 </form>
             </div>
@@ -973,76 +1056,107 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const endDate = document.getElementById('add_end_date').value;
         const startTime = document.getElementById('add_start_time').value;
         const endTime = document.getElementById('add_end_time').value;
-        
+
         const selectedOption = machineSelect.options[machineSelect.selectedIndex];
         const warningDiv = document.getElementById('addMachineWarning');
-        const availabilityDiv = document.getElementById('addMachineAvailability');
-        const availabilityMsg = document.getElementById('availabilityMessage');
-        
-        // Hide both divs initially
+
+        // Hide warning initially
         warningDiv.style.display = 'none';
-        availabilityDiv.style.display = 'none';
-        
+
         if (!selectedOption || !selectedOption.value) {
             return;
         }
-        
+
         const status = selectedOption.getAttribute('data-status');
         const quantity = parseInt(selectedOption.getAttribute('data-quantity') || '0');
         const machineId = selectedOption.value;
-        
+        const unavailableFrom = selectedOption.getAttribute('data-unavailable-from');
+        const unavailableUntil = selectedOption.getAttribute('data-unavailable-until');
+        const unavailableCount = parseInt(selectedOption.getAttribute('data-unavailable-count') || '1');
+
         // Check status first
         if (status === 'Totally Damaged') {
-            warningDiv.innerHTML = '⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.';
+            warningDiv.innerHTML =
+                '⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.';
             warningDiv.style.background = '#fde8e8';
             warningDiv.style.color = '#b71c1c';
             warningDiv.style.display = 'block';
             return;
         }
-        
+
+        // Show unavailable date info if set
+        if (unavailableFrom && unavailableUntil) {
+            const fromDate = new Date(unavailableFrom);
+            const untilDate = new Date(unavailableUntil);
+            const fromFormatted = fromDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+            const untilFormatted = untilDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+
+            const availableDuringUnavail = quantity - unavailableCount;
+            if (availableDuringUnavail > 0) {
+                warningDiv.innerHTML =
+                    `ℹ️ <strong>Note:</strong> ${unavailableCount} unit(s) is/are unavailable from ${fromFormatted} to ${untilFormatted}. Only <strong>${availableDuringUnavail}</strong> unit(s) is/are available during this period.`;
+            } else {
+                warningDiv.innerHTML =
+                    `ℹ️ <strong>Note:</strong> This machine is fully unavailable from ${fromFormatted} to ${untilFormatted}.`;
+            }
+            warningDiv.style.background = '#e3f2fd';
+            warningDiv.style.color = '#1565C0';
+            warningDiv.style.display = 'block';
+        }
+
         if (status === 'Partially Damaged') {
-            warningDiv.innerHTML = '⚠️ This machine is <strong>Partially Damaged</strong>. You will be asked to confirm before booking.';
+            warningDiv.innerHTML =
+                '⚠️ This machine is <strong>Partially Damaged</strong>. You will be asked to confirm before booking.';
             warningDiv.style.background = '#fff8e1';
             warningDiv.style.color = '#7a5000';
             warningDiv.style.display = 'block';
         }
-        
+
         // If dates and times are filled, check real-time availability
         if (scheduleDate && endDate && startTime && endTime) {
             fetch('check_availability.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `machine_id=${machineId}&schedule_date=${scheduleDate}&end_date=${endDate}&start_time=${startTime}&end_time=${endTime}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const available = data.available;
-                    const booked = data.booked;
-                    const total = data.total;
-                    
-                    availabilityDiv.style.display = 'block';
-                    if (available > 0) {
-                        availabilityDiv.style.background = '#e8f5e9';
-                        availabilityDiv.style.borderColor = '#4CAF50';
-                        availabilityMsg.style.color = '#2e7d32';
-                        availabilityMsg.innerHTML = `✅ <strong>${available}</strong> unit(s) available (${booked} booked / ${total} total)`;
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `machine_id=${machineId}&schedule_date=${scheduleDate}&end_date=${endDate}&start_time=${startTime}&end_time=${endTime}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const available = data.available;
+                        const booked = data.booked;
+                        const total = data.total;
+
+                        if (available <= 0) {
+                            warningDiv.innerHTML = `❌ <strong>Fully booked</strong> (${booked} booked / ${total} total)`;
+                            warningDiv.style.background = '#ffebee';
+                            warningDiv.style.color = '#c62828';
+                            warningDiv.style.display = 'block';
+                        }
                     } else {
-                        availabilityDiv.style.background = '#ffebee';
-                        availabilityDiv.style.borderColor = '#f44336';
-                        availabilityMsg.style.color = '#c62828';
-                        availabilityMsg.innerHTML = `❌ <strong>Fully booked</strong> (${booked} booked / ${total} total)`;
+                        warningDiv.innerHTML = `❌ ${data.message || 'Unable to check availability'}`;
+                        warningDiv.style.background = '#ffebee';
+                        warningDiv.style.color = '#c62828';
+                        warningDiv.style.display = 'block';
                     }
-                }
-            })
-            .catch(error => console.error('Error checking availability:', error));
-        } else {
-            // Show quantity info even without dates
-            availabilityDiv.style.display = 'block';
-            availabilityMsg.innerHTML = `Total quantity: <strong>${quantity}</strong> unit(s). Select dates to check availability.`;
+                })
+                .catch(error => console.error('Error checking availability:', error));
         }
     }
-    
+
     // Add event listeners to trigger availability check when dates/times change
     document.addEventListener('DOMContentLoaded', function() {
         const dateTimeInputs = ['add_schedule_date', 'add_end_date', 'add_start_time', 'add_end_time'];
@@ -1056,12 +1170,11 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
     function openAddScheduleModal() {
         const modal = document.getElementById('addScheduleModal');
-        
+
         document.getElementById('addScheduleForm').reset();
         document.getElementById('addScheduleErrorMessage').style.display = 'none';
         document.getElementById('addMachineWarning').style.display = 'none';
-        document.getElementById('addMachineAvailability').style.display = 'none';
-        
+
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
     }
@@ -1093,7 +1206,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const selectedOption = machineSelect.options[machineSelect.selectedIndex];
         if (selectedOption && selectedOption.getAttribute('data-status') === 'Totally Damaged') {
             const errorDiv = document.getElementById('addScheduleErrorMessage');
-            errorDiv.textContent = 'Cannot book a schedule: the selected machine is Totally Damaged and unavailable for use.';
+            errorDiv.textContent =
+                'Cannot book a schedule: the selected machine is Totally Damaged and unavailable for use.';
             errorDiv.style.display = 'block';
             return;
         }
@@ -1101,7 +1215,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         // Confirmation: warn if Partially Damaged machine is selected
         if (selectedOption && selectedOption.getAttribute('data-status') === 'Partially Damaged') {
             const machineName = selectedOption.textContent.trim();
-            const confirmed = confirm(`⚠️ "${machineName}" is Partially Damaged. It may not perform at full capacity and could affect operations.\n\nAre you sure you want to book this machine?`);
+            const confirmed = confirm(
+                `⚠️ "${machineName}" is Partially Damaged. It may not perform at full capacity and could affect operations.\n\nAre you sure you want to book this machine?`
+                );
             if (!confirmed) return;
         }
 
@@ -1114,7 +1230,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = 'schedule.php?status=' + encodeURIComponent(data.redirect) + '&added=1';
+                    window.location.href = 'schedule.php?status=' + encodeURIComponent(data.redirect) +
+                        '&added=1';
                 } else {
                     const errorDiv = document.getElementById('addScheduleErrorMessage');
                     errorDiv.textContent = data.message || 'Failed to create schedule. Please try again.';
@@ -1140,88 +1257,137 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const startTime = document.getElementById('edit_start_time').value;
         const endTime = document.getElementById('edit_end_time').value;
         const scheduleId = document.getElementById('edit_schedule_id').value;
-        
+
         const selectedOption = machineSelect.options[machineSelect.selectedIndex];
         const warningDiv = document.getElementById('editMachineWarning');
         const availabilityDiv = document.getElementById('editMachineAvailability');
         const availabilityMsg = document.getElementById('editAvailabilityMessage');
-        
+
         // Hide both divs initially
         warningDiv.style.display = 'none';
         availabilityDiv.style.display = 'none';
-        
+
         if (!selectedOption || !selectedOption.value) {
             return;
         }
-        
+
         const status = selectedOption.getAttribute('data-status');
         const quantity = parseInt(selectedOption.getAttribute('data-quantity') || '0');
         const machineId = selectedOption.value;
-        
+        const unavailableFrom = selectedOption.getAttribute('data-unavailable-from');
+        const unavailableUntil = selectedOption.getAttribute('data-unavailable-until');
+        const unavailableCount = parseInt(selectedOption.getAttribute('data-unavailable-count') || '1');
+
         // Check status first
         if (status === 'Totally Damaged') {
-            warningDiv.innerHTML = '⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.';
+            warningDiv.innerHTML =
+                '⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.';
             warningDiv.style.background = '#fde8e8';
             warningDiv.style.color = '#b71c1c';
             warningDiv.style.display = 'block';
             return;
         }
-        
+
+        // Show unavailable date info if set
+        if (unavailableFrom && unavailableUntil) {
+            const fromDate = new Date(unavailableFrom);
+            const untilDate = new Date(unavailableUntil);
+            const fromFormatted = fromDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+            const untilFormatted = untilDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+
+            const availableDuringUnavail = quantity - unavailableCount;
+            if (availableDuringUnavail > 0) {
+                warningDiv.innerHTML =
+                    `ℹ️ <strong>Note:</strong> ${unavailableCount} unit(s) is/are unavailable from ${fromFormatted} to ${untilFormatted}. Only <strong>${availableDuringUnavail}</strong> unit(s) is/are available during this period.`;
+            } else {
+                warningDiv.innerHTML =
+                    `ℹ️ <strong>Note:</strong> This machine is fully unavailable from ${fromFormatted} to ${untilFormatted}.`;
+            }
+            warningDiv.style.background = '#e3f2fd';
+            warningDiv.style.color = '#1565C0';
+            warningDiv.style.display = 'block';
+        }
+
         if (status === 'Partially Damaged') {
-            warningDiv.innerHTML = '⚠️ This machine is <strong>Partially Damaged</strong>. You will be asked to confirm before updating.';
+            warningDiv.innerHTML =
+                '⚠️ This machine is <strong>Partially Damaged</strong>. You will be asked to confirm before updating.';
             warningDiv.style.background = '#fff8e1';
             warningDiv.style.color = '#7a5000';
             warningDiv.style.display = 'block';
         }
-        
+
         // If dates and times are filled, check real-time availability
         if (scheduleDate && dateSpan && startTime && endTime) {
             // Calculate end date
             const startDateObj = new Date(scheduleDate);
             startDateObj.setDate(startDateObj.getDate() + parseInt(dateSpan));
             const endDate = startDateObj.toISOString().split('T')[0];
-            
+
             fetch('check_availability.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `machine_id=${machineId}&schedule_date=${scheduleDate}&end_date=${endDate}&start_time=${startTime}&end_time=${endTime}&exclude_schedule_id=${scheduleId}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const available = data.available;
-                    const booked = data.booked;
-                    const total = data.total;
-                    
-                    availabilityDiv.style.display = 'block';
-                    if (available > 0) {
-                        availabilityDiv.style.background = '#e8f5e9';
-                        availabilityDiv.style.borderColor = '#4CAF50';
-                        availabilityMsg.style.color = '#2e7d32';
-                        availabilityMsg.innerHTML = `✅ <strong>${available}</strong> unit(s) available (${booked} booked / ${total} total)`;
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `machine_id=${machineId}&schedule_date=${scheduleDate}&end_date=${endDate}&start_time=${startTime}&end_time=${endTime}&exclude_schedule_id=${scheduleId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const available = data.available;
+                        const booked = data.booked;
+                        const total = data.total;
+
+                        availabilityDiv.style.display = 'block';
+                        if (available > 0) {
+                            availabilityDiv.style.background = '#e8f5e9';
+                            availabilityDiv.style.borderColor = '#4CAF50';
+                            availabilityMsg.style.color = '#2e7d32';
+                            availabilityMsg.innerHTML =
+                                `✅ <strong>${available}</strong> unit(s) available (${booked} booked / ${total} total)`;
+                        } else {
+                            availabilityDiv.style.background = '#ffebee';
+                            availabilityDiv.style.borderColor = '#f44336';
+                            availabilityMsg.style.color = '#c62828';
+                            availabilityMsg.innerHTML =
+                                `❌ <strong>Fully booked</strong> (${booked} booked / ${total} total)`;
+                        }
                     } else {
+                        // Show error message from server (e.g., machine unavailable during this period)
+                        availabilityDiv.style.display = 'block';
                         availabilityDiv.style.background = '#ffebee';
                         availabilityDiv.style.borderColor = '#f44336';
                         availabilityMsg.style.color = '#c62828';
-                        availabilityMsg.innerHTML = `❌ <strong>Fully booked</strong> (${booked} booked / ${total} total)`;
+                        availabilityMsg.innerHTML = `❌ ${data.message || 'Unable to check availability'}`;
                     }
-                }
-            })
-            .catch(error => console.error('Error checking availability:', error));
+                })
+                .catch(error => console.error('Error checking availability:', error));
         } else {
             // Show quantity info even without dates
             availabilityDiv.style.display = 'block';
-            availabilityMsg.innerHTML = `Total quantity: <strong>${quantity}</strong> unit(s). Select dates to check availability.`;
+            availabilityMsg.innerHTML =
+                `Total quantity: <strong>${quantity}</strong> unit(s). Select dates to check availability.`;
         }
     }
-    
+
     function openEditScheduleModal(scheduleId) {
         const modal = document.getElementById('editScheduleModal');
         const errorDiv = document.getElementById('editScheduleErrorMessage');
         errorDiv.style.display = 'none';
         document.getElementById('editMachineWarning').style.display = 'none';
         document.getElementById('editMachineAvailability').style.display = 'none';
-        
+
         fetch(`schedule.php?action=get_schedule&id=${scheduleId}`)
             .then(response => response.json())
             .then(data => {
@@ -1233,10 +1399,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     document.getElementById('edit_date_span').value = data.data.date_span;
                     document.getElementById('edit_start_time').value = data.data.start_time;
                     document.getElementById('edit_end_time').value = data.data.end_time;
-                    
+
                     updateEditEndDate();
                     checkEditMachineAvailability();
-                    
+
                     modal.style.display = 'block';
                     document.body.style.overflow = 'hidden';
                 } else {
@@ -1259,7 +1425,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const scheduleDateInput = document.getElementById('edit_schedule_date');
         const dateSpanInput = document.getElementById('edit_date_span');
         const endDateInput = document.getElementById('edit_end_date_preview');
-        
+
         const sd = scheduleDateInput.value;
         let span = parseInt(dateSpanInput.value, 10);
         if (!sd || isNaN(span)) {
@@ -1280,7 +1446,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const editDateSpan = document.getElementById('edit_date_span');
         const editStartTime = document.getElementById('edit_start_time');
         const editEndTime = document.getElementById('edit_end_time');
-        
+
         if (editScheduleDate && editDateSpan) {
             editScheduleDate.addEventListener('change', function() {
                 updateEditEndDate();
@@ -1291,11 +1457,11 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 checkEditMachineAvailability();
             });
         }
-        
+
         if (editStartTime) {
             editStartTime.addEventListener('change', checkEditMachineAvailability);
         }
-        
+
         if (editEndTime) {
             editEndTime.addEventListener('change', checkEditMachineAvailability);
         }
@@ -1309,7 +1475,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const selectedOption = machineSelect.options[machineSelect.selectedIndex];
         if (selectedOption && selectedOption.getAttribute('data-status') === 'Totally Damaged') {
             const errorDiv = document.getElementById('editScheduleErrorMessage');
-            errorDiv.textContent = 'Cannot save changes: the selected machine is Totally Damaged and unavailable for use.';
+            errorDiv.textContent =
+                'Cannot save changes: the selected machine is Totally Damaged and unavailable for use.';
             errorDiv.style.display = 'block';
             return;
         }
@@ -1317,7 +1484,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         // Confirmation: warn if Partially Damaged machine is selected
         if (selectedOption && selectedOption.getAttribute('data-status') === 'Partially Damaged') {
             const machineName = selectedOption.textContent.trim();
-            const confirmed = confirm(`⚠️ The selected machine "${machineName}" is Partially Damaged.\n\nIt may not perform at full capacity and could affect operations.\n\nAre you sure you want to book this machine?`);
+            const confirmed = confirm(
+                `⚠️ The selected machine "${machineName}" is Partially Damaged.\n\nIt may not perform at full capacity and could affect operations.\n\nAre you sure you want to book this machine?`
+                );
             if (!confirmed) return;
         }
 
@@ -1330,7 +1499,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = 'schedule.php?status=<?= urlencode($statusFilter ?: 'Pending') ?>&updated=1';
+                    window.location.href =
+                        'schedule.php?status=<?= urlencode($statusFilter ?: 'Pending') ?>&updated=1';
                 } else {
                     const errorDiv = document.getElementById('editScheduleErrorMessage');
                     errorDiv.textContent = data.message || 'Failed to update schedule. Please try again.';
@@ -1350,23 +1520,23 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
     <script>
     function openDetailsModal(scheduleId) {
         const modal = document.getElementById('detailsModal');
-        
+
         fetch(`schedule.php?action=get_schedule&id=${scheduleId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     const schedule = data.data;
-                    
+
                     const startDate = new Date(schedule.schedule_date);
                     const endDate = new Date(startDate);
                     endDate.setDate(startDate.getDate() + parseInt(schedule.date_span || 0));
-                    
+
                     const now = new Date();
                     const startDateTime = new Date(schedule.schedule_date + ' ' + schedule.start_time);
                     const endDateTime = new Date(endDate.toISOString().split('T')[0] + ' ' + schedule.end_time);
-                    
+
                     let currentStatus = schedule.status;
-                    
+
                     // Check if Pending schedule should be Expired
                     if (schedule.status === 'Pending') {
                         if (now >= startDateTime) {
@@ -1381,27 +1551,29 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             currentStatus = 'Completed';
                         }
                     }
-                    
+
                     document.getElementById('details-id').textContent = schedule.id;
                     document.getElementById('details-farmer').textContent = schedule.farmer_name;
                     document.getElementById('details-machine').textContent = schedule.machine_name;
                     document.getElementById('details-start-date').textContent = formatDate(schedule.schedule_date);
-                    document.getElementById('details-end-date').textContent = formatDate(endDate.toISOString().split('T')[0]);
+                    document.getElementById('details-end-date').textContent = formatDate(endDate.toISOString()
+                        .split('T')[0]);
                     document.getElementById('details-start-time').textContent = formatTime(schedule.start_time);
                     document.getElementById('details-end-time').textContent = formatTime(schedule.end_time);
                     document.getElementById('details-duration').textContent = schedule.date_span || 0;
                     document.getElementById('details-status').textContent = currentStatus;
-                    
+
                     // Show reschedule info if available
                     if (schedule.reschedule_reason) {
                         document.getElementById('details-reschedule-info').style.display = 'block';
-                        document.getElementById('details-rescheduled-at').textContent = 
+                        document.getElementById('details-rescheduled-at').textContent =
                             schedule.rescheduled_at ? new Date(schedule.rescheduled_at).toLocaleString() : 'N/A';
-                        document.getElementById('details-reschedule-reason').textContent = schedule.reschedule_reason;
+                        document.getElementById('details-reschedule-reason').textContent = schedule
+                            .reschedule_reason;
                     } else {
                         document.getElementById('details-reschedule-info').style.display = 'none';
                     }
-                    
+
                     modal.style.display = 'block';
                     document.body.style.overflow = 'hidden';
                 } else {
@@ -1425,10 +1597,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const content = document.getElementById('scheduleDetailsContent');
         const originalBg = content.style.backgroundColor;
         const originalPadding = content.style.padding;
-        
+
         content.style.backgroundColor = '#ffffff';
         content.style.padding = '20px';
-        
+
         html2canvas(content, {
             backgroundColor: '#ffffff',
             scale: 2,
@@ -1438,14 +1610,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         }).then(canvas => {
             content.style.backgroundColor = originalBg;
             content.style.padding = originalPadding;
-            
+
             // Convert canvas to blob
             canvas.toBlob(function(blob) {
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 const scheduleId = document.getElementById('details-id').textContent;
                 const farmerName = document.getElementById('details-farmer').textContent;
-                
+
                 link.href = url;
                 link.download = `Schedule_${scheduleId}_${farmerName.replace(/\s+/g, '_')}.jpg`;
                 document.body.appendChild(link);
@@ -1471,15 +1643,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
     <!-- SEARCH & FILTER SCRIPT -->
     <script>
-    (function () {
+    (function() {
         const STORAGE_KEY_QUERY = 'scheduleSearch_query';
-        const STORAGE_KEY_OPEN  = 'scheduleSearch_open';
+        const STORAGE_KEY_OPEN = 'scheduleSearch_open';
 
-        const searchInput  = document.getElementById('scheduleSearch');
-        const clearBtn     = document.getElementById('clearSearch');
+        const searchInput = document.getElementById('scheduleSearch');
+        const clearBtn = document.getElementById('clearSearch');
         const resultsCount = document.getElementById('resultsCount');
-        const searchWrap   = document.getElementById('searchWrap');
-        const toggleBtn    = document.getElementById('searchToggleBtn');
+        const searchWrap = document.getElementById('searchWrap');
+        const toggleBtn = document.getElementById('searchToggleBtn');
 
         if (!searchInput) return;
 
@@ -1498,7 +1670,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             localStorage.removeItem(STORAGE_KEY_OPEN);
         }
 
-        toggleBtn.addEventListener('click', function () {
+        toggleBtn.addEventListener('click', function() {
             if (searchWrap.classList.contains('expanded')) {
                 searchInput.value = '';
                 localStorage.removeItem(STORAGE_KEY_QUERY);
@@ -1509,7 +1681,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             }
         });
 
-        searchWrap.addEventListener('focusout', function (e) {
+        searchWrap.addEventListener('focusout', function(e) {
             if (!searchWrap.contains(e.relatedTarget)) {
                 if (!searchInput.value) {
                     closeSearch();
@@ -1520,7 +1692,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         /* ---- filtering ---- */
         function applyFilters() {
             const query = searchInput.value.trim().toLowerCase();
-            const rows  = document.querySelectorAll('.schedule-row');
+            const rows = document.querySelectorAll('.schedule-row');
 
             // Persist query to localStorage
             if (query) {
@@ -1535,12 +1707,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             let totalRows = rows.length;
 
             rows.forEach(row => {
-                const farmer  = row.dataset.farmer  || '';
+                const farmer = row.dataset.farmer || '';
                 const machine = row.dataset.machine || '';
-                const status  = row.dataset.status  || '';
+                const status = row.dataset.status || '';
 
                 const matchesSearch = !query ||
-                    farmer.includes(query)  ||
+                    farmer.includes(query) ||
                     machine.includes(query) ||
                     status.includes(query);
 
@@ -1557,7 +1729,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         const original = cell.dataset.original;
                         if (query) {
                             const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
-                            cell.innerHTML = original.replace(regex, '<mark class="search-highlight">$1</mark>');
+                            cell.innerHTML = original.replace(regex,
+                                '<mark class="search-highlight">$1</mark>');
                         } else {
                             cell.textContent = original;
                         }
@@ -1575,10 +1748,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
             // Show/hide "no results" row per table
             document.querySelectorAll('.table').forEach(table => {
-                const tableRows    = table.querySelectorAll('.schedule-row');
+                const tableRows = table.querySelectorAll('.schedule-row');
                 const noResultsRow = table.querySelector('.no-results-row');
                 if (!noResultsRow) return;
-                const anyVisible   = Array.from(tableRows).some(r => r.style.display !== 'none');
+                const anyVisible = Array.from(tableRows).some(r => r.style.display !== 'none');
                 noResultsRow.style.display = (tableRows.length > 0 && !anyVisible) ? '' : 'none';
             });
 
@@ -1591,7 +1764,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
         searchInput.addEventListener('input', applyFilters);
 
-        clearBtn.addEventListener('click', function () {
+        clearBtn.addEventListener('click', function() {
             searchInput.value = '';
             localStorage.removeItem(STORAGE_KEY_QUERY);
             applyFilters();
@@ -1600,7 +1773,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
         /* ---- Restore state on page load ---- */
         const savedQuery = localStorage.getItem(STORAGE_KEY_QUERY);
-        const savedOpen  = localStorage.getItem(STORAGE_KEY_OPEN);
+        const savedOpen = localStorage.getItem(STORAGE_KEY_OPEN);
 
         if (savedQuery || savedOpen) {
             searchWrap.classList.add('expanded');

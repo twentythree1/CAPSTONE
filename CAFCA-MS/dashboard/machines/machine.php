@@ -16,6 +16,18 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+
+// Set timezone
+date_default_timezone_set('Asia/Manila');
+$conn->query("SET time_zone = '+08:00'");
+
+// Sync schedule statuses in DB before counting
+$now = new DateTime();
+$currentDateTime = $now->format('Y-m-d H:i:s');
+
+// Auto-expire past pending schedules
+$conn->query("UPDATE schedules SET status = 'Expired' WHERE status = 'Pending' AND CONCAT(schedule_date, ' ', start_time) < '$currentDateTime'");
+
 // Count machines by status
 $machineCounts = [
     'Available' => 0,
@@ -24,55 +36,51 @@ $machineCounts = [
     'Not Returned' => 0
 ];
 
-$countSql = "SELECT status FROM machines";
+$countSql = "SELECT status, quantity FROM machines";
 $countResult = $conn->query($countSql);
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {
         $status = $r['status'];
+        $qty = intval($r['quantity']);
         if (isset($machineCounts[$status])) {
-            $machineCounts[$status]++;
+            $machineCounts[$status] += $qty;
         }
     }
     $countResult->free();
 }
 
-// Count machines "Not Returned" based on completed schedules without return date
-$now = new DateTime();
-$notReturnedSql = "SELECT DISTINCT s.machine_id, s.schedule_date, s.date_span, s.start_time, s.end_time, s.return_date, s.status
+// Count machines "Not Returned" - Approved schedules whose end time has passed but machine not yet returned
+$notReturnedSql = "SELECT COUNT(*) as count
                    FROM schedules s
-                   WHERE s.status IN ('Approved', 'Completed')";
+                   WHERE s.status = 'Approved'
+                   AND (s.return_date IS NULL OR s.return_date = '')
+                   AND NOW() > CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)";
 $notReturnedResult = $conn->query($notReturnedSql);
 $notReturnedCount = 0;
 
 if ($notReturnedResult) {
-    while ($r = $notReturnedResult->fetch_assoc()) {
-        $scheduleDate = $r['schedule_date'] ?? '';
-        $startTime = $r['start_time'] ?? '00:00:00';
-        $endTime = $r['end_time'] ?? '23:59:59';
-        $dateSpan = $r['date_span'] ?? 0;
-        $returnDate = $r['return_date'];
-        $scheduleStatus = $r['status'];
-
-        if (!empty($scheduleDate)) {
-            try {
-                $startDt = new DateTime($scheduleDate . ' ' . $startTime);
-                $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
-                $endDt = new DateTime($endDateStr . ' ' . $endTime);
-
-                // Check if schedule is completed (past end date) and not returned
-                if ($now > $endDt && empty($returnDate)) {
-                    $notReturnedCount++;
-                }
-            } catch (Exception $e) {
-                // Skip invalid dates
-            }
-        }
-    }
+    $row = $notReturnedResult->fetch_assoc();
+    $notReturnedCount = (int)($row['count'] ?? 0);
     $notReturnedResult->free();
 }
 
-// Update the Not Returned count
+// Update the Not Returned count and deduct from Available (these machines are out but past due)
 $machineCounts['Not Returned'] = $notReturnedCount;
+$machineCounts['Available'] = max(0, $machineCounts['Available'] - $notReturnedCount);
+
+// Subtract machines currently in use by on-going schedules (Approved, within their active window, not yet past end time)
+$ongoingSql = "SELECT COUNT(*) as count
+               FROM schedules
+               WHERE status = 'Approved'
+               AND NOW() >= CONCAT(schedule_date, ' ', start_time)
+               AND NOW() <= CONCAT(DATE_ADD(schedule_date, INTERVAL date_span DAY), ' ', end_time)";
+$ongoingResult = $conn->query($ongoingSql);
+if ($ongoingResult) {
+    $ongoingRow = $ongoingResult->fetch_assoc();
+    $ongoingCount = (int)($ongoingRow['count'] ?? 0);
+    $ongoingResult->free();
+    $machineCounts['Available'] = max(0, $machineCounts['Available'] - $ongoingCount);
+}
 
 // Count schedules by status
 $counts = [
@@ -97,21 +105,26 @@ if ($countResult) {
         $endTime = $r['end_time'] ?: '23:59:59';
         $dateSpan = isset($r['date_span']) ? (int)$r['date_span'] : 0;
 
+        $tz = new DateTimeZone('Asia/Manila');
         try {
-            $startDt = new DateTime($scheduleDate . ' ' . $startTime);
+            $startDt = new DateTime($scheduleDate . ' ' . $startTime, $tz);
         } catch (Exception $e) {
-            $startDt = new DateTime($scheduleDate . ' 00:00:00');
+            $startDt = new DateTime($scheduleDate . ' 00:00:00', $tz);
         }
 
         $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
         try {
-            $endDt = new DateTime($endDateStr . ' ' . $endTime);
+            $endDt = new DateTime($endDateStr . ' ' . $endTime, $tz);
         } catch (Exception $e) {
-            $endDt = new DateTime($endDateStr . ' 23:59:59');
+            $endDt = new DateTime($endDateStr . ' 23:59:59', $tz);
         }
 
         $computedStatus = $dbStatus;
-        if ($dbStatus === 'Approved') {
+        if ($dbStatus === 'Pending') {
+            if ($now >= $startDt) {
+                $computedStatus = 'Expired';
+            }
+        } elseif ($dbStatus === 'Approved') {
             if ($now >= $startDt && $now <= $endDt) {
                 $computedStatus = 'On going';
             } elseif ($now > $endDt) {
@@ -320,28 +333,16 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         INNER JOIN machines m ON s.machine_id = m.id
                         INNER JOIN farmers f ON s.farmer_id = f.id
                         WHERE s.status IN ('Approved', 'Completed')
-                        AND s.return_date IS NULL";
+                        AND s.return_date IS NULL
+                        AND NOW() > CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)
+                        ORDER BY s.schedule_date ASC";
                 
                 $result = $conn->query($sql);
                 $notReturnedRows = [];
                 
                 if ($result) {
                     while ($row = $result->fetch_assoc()) {
-                        $scheduleDate = $row['schedule_date'];
-                        $startTime = $row['start_time'] ?: '00:00:00';
-                        $endTime = $row['end_time'] ?: '23:59:59';
-                        $dateSpan = (int)$row['date_span'];
-                        
-                        try {
-                            $startDt = new DateTime($scheduleDate . ' ' . $startTime);
-                            $endDateStr = date('Y-m-d', strtotime($scheduleDate . " +{$dateSpan} days"));
-                            $endDt = new DateTime($endDateStr . ' ' . $endTime);
-                            
-                            if ($now > $endDt) {
-                                $notReturnedRows[] = $row;
-                            }
-                        } catch (Exception $e) {
-                        }
+                        $notReturnedRows[] = $row;
                     }
                 }
                 
@@ -400,19 +401,29 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                               </td>
                           </tr>
                           </table></div>";
-                } // end else (notReturnedRows not empty)
-            } // end if ($statusFilter === 'Not Returned')
+                }
+            }
             else {
                 // Original machine listing code
+                // qty_available = total quantity minus machines currently checked out (approved/ongoing, not yet returned)
+                $availableSql = "SELECT m.*,
+                                    GREATEST(0, m.quantity - COALESCE((
+                                        SELECT COUNT(*)
+                                        FROM schedules s
+                                        WHERE s.machine_id = m.id
+                                          AND s.status IN ('Approved', 'Completed')
+                                          AND s.return_date IS NULL
+                                          AND NOW() <= CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)
+                                    ), 0)) AS qty_available
+                                 FROM machines m";
                 if ($statusFilter) {
-                    $sql = "SELECT * FROM machines WHERE status = ?";
-                    $stmt = $conn->prepare($sql);
+                    $availableSql .= " WHERE m.status = ?";
+                    $stmt = $conn->prepare($availableSql);
                     $stmt->bind_param("s", $statusFilter);
                     $stmt->execute();
                     $result = $stmt->get_result();
                 } else {
-                    $sql = "SELECT * FROM machines";
-                    $result = $conn->query($sql);
+                    $result = $conn->query($availableSql);
                 }
 
                 if (!$result) {
@@ -434,8 +445,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                                 <tr>
                                     <th>Machine ID</th>
                                     <th>Machine Name</th>
-                                    <th>Quantity</th>
+                                    <th>Qty Available</th>
                                     <th>Status</th>
+                                    <th>Unavailable From</th>
+                                    <th>Unavailable Until</th>
                                     <th>Acquisition Date</th>
                                     <th>Action</th>
                                 </tr>
@@ -465,10 +478,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                             $tooltipContent = "No usage history";
                         }
 
-                        $safeName     = htmlspecialchars($row['name'],     ENT_QUOTES, 'UTF-8');
-                        $safeQuantity = htmlspecialchars($row['quantity'], ENT_QUOTES, 'UTF-8');
-                        $safeStatus   = htmlspecialchars($row['status'],   ENT_QUOTES, 'UTF-8');
+                        $safeName     = htmlspecialchars($row['name'],          ENT_QUOTES, 'UTF-8');
+                        $safeQuantity = htmlspecialchars($row['qty_available'],  ENT_QUOTES, 'UTF-8');
+                        $safeStatus   = htmlspecialchars($row['status'],         ENT_QUOTES, 'UTF-8');
                         $safeId       = intval($row['id']);
+                        
+                        // Format unavailable dates
+                        $unavailableFrom = !empty($row['unavailable_from']) ? date('M d, Y g:i A', strtotime($row['unavailable_from'])) : '-';
+                        $unavailableUntil = !empty($row['unavailable_until']) ? date('M d, Y g:i A', strtotime($row['unavailable_until'])) : '-';
 
                         echo "
                         <tr class='machine-row'
@@ -479,6 +496,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                             <td>{$safeName}</td>
                             <td>{$safeQuantity}</td>
                             <td>{$safeStatus}</td>
+                            <td>{$unavailableFrom}</td>
+                            <td>{$unavailableUntil}</td>
                             <td>" . htmlspecialchars($row['acquisition_date'], ENT_QUOTES, 'UTF-8') . "</td>
                             <td>
                                 <a class='btn btn-primary btn-sm' onclick='openEditMachineModal({$safeId})' href='javascript:void(0)'>Edit</a>
@@ -494,14 +513,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     
                     echo "</tbody>
                           <tr id='noResultsRow' style='display:none;'>
-                              <td colspan='6' style='text-align:center; padding:2rem; color:var(--color-dark-variant);'>
+                              <td colspan='8' style='text-align:center; padding:2rem; color:var(--color-dark-variant);'>
                                   <span class='material-icons-sharp' style='font-size:2rem;display:block;margin-bottom:0.5rem;'>search_off</span>
                                   No machines found matching your search.
                               </td>
                           </tr>
                           </table></div>";
-                } // end else (machineRows not empty)
-            } // end else (not Not Returned view)
+                }
+            }
             ?>
         </main>
     </div>
@@ -520,7 +539,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                 </div>
                 <div id="historyErrorMessage" class="error-message" style="display: none;"></div>
                 <div id="historyContent">
-                    <!-- History table will be dynamically inserted here -->
                 </div>
             </div>
         </div>
@@ -768,6 +786,16 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         <input type="date" id="acquisition_date" name="acquisition_date" max="<?= date('Y-m-d') ?>" required>
                     </div>
 
+                    <div class="form-group">
+                        <label for="unavailable_from">Unavailable From (Optional)</label>
+                        <input type="datetime-local" id="unavailable_from" name="unavailable_from">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="unavailable_until">Unavailable Until (Optional)</label>
+                        <input type="datetime-local" id="unavailable_until" name="unavailable_until">
+                    </div>
+
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="closeAddMachineModal()">Cancel</button>
                         <button type="submit" class="btn btn-primary" style="background-color: #4CAF50;">Add Machine</button>
@@ -814,6 +842,16 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     <div class="form-group">
                         <label for="edit_acquisition_date">Acquisition Date <span style="color: red;">*</span></label>
                         <input type="date" id="edit_acquisition_date" name="acquisition_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_unavailable_from">Unavailable From (Optional)</label>
+                        <input type="datetime-local" id="edit_unavailable_from" name="unavailable_from">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_unavailable_until">Unavailable Until (Optional)</label>
+                        <input type="datetime-local" id="edit_unavailable_until" name="unavailable_until">
                     </div>
 
                     <div class="form-actions">
@@ -922,6 +960,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     document.getElementById('edit_machine_quantity').value = data.data.quantity;
                     document.getElementById('edit_machine_status').value = data.data.status;
                     document.getElementById('edit_acquisition_date').value = data.data.acquisition_date;
+                    
+                    // Set unavailable dates if they exist
+                    document.getElementById('edit_unavailable_from').value = data.data.unavailable_from || '';
+                    document.getElementById('edit_unavailable_until').value = data.data.unavailable_until || '';
                     
                     modal.style.display = 'block';
                     document.body.style.overflow = 'hidden';

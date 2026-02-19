@@ -32,7 +32,7 @@ if (empty($machine_id) || empty($schedule_date) || empty($end_date) || empty($st
 
 // Get the total quantity of this machine
 $machine_id_esc = $conn->real_escape_string($machine_id);
-$quantityQuery = "SELECT quantity FROM machines WHERE id = '$machine_id_esc'";
+$quantityQuery = "SELECT quantity, unavailable_from, unavailable_until FROM machines WHERE id = '$machine_id_esc'";
 $quantityResult = $conn->query($quantityQuery);
 
 if (!$quantityResult || $quantityResult->num_rows === 0) {
@@ -42,6 +42,26 @@ if (!$quantityResult || $quantityResult->num_rows === 0) {
 
 $machineData = $quantityResult->fetch_assoc();
 $totalQuantity = (int)$machineData['quantity'];
+$unavailableFrom = $machineData['unavailable_from'];
+$unavailableUntil = $machineData['unavailable_until'];
+
+// Check if the requested time period overlaps with machine's unavailable period
+$unavailableUnitCount = 0;
+if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
+    try {
+        $requestStart = new DateTime($schedule_date . ' ' . $start_time);
+        $requestEnd = new DateTime($end_date . ' ' . $end_time);
+        $machineUnavailableStart = new DateTime($unavailableFrom);
+        $machineUnavailableEnd = new DateTime($unavailableUntil);
+        
+        // If there is overlap, 1 unit is blocked (maintenance), not all units
+        if ($requestStart < $machineUnavailableEnd && $requestEnd > $machineUnavailableStart) {
+            $unavailableUnitCount = 1;
+        }
+    } catch (Exception $e) {
+        // If date parsing fails, continue
+    }
+}
 
 // Count how many of this machine are already booked for the overlapping date range
 $schedule_date_esc = $conn->real_escape_string($schedule_date);
@@ -77,7 +97,7 @@ if (!$conflictResult) {
 
 $conflictData = $conflictResult->fetch_assoc();
 $bookedCount = (int)$conflictData['booked_count'];
-$availableCount = $totalQuantity - $bookedCount;
+$availableCount = $totalQuantity - $bookedCount - $unavailableUnitCount;
 
 echo json_encode([
     'success' => true,
