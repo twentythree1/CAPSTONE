@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 19, 2026 at 05:30 PM
+-- Generation Time: Feb 19, 2026 at 05:49 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -46,13 +46,13 @@ CREATE TABLE `machines` (
 INSERT INTO `machines` (`id`, `name`, `quantity`, `status`, `acquisition_date`, `unavailable_from`, `unavailable_until`, `unavailable_count`, `last_returned`) VALUES
 (1, 'Thresher', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
 (2, 'Field Master', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
-(3, 'Riding Type Rice Transplanting', 1, 'Available', '2026-02-01', '2026-02-20 08:00:00', '2026-02-21 17:00:00', 1, NULL),
 (4, 'Combine Harvester', 2, 'Available', '2026-02-01', '2026-02-19 22:57:00', '2026-02-20 04:00:00', 1, '2026-02-19 22:50:04'),
 (5, 'Tractor', 2, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
 (6, 'Floating Tiller', 2, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
 (7, 'Precision Seeder', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
-(8, 'Seed Cleaner', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
-(9, 'Water Pump', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL);
+(8, 'Seed Cleaner', 1, 'Partially Damaged', '2026-02-01', NULL, NULL, 1, '2026-02-20 00:43:21'),
+(9, 'Water Pump', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL),
+(10, 'Rice Transplanter', 1, 'Available', '2026-02-01', NULL, NULL, 1, NULL);
 
 --
 -- Indexes for dumped tables
@@ -74,7 +74,7 @@ ALTER TABLE `machines`
 -- AUTO_INCREMENT for table `machines`
 --
 ALTER TABLE `machines`
-  MODIFY `id` int(255) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(255) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
