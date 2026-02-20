@@ -51,27 +51,20 @@ $end_date_esc = $conn->real_escape_string($end_date);
 $start_time_esc = $conn->real_escape_string($start_time);
 $end_time_esc = $conn->real_escape_string($end_time);
 
-// Get the total quantity of this machine
-$quantityQuery = "SELECT quantity, unavailable_from, unavailable_until FROM machines WHERE id = '$machine_id_esc'";
-$quantityResult = $conn->query($quantityQuery);
+// Get machine unavailable dates
+$machineQuery = "SELECT unavailable_from, unavailable_until FROM machines WHERE id = '$machine_id_esc'";
+$machineResult = $conn->query($machineQuery);
 
-if (!$quantityResult || $quantityResult->num_rows === 0) {
+if (!$machineResult || $machineResult->num_rows === 0) {
     echo json_encode(['success' => false, 'message' => 'Machine not found.']);
     exit;
 }
 
-$machineData = $quantityResult->fetch_assoc();
-$totalQuantity = (int)$machineData['quantity'];
+$machineData = $machineResult->fetch_assoc();
 $unavailableFrom = $machineData['unavailable_from'];
 $unavailableUntil = $machineData['unavailable_until'];
 
-if ($totalQuantity <= 0) {
-    echo json_encode(['success' => false, 'message' => 'This machine has no available quantity.']);
-    exit;
-}
-
 // Check if the requested time period overlaps with machine's unavailable period
-$unavailableUnitCount = 0;
 if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
     try {
         $requestStart = new DateTime($schedule_date . ' ' . $start_time);
@@ -79,18 +72,20 @@ if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
         $machineUnavailableStart = new DateTime($unavailableFrom);
         $machineUnavailableEnd = new DateTime($unavailableUntil);
         
-        // If there is overlap, 1 unit is under maintenance (not all units blocked)
         if ($requestStart < $machineUnavailableEnd && $requestEnd > $machineUnavailableStart) {
-            $unavailableUnitCount = 1;
+            $fromFormatted = $machineUnavailableStart->format('M d, Y g:i A');
+            $untilFormatted = $machineUnavailableEnd->format('M d, Y g:i A');
+            echo json_encode(['success' => false, 'message' => "This machine is unavailable from $fromFormatted to $untilFormatted."]);
+            exit;
         }
     } catch (Exception $e) {
         // If date parsing fails, continue
     }
 }
 
-// Count how many of this machine are already booked for the overlapping date range
+// Check if this machine is already booked during the requested period
 $conflictQuery = "
-    SELECT COUNT(*) as booked_count FROM schedules 
+    SELECT COUNT(*) as conflict_count FROM schedules 
     WHERE machine_id = '$machine_id_esc'
       AND status IN ('Pending', 'Approved', 'On going')
       AND (
@@ -98,7 +93,7 @@ $conflictQuery = "
             AND schedule_date <= '$end_date_esc'
         )
       AND (
-            (start_time < '$end_time_esc' AND end_time > '$start_time_esc')
+            start_time < '$end_time_esc' AND end_time > '$start_time_esc'
         )
 ";
 
@@ -109,14 +104,9 @@ if (!$conflictResult) {
 }
 
 $conflictData = $conflictResult->fetch_assoc();
-$bookedCount = (int)$conflictData['booked_count'];
 
-// Check if there's still availability
-if ($bookedCount + $unavailableUnitCount >= $totalQuantity) {
-    echo json_encode([
-        'success' => false, 
-        'message' => "All units of this machine are already booked during this date/time. (Booked: $bookedCount + 1 under maintenance / Total: $totalQuantity)"
-    ]);
+if ((int)$conflictData['conflict_count'] > 0) {
+    echo json_encode(['success' => false, 'message' => 'This machine is already booked for the selected date/time.']);
     exit;
 }
 

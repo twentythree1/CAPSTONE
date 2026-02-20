@@ -36,23 +36,34 @@ $machineCounts = [
     'Not Returned' => 0
 ];
 
-$countSql = "SELECT status, quantity FROM machines";
-$countResult = $conn->query($countSql);
-if ($countResult) {
-    while ($r = $countResult->fetch_assoc()) {
-        $status = $r['status'];
-        $qty = intval($r['quantity']);
-        if (isset($machineCounts[$status])) {
-            $machineCounts[$status] += $qty;
-        }
-    }
-    $countResult->free();
+// Available badge: count of machines with status='Available'
+$availableBadgeSql = "SELECT COUNT(*) AS available_count FROM machines WHERE status = 'Available'";
+$availBadgeResult = $conn->query($availableBadgeSql);
+if ($availBadgeResult) {
+    $availBadgeRow = $availBadgeResult->fetch_assoc();
+    $machineCounts['Available'] = (int)($availBadgeRow['available_count'] ?? 0);
+    $availBadgeResult->free();
 }
 
-// Count machines "Not Returned" - Approved schedules whose end time has passed but machine not yet returned
+// Partially Damaged / Totally Damaged badges: count machines by status
+foreach (['Partially Damaged', 'Totally Damaged'] as $dmgStatus) {
+    $dmgBadgeSql = "SELECT COUNT(*) as cnt FROM machines WHERE status = ?";
+    $dmgStmt = $conn->prepare($dmgBadgeSql);
+    $dmgStmt->bind_param("s", $dmgStatus);
+    $dmgStmt->execute();
+    $dmgRow = $dmgStmt->get_result()->fetch_assoc();
+    $machineCounts[$dmgStatus] = (int)($dmgRow['cnt'] ?? 0);
+    $dmgStmt->close();
+}
+
+// Count "Not Returned" — uses the EXACT same JOINs and conditions as the display query
+// so the badge always matches the number of rows shown in the table.
+// LEFT JOIN machines/farmers so orphaned records don't get silently dropped.
 $notReturnedSql = "SELECT COUNT(*) as count
                    FROM schedules s
-                   WHERE s.status = 'Approved'
+                   LEFT JOIN machines m ON s.machine_id = m.id
+                   LEFT JOIN farmers f ON s.farmer_id = f.id
+                   WHERE s.status IN ('Approved', 'Completed')
                    AND (s.return_date IS NULL OR s.return_date = '')
                    AND NOW() > CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)";
 $notReturnedResult = $conn->query($notReturnedSql);
@@ -63,24 +74,7 @@ if ($notReturnedResult) {
     $notReturnedCount = (int)($row['count'] ?? 0);
     $notReturnedResult->free();
 }
-
-// Update the Not Returned count and deduct from Available (these machines are out but past due)
 $machineCounts['Not Returned'] = $notReturnedCount;
-$machineCounts['Available'] = max(0, $machineCounts['Available'] - $notReturnedCount);
-
-// Subtract machines currently in use by on-going schedules (Approved, within their active window, not yet past end time)
-$ongoingSql = "SELECT COUNT(*) as count
-               FROM schedules
-               WHERE status = 'Approved'
-               AND NOW() >= CONCAT(schedule_date, ' ', start_time)
-               AND NOW() <= CONCAT(DATE_ADD(schedule_date, INTERVAL date_span DAY), ' ', end_time)";
-$ongoingResult = $conn->query($ongoingSql);
-if ($ongoingResult) {
-    $ongoingRow = $ongoingResult->fetch_assoc();
-    $ongoingCount = (int)($ongoingRow['count'] ?? 0);
-    $ongoingResult->free();
-    $machineCounts['Available'] = max(0, $machineCounts['Available'] - $ongoingCount);
-}
 
 // Count schedules by status
 $counts = [
@@ -230,9 +224,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         </a>
                     </div>
                 </div>
-                <div class="sidebar-dropdown <?= $schedulesStatus ? 'open' : '' ?>">
+                <div class="sidebar-dropdown <?= ($isSchedulePage && $statusParam) ? 'open' : '' ?>">
                     <a href="javascript:void(0)" class="dropdown-toggle"
-                        aria-expanded="<?= $schedulesStatus ? 'true' : 'false' ?>">
+                        aria-expanded="<?= ($isSchedulePage && $statusParam) ? 'true' : 'false' ?>">
                         <span class="material-icons-sharp">event</span>
                         <h3>Schedules</h3>
                         <span class="material-icons-sharp dropdown-icon">expand_more</span>
@@ -326,14 +320,16 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
             <?php
             // Prepare data first to check if table should be shown
             if ($statusFilter === 'Not Returned') {
+                // LEFT JOIN so rows with orphaned machine/farmer references still appear.
+                // COALESCE gives a fallback display name if a farmer/machine record is missing.
                 $sql = "SELECT s.id as schedule_id, s.schedule_date, s.date_span, s.start_time, s.end_time,
-                               m.id as machine_id, m.name as machine_name, 
-                               f.name as farmer_name
+                               m.id as machine_id, COALESCE(m.name, '(Deleted Machine)') as machine_name,
+                               COALESCE(f.name, '(Deleted Farmer)') as farmer_name
                         FROM schedules s
-                        INNER JOIN machines m ON s.machine_id = m.id
-                        INNER JOIN farmers f ON s.farmer_id = f.id
+                        LEFT JOIN machines m ON s.machine_id = m.id
+                        LEFT JOIN farmers f ON s.farmer_id = f.id
                         WHERE s.status IN ('Approved', 'Completed')
-                        AND s.return_date IS NULL
+                        AND (s.return_date IS NULL OR s.return_date = '')
                         AND NOW() > CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)
                         ORDER BY s.schedule_date ASC";
                 
@@ -404,26 +400,26 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                 }
             }
             else {
-                // Original machine listing code
-                // qty_available = total quantity minus machines currently checked out (approved/ongoing, not yet returned)
-                $availableSql = "SELECT m.*,
-                                    GREATEST(0, m.quantity - COALESCE((
-                                        SELECT COUNT(*)
-                                        FROM schedules s
-                                        WHERE s.machine_id = m.id
-                                          AND s.status IN ('Approved', 'Completed')
-                                          AND s.return_date IS NULL
-                                          AND NOW() <= CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)
-                                    ), 0)) AS qty_available
-                                 FROM machines m";
-                if ($statusFilter) {
-                    $availableSql .= " WHERE m.status = ?";
-                    $stmt = $conn->prepare($availableSql);
-                    $stmt->bind_param("s", $statusFilter);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                } else {
+                // All submenus use machines.status as the source of truth.
+
+                $baseSelect = "SELECT m.*";
+
+                if ($statusFilter === 'Available') {
+                    $availableSql = "$baseSelect FROM machines m WHERE m.status = 'Available'";
                     $result = $conn->query($availableSql);
+
+                } else {
+                    // Partially Damaged, Totally Damaged, or no filter — use machines.status directly
+                    $sql = "$baseSelect FROM machines m";
+                    if ($statusFilter) {
+                        $sql .= " WHERE m.status = ?";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param("s", $statusFilter);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                    } else {
+                        $result = $conn->query($sql);
+                    }
                 }
 
                 if (!$result) {
@@ -445,7 +441,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                                 <tr>
                                     <th>Machine ID</th>
                                     <th>Machine Name</th>
-                                    <th>Qty Available</th>
                                     <th>Status</th>
                                     <th>Unavailable From</th>
                                     <th>Unavailable Until</th>
@@ -478,9 +473,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                             $tooltipContent = "No usage history";
                         }
 
-                        $safeName     = htmlspecialchars($row['name'],          ENT_QUOTES, 'UTF-8');
-                        $safeQuantity = htmlspecialchars($row['qty_available'],  ENT_QUOTES, 'UTF-8');
-                        $safeStatus   = htmlspecialchars($row['status'],         ENT_QUOTES, 'UTF-8');
+                        $safeName     = htmlspecialchars($row['name'],   ENT_QUOTES, 'UTF-8');
+                        $safeStatus   = htmlspecialchars($row['status'], ENT_QUOTES, 'UTF-8');
                         $safeId       = intval($row['id']);
                         
                         // Format unavailable dates
@@ -490,11 +484,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         echo "
                         <tr class='machine-row'
                             data-name='" . strtolower($safeName) . "'
-                            data-quantity='" . strtolower($safeQuantity) . "'
                             data-status='{$safeStatus}'>
                             <td>{$safeId}</td>
                             <td>{$safeName}</td>
-                            <td>{$safeQuantity}</td>
                             <td>{$safeStatus}</td>
                             <td>{$unavailableFrom}</td>
                             <td>{$unavailableUntil}</td>
@@ -513,7 +505,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     
                     echo "</tbody>
                           <tr id='noResultsRow' style='display:none;'>
-                              <td colspan='8' style='text-align:center; padding:2rem; color:var(--color-dark-variant);'>
+                              <td colspan='7' style='text-align:center; padding:2rem; color:var(--color-dark-variant);'>
                                   <span class='material-icons-sharp' style='font-size:2rem;display:block;margin-bottom:0.5rem;'>search_off</span>
                                   No machines found matching your search.
                               </td>
@@ -777,11 +769,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     </div>
 
                     <div class="form-group">
-                        <label for="machine_quantity">Quantity <span style="color: red;">*</span></label>
-                        <input type="number" id="machine_quantity" name="quantity" placeholder="Enter quantity" min="0" required>
-                    </div>
-
-                    <div class="form-group">
                         <label for="acquisition_date">Acquisition Date <span style="color: red;">*</span></label>
                         <input type="date" id="acquisition_date" name="acquisition_date" max="<?= date('Y-m-d') ?>" required>
                     </div>
@@ -822,11 +809,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     <div class="form-group">
                         <label for="edit_machine_name">Machine Name <span style="color: red;">*</span></label>
                         <input type="text" id="edit_machine_name" name="name" placeholder="Enter machine name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit_machine_quantity">Quantity <span style="color: red;">*</span></label>
-                        <input type="number" id="edit_machine_quantity" name="quantity" placeholder="Enter quantity" min="0" required>
                     </div>
 
                     <div class="form-group">
@@ -957,7 +939,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                 if (data.success) {
                     document.getElementById('edit_machine_id').value = data.data.id;
                     document.getElementById('edit_machine_name').value = data.data.name;
-                    document.getElementById('edit_machine_quantity').value = data.data.quantity;
                     document.getElementById('edit_machine_status').value = data.data.status;
                     document.getElementById('edit_acquisition_date').value = data.data.acquisition_date;
                     
@@ -1028,7 +1009,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
 
         const isNotReturned = <?= json_encode($statusFilter === 'Not Returned') ?>;
 
-        const SEARCHABLE_COLS = isNotReturned ? [0, 1] : [1, 2, 3];
+        const SEARCHABLE_COLS = isNotReturned ? [0, 1] : [1, 2];
 
         /* ---- expand / collapse ---- */
         function openSearch() {
@@ -1078,14 +1059,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
             let visible = 0;
 
             rows.forEach(row => {
-                const name     = row.dataset.name     || '';
-                const quantity = row.dataset.quantity || '';
-                const farmer   = row.dataset.farmer   || '';
-                const status   = row.dataset.status ? row.dataset.status.toLowerCase() : '';
+                const name   = row.dataset.name   || '';
+                const farmer = row.dataset.farmer || '';
+                const status = row.dataset.status ? row.dataset.status.toLowerCase() : '';
 
                 const matchesSearch = !query ||
                     name.includes(query) ||
-                    quantity.includes(query) ||
                     farmer.includes(query) ||
                     status.includes(query);
 

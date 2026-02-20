@@ -14,7 +14,6 @@ if ($conn->connect_error) {
 
 $id = "";
 $name = "";
-$quantity = "";
 $status = "";
 $acquisition_date = "";
 $unavailable_from = null;
@@ -25,14 +24,13 @@ $errorMessage = "";
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $id = trim($_POST["id"]);
     $name = trim($_POST["name"]);
-    $quantity = trim($_POST["quantity"]);
     $status = trim($_POST["status"]);
     $acquisition_date = trim($_POST["acquisition_date"]);
     $unavailable_from = !empty($_POST["unavailable_from"]) ? trim($_POST["unavailable_from"]) : null;
     $unavailable_until = !empty($_POST["unavailable_until"]) ? trim($_POST["unavailable_until"]) : null;
 
     do {
-        if (empty($id) || empty($name) || empty($quantity) || empty($status) || empty($acquisition_date)) {
+        if (empty($id) || empty($name) || empty($status) || empty($acquisition_date)) {
             $errorMessage = "All fields are required!";
             break;
         }
@@ -76,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
 
-        $sql = "UPDATE machines SET name = ?, quantity = ?, status = ?, acquisition_date = ?, unavailable_from = ?, unavailable_until = ? WHERE id = ?";
+        $sql = "UPDATE machines SET name = ?, status = ?, acquisition_date = ?, unavailable_from = ?, unavailable_until = ? WHERE id = ?";
         $stmt = $conn->prepare($sql);
 
         if (!$stmt) {
@@ -84,8 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
-        $quantity = intval($quantity); // Convert to integer
-        $stmt->bind_param("sissssi", $name, $quantity, $status, $acquisition_date, $unavailable_from, $unavailable_until, $id);
+        $stmt->bind_param("sssssi", $name, $status, $acquisition_date, $unavailable_from, $unavailable_until, $id);
 
         if (!$stmt->execute()) {
             $errorMessage = "Error updating machine: " . $stmt->error;

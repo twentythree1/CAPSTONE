@@ -52,31 +52,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $machine_id = $row['machine_id'];
     $checkStmt->close();
 
-    // Get the total quantity of this machine
-    $quantityQuery = "SELECT quantity, unavailable_from, unavailable_until FROM machines WHERE id = ?";
-    $qtyStmt = $conn->prepare($quantityQuery);
-    $qtyStmt->bind_param("i", $machine_id);
-    $qtyStmt->execute();
-    $qtyResult = $qtyStmt->get_result();
+    // Get machine unavailable dates
+    $machineQuery = "SELECT unavailable_from, unavailable_until FROM machines WHERE id = ?";
+    $machineStmt = $conn->prepare($machineQuery);
+    $machineStmt->bind_param("i", $machine_id);
+    $machineStmt->execute();
+    $machineResult = $machineStmt->get_result();
     
-    if ($qtyResult->num_rows === 0) {
-        $qtyStmt->close();
+    if ($machineResult->num_rows === 0) {
+        $machineStmt->close();
         $conn->close();
         header("Location: schedule.php?status=" . urlencode($redirect) . "&error=machine_not_found");
         exit();
     }
     
-    $machineData = $qtyResult->fetch_assoc();
-    $totalQuantity = (int)$machineData['quantity'];
+    $machineData = $machineResult->fetch_assoc();
     $unavailableFrom = $machineData['unavailable_from'];
     $unavailableUntil = $machineData['unavailable_until'];
-    $qtyStmt->close();
-    
-    if ($totalQuantity <= 0) {
-        $conn->close();
-        header("Location: schedule.php?status=" . urlencode($redirect) . "&error=no_quantity");
-        exit();
-    }
+    $machineStmt->close();
 
     // Check if the requested time period overlaps with machine's unavailable period
     if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
@@ -99,10 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Count how many of this machine are already booked for the overlapping date range (excluding current schedule)
+    // Check if this machine is already booked during the requested period (excluding current schedule)
     $end_date = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
     
-    $conflictSql = "SELECT COUNT(*) as booked_count FROM schedules 
+    $conflictSql = "SELECT COUNT(*) as conflict_count FROM schedules 
                     WHERE machine_id = ? 
                     AND id != ? 
                     AND status IN ('Pending', 'Approved', 'On going')
@@ -115,12 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conflictStmt->bind_param("iisis", $machine_id, $schedule_id, $schedule_date, $date_span, $schedule_date);
     $conflictStmt->execute();
     $conflictResult = $conflictStmt->get_result();
-    
     $conflictData = $conflictResult->fetch_assoc();
-    $bookedCount = (int)$conflictData['booked_count'];
     $conflictStmt->close();
     
-    if ($bookedCount >= $totalQuantity) {
+    if ((int)$conflictData['conflict_count'] > 0) {
         $conn->close();
         header("Location: schedule.php?status=" . urlencode($redirect) . "&error=fully_booked");
         exit();

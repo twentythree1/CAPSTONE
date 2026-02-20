@@ -59,14 +59,13 @@ $machineCounts = [
     'Not Returned' => 0
 ];
 
-$countSql = "SELECT status, quantity FROM machines";
+$countSql = "SELECT status, COUNT(*) as cnt FROM machines GROUP BY status";
 $countResult = $conn->query($countSql);
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {
         $status = $r['status'];
-        $qty = intval($r['quantity']);
         if (isset($machineCounts[$status])) {
-            $machineCounts[$status] += $qty;
+            $machineCounts[$status] += intval($r['cnt']);
         }
     }
     $countResult->free();
@@ -365,7 +364,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         'missing_fields' => 'Please fill in all required fields.',
                         'schedule_not_found' => 'Schedule not found.',
                         'machine_not_found' => 'Machine not found.',
-                        'no_quantity' => 'This machine has no available quantity.',
+
                         'machine_unavailable' => 'This machine is unavailable during the selected time period (maintenance/blocked).',
                         'fully_booked' => 'All units of this machine are already booked for the selected time.',
                         'update_failed' => 'Failed to update the schedule. Please try again.'
@@ -880,27 +879,23 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             onchange="checkMachineAvailability()">
                             <option value="">Select a Machine</option>
                             <?php
-                            $machineList = $conn->query("SELECT id, name, status, quantity, unavailable_from, unavailable_until, COALESCE(unavailable_count, 1) AS unavailable_count FROM machines ORDER BY name ASC");
+                            $machineList = $conn->query("SELECT id, name, status, unavailable_from, unavailable_until FROM machines ORDER BY name ASC");
                             while ($row = $machineList->fetch_assoc()):
                                 $isTotallyDamaged = ($row['status'] === 'Totally Damaged');
-                                $quantity = intval($row['quantity']);
-                                
+
                                 // Check if machine has unavailable dates set
                                 $unavailableInfo = '';
                                 if (!empty($row['unavailable_from']) && !empty($row['unavailable_until'])) {
                                     $fromDate = new DateTime($row['unavailable_from']);
                                     $untilDate = new DateTime($row['unavailable_until']);
-                                    $unavailableInfo = ' ' . $row['unavailable_count'] . ' unit(s) unavailable: ' . $fromDate->format('M d') . ' - ' . $untilDate->format('M d, Y');
+                                    $unavailableInfo = ' [Unavailable: ' . $fromDate->format('M d') . ' - ' . $untilDate->format('M d, Y') . ']';
                                 }
                             ?>
                             <option value="<?= $row['id'] ?>" data-status="<?= htmlspecialchars($row['status']) ?>"
-                                data-quantity="<?= $quantity ?>"
                                 data-unavailable-from="<?= htmlspecialchars($row['unavailable_from'] ?? '') ?>"
                                 data-unavailable-until="<?= htmlspecialchars($row['unavailable_until'] ?? '') ?>"
-                                data-unavailable-count="<?= intval($row['unavailable_count'] ?? 1) ?>"
                                 <?= $isTotallyDamaged ? 'disabled style="color: #aaa;"' : '' ?>>
-                                <?= htmlspecialchars($row['name']) ?> (Qty:
-                                <?= $quantity ?>)<?= $isTotallyDamaged ? ' — Unavailable' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
+                                <?= htmlspecialchars($row['name']) ?><?= $isTotallyDamaged ? ' — Unavailable. This machine is Totally Damaged.' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
                             </option>
                             <?php endwhile; ?>
                         </select>
@@ -974,11 +969,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             onchange="checkEditMachineAvailability()">
                             <option value="">Select a Machine</option>
                             <?php
-                            $machineList = $conn->query("SELECT id, name, status, quantity, unavailable_from, unavailable_until, COALESCE(unavailable_count, 1) AS unavailable_count FROM machines ORDER BY name");
+                            $machineList = $conn->query("SELECT id, name, status, unavailable_from, unavailable_until FROM machines ORDER BY name");
                             while ($row = $machineList->fetch_assoc()):
                                 $isTotallyDamaged = ($row['status'] === 'Totally Damaged');
-                                $quantity = intval($row['quantity']);
-                                
+
                                 // Check if machine has unavailable dates set
                                 $unavailableInfo = '';
                                 if (!empty($row['unavailable_from']) && !empty($row['unavailable_until'])) {
@@ -988,13 +982,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                                 }
                             ?>
                             <option value="<?= $row['id'] ?>" data-status="<?= htmlspecialchars($row['status']) ?>"
-                                data-quantity="<?= $quantity ?>"
                                 data-unavailable-from="<?= htmlspecialchars($row['unavailable_from'] ?? '') ?>"
                                 data-unavailable-until="<?= htmlspecialchars($row['unavailable_until'] ?? '') ?>"
-                                data-unavailable-count="<?= intval($row['unavailable_count'] ?? 1) ?>"
                                 <?= $isTotallyDamaged ? 'disabled style="color: #aaa;"' : '' ?>>
-                                <?= htmlspecialchars($row['name']) ?> (Qty:
-                                <?= $quantity ?>)<?= $isTotallyDamaged ? ' — Unavailable' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
+                                <?= htmlspecialchars($row['name']) ?><?= $isTotallyDamaged ? ' — Unavailable. This machine is Totally Damaged' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
                             </option>
                             <?php endwhile; ?>
                         </select>
@@ -1068,11 +1059,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         }
 
         const status = selectedOption.getAttribute('data-status');
-        const quantity = parseInt(selectedOption.getAttribute('data-quantity') || '0');
         const machineId = selectedOption.value;
         const unavailableFrom = selectedOption.getAttribute('data-unavailable-from');
         const unavailableUntil = selectedOption.getAttribute('data-unavailable-until');
-        const unavailableCount = parseInt(selectedOption.getAttribute('data-unavailable-count') || '1');
 
         // Check status first
         if (status === 'Totally Damaged') {
@@ -1102,15 +1091,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 hour: 'numeric',
                 minute: '2-digit'
             });
-
-            const availableDuringUnavail = quantity - unavailableCount;
-            if (availableDuringUnavail > 0) {
-                warningDiv.innerHTML =
-                    `ℹ️ <strong>Note:</strong> ${unavailableCount} unit(s) is/are unavailable from ${fromFormatted} to ${untilFormatted}. Only <strong>${availableDuringUnavail}</strong> unit(s) is/are available during this period.`;
-            } else {
-                warningDiv.innerHTML =
-                    `ℹ️ <strong>Note:</strong> This machine is fully unavailable from ${fromFormatted} to ${untilFormatted}.`;
-            }
+            warningDiv.innerHTML =
+                `ℹ️ <strong>Note:</strong> This machine is unavailable from ${fromFormatted} to ${untilFormatted}.`;
             warningDiv.style.background = '#e3f2fd';
             warningDiv.style.color = '#1565C0';
             warningDiv.style.display = 'block';
@@ -1135,18 +1117,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        const available = data.available;
-                        const booked = data.booked;
-                        const total = data.total;
-
-                        if (available <= 0) {
-                            warningDiv.innerHTML = `❌ <strong>Fully booked</strong> (${booked} booked / ${total} total)`;
-                            warningDiv.style.background = '#ffebee';
-                            warningDiv.style.color = '#c62828';
-                            warningDiv.style.display = 'block';
-                        }
-                    } else {
+                    if (!data.success) {
                         warningDiv.innerHTML = `❌ ${data.message || 'Unable to check availability'}`;
                         warningDiv.style.background = '#ffebee';
                         warningDiv.style.color = '#c62828';
@@ -1272,11 +1243,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         }
 
         const status = selectedOption.getAttribute('data-status');
-        const quantity = parseInt(selectedOption.getAttribute('data-quantity') || '0');
         const machineId = selectedOption.value;
         const unavailableFrom = selectedOption.getAttribute('data-unavailable-from');
         const unavailableUntil = selectedOption.getAttribute('data-unavailable-until');
-        const unavailableCount = parseInt(selectedOption.getAttribute('data-unavailable-count') || '1');
 
         // Check status first
         if (status === 'Totally Damaged') {
@@ -1306,15 +1275,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 hour: 'numeric',
                 minute: '2-digit'
             });
-
-            const availableDuringUnavail = quantity - unavailableCount;
-            if (availableDuringUnavail > 0) {
-                warningDiv.innerHTML =
-                    `ℹ️ <strong>Note:</strong> ${unavailableCount} unit(s) is/are unavailable from ${fromFormatted} to ${untilFormatted}. Only <strong>${availableDuringUnavail}</strong> unit(s) is/are available during this period.`;
-            } else {
-                warningDiv.innerHTML =
-                    `ℹ️ <strong>Note:</strong> This machine is fully unavailable from ${fromFormatted} to ${untilFormatted}.`;
-            }
+            warningDiv.innerHTML =
+                `ℹ️ <strong>Note:</strong> This machine is unavailable from ${fromFormatted} to ${untilFormatted}.`;
             warningDiv.style.background = '#e3f2fd';
             warningDiv.style.color = '#1565C0';
             warningDiv.style.display = 'block';
@@ -1344,40 +1306,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        const available = data.available;
-                        const booked = data.booked;
-                        const total = data.total;
-
-                        availabilityDiv.style.display = 'block';
-                        if (available > 0) {
-                            availabilityDiv.style.background = '#e8f5e9';
-                            availabilityDiv.style.borderColor = '#4CAF50';
-                            availabilityMsg.style.color = '#2e7d32';
-                            availabilityMsg.innerHTML =
-                                `✅ <strong>${available}</strong> unit(s) available (${booked} booked / ${total} total)`;
-                        } else {
-                            availabilityDiv.style.background = '#ffebee';
-                            availabilityDiv.style.borderColor = '#f44336';
-                            availabilityMsg.style.color = '#c62828';
-                            availabilityMsg.innerHTML =
-                                `❌ <strong>Fully booked</strong> (${booked} booked / ${total} total)`;
-                        }
-                    } else {
-                        // Show error message from server (e.g., machine unavailable during this period)
+                    if (!data.success) {
                         availabilityDiv.style.display = 'block';
                         availabilityDiv.style.background = '#ffebee';
                         availabilityDiv.style.borderColor = '#f44336';
                         availabilityMsg.style.color = '#c62828';
-                        availabilityMsg.innerHTML = `❌ ${data.message || 'Unable to check availability'}`;
+                        availabilityMsg.innerHTML = `❌ ${data.message || 'This machine is already booked for the selected period.'}`;
                     }
                 })
                 .catch(error => console.error('Error checking availability:', error));
-        } else {
-            // Show quantity info even without dates
-            availabilityDiv.style.display = 'block';
-            availabilityMsg.innerHTML =
-                `Total quantity: <strong>${quantity}</strong> unit(s). Select dates to check availability.`;
         }
     }
 

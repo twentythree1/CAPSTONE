@@ -33,6 +33,7 @@ if (isset($_GET["id"])) {
         }
     }
 
+    $conn->query("DELETE FROM machine_history WHERE machine_id = $id");
     $conn->query("DELETE FROM schedules WHERE machine_id = $id");
     $conn->query("DELETE FROM machines WHERE id = $id");
     $conn->close();

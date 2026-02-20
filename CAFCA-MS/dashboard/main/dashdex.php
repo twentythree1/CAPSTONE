@@ -39,61 +39,45 @@ $machineCounts = [
     'Not Returned' => 0
 ];
 
-$countSql = "SELECT status, quantity FROM machines";
+// Count machines by status using simple row counts
+$countSql = "SELECT status FROM machines WHERE status != 'Not Returned'";
 $countResult = $conn->query($countSql);
 if ($countResult) {
     while ($r = $countResult->fetch_assoc()) {
         $status = $r['status'];
-        $qty = intval($r['quantity']);
         if (isset($machineCounts[$status])) {
-            $machineCounts[$status] += $qty;
+            $machineCounts[$status]++;
         }
     }
     $countResult->free();
 }
 
-// Count on-going and not-returned using the same logic as schedule.php
-$ongoingCount     = 0;
+// Count "Not Returned" — mirrors the display query exactly (LEFT JOIN, same conditions)
+// so the badge always matches the rows shown in the Not Returned table.
+$notReturnedSql = "SELECT COUNT(*) as count
+                   FROM schedules s
+                   LEFT JOIN machines m ON s.machine_id = m.id
+                   LEFT JOIN farmers f ON s.farmer_id = f.id
+                   WHERE s.status IN ('Approved', 'Completed')
+                   AND (s.return_date IS NULL OR s.return_date = '')
+                   AND NOW() > CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)";
+$notReturnedResult = $conn->query($notReturnedSql);
 $notReturnedCount = 0;
-
-$activeSql = "SELECT schedule_date, date_span, start_time, end_time, status, return_date
-              FROM schedules WHERE status IN ('Approved', 'Completed')";
-$activeResult = $conn->query($activeSql);
-if ($activeResult) {
-    $tz    = new DateTimeZone('Asia/Manila');
-    $nowDt = new DateTime('now', $tz);
-    while ($row = $activeResult->fetch_assoc()) {
-        $dbStatus    = $row['status'];
-        $span        = (int)$row['date_span'];
-        $startTime   = $row['start_time'] ?: '00:00:00';
-        $endTime     = $row['end_time']   ?: '23:59:59';
-        $returnDate  = $row['return_date'];
-        $hasReturned = ($returnDate !== null && $returnDate !== '');
-
-        // DB-stored 'Completed': if return_date is missing, machine was not returned
-        if ($dbStatus === 'Completed') {
-            if (!$hasReturned) $notReturnedCount++;
-            continue;
-        }
-
-        // 'Approved': compute actual start/end with midnight-crossing support
-        $startDt = new DateTime($row['schedule_date'] . ' ' . $startTime, $tz);
-        $endBase  = new DateTime($row['schedule_date'], $tz);
-        $endBase->modify("+{$span} days");
-        $endDt = new DateTime($endBase->format('Y-m-d') . ' ' . $endTime, $tz);
-        if ($endDt <= $startDt) $endDt->modify('+1 day'); // crosses midnight
-
-        if ($nowDt >= $startDt && $nowDt <= $endDt) {
-            $ongoingCount++;
-        } elseif ($nowDt > $endDt && !$hasReturned) {
-            $notReturnedCount++;
-        }
-    }
-    $activeResult->free();
+if ($notReturnedResult) {
+    $r = $notReturnedResult->fetch_assoc();
+    $notReturnedCount = (int)($r['count'] ?? 0);
+    $notReturnedResult->free();
 }
-
 $machineCounts['Not Returned'] = $notReturnedCount;
-$machineCounts['Available']    = max(0, $machineCounts['Available'] - $notReturnedCount - $ongoingCount);
+
+// Available badge: simple count of Available machines
+$availableBadgeSql = "SELECT COUNT(*) AS available_count FROM machines WHERE status = 'Available'";
+$availBadgeResult = $conn->query($availableBadgeSql);
+if ($availBadgeResult) {
+    $availBadgeRow = $availBadgeResult->fetch_assoc();
+    $machineCounts['Available'] = (int)($availBadgeRow['available_count'] ?? 0);
+    $availBadgeResult->free();
+}
 
 // Count schedules by status
 $counts = [
@@ -163,7 +147,7 @@ if ($result = $conn->query($sql)) {
 }
 
 $machine_count = 0;
-$sql = "SELECT SUM(quantity) AS cnt FROM machines";
+$sql = "SELECT COUNT(*) AS cnt FROM machines";
 if ($result = $conn->query($sql)) {
     $row = $result->fetch_assoc();
     $machine_count = (int)($row['cnt'] ?? 0);

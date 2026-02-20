@@ -84,7 +84,7 @@ try {
     }
     $update_schedule_stmt->close();
     
-    // Update the machine status
+    // Update machine status to the reported condition
     $update_machine_sql = "UPDATE machines 
                           SET status = ?,
                               last_returned = NOW()
@@ -98,8 +98,8 @@ try {
     }
     $update_machine_stmt->close();
     
-    // Record in machine history if there are notes or status changed
-    if (!empty($return_notes) || $machine_status !== 'Available') {
+    // Always record in machine history so per-unit status counts stay accurate
+    {
         $history_sql = "INSERT INTO machine_history (machine_id, schedule_id, status_before, status_after, notes, changed_by, changed_at)
                        VALUES (?, ?, 'In Use', ?, ?, ?, NOW())";
         
