@@ -174,7 +174,7 @@ aside .close {
 
 
 /* sidebar */
-aside .sidebar{
+aside .sidebar {
     display: flex;
     flex-direction: column;
     height: 86vh;
@@ -277,7 +277,7 @@ aside .sidebar a:hover span {
 }
 
 .sidebar-dropdown .dropdown-menu a.active {
-    color: var(--color-primary);               
+    color: var(--color-primary);
     font-weight: 700;
     margin-left: 1.5rem;
 }
@@ -289,6 +289,7 @@ aside .sidebar a:hover span {
 aside {
     width: 13rem !important;
 }
+
 .container {
     grid-template-columns: 13rem auto !important;
 }
@@ -316,8 +317,9 @@ aside {
 }
 
 .sidebar .dropdown-menu a:hover {
-    background: rgba(0,0,0,0.03);
+    background: rgba(0, 0, 0, 0.03);
 }
+
 .sidebar .dropdown-menu a.active {
     background: rgba(163, 211, 171, 0.35);
     font-weight: 700;
@@ -382,7 +384,8 @@ main {
     cursor: pointer;
 }
 
-.insight-card-link .farmers, .machines {
+.insight-card-link .farmers,
+.machines {
     background: transparent;
     padding: 0;
     box-shadow: none;
@@ -399,7 +402,7 @@ main .insights {
     gap: 1.6rem;
 }
 
-main .insights > div {
+main .insights>div {
     background: var(--color-white);
     padding: var(--card-padding);
     border-radius: var(--card-border-radius);
@@ -408,11 +411,11 @@ main .insights > div {
     transition: all 300ms ease;
 }
 
-main .insights > div:hover {
+main .insights>div:hover {
     box-shadow: none;
 }
 
-main .insights > div span {
+main .insights>div span {
     background: var(--color-primary);
     padding: 0.5rem;
     border-radius: 50%;
@@ -420,15 +423,15 @@ main .insights > div span {
     font-size: 2rem;
 }
 
-main .insights > div.attendance span {
+main .insights>div.attendance span {
     background: var(--color-warning);
 }
 
-main .insights > div.machines span {
+main .insights>div.machines span {
     background: #143D60;
 }
 
-main .insights > div .middle {
+main .insights>div .middle {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -459,7 +462,8 @@ main .insights svg circle {
     transform: translate(8px, 8px);
 }
 
-.farmers, .machines {
+.farmers,
+.machines {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -475,7 +479,7 @@ main .insights svg circle {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 14px rgba(0,0,0,0.04);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
 }
 
 .machines .icon-bg {
@@ -486,7 +490,7 @@ main .insights svg circle {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 14px rgba(0,0,0,0.04);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
 }
 
 .farmers .icon-bg .material-icons-sharp {
@@ -499,13 +503,15 @@ main .insights svg circle {
     font-size: 24px;
 }
 
-.farmers, .machines .left h3 {
+.farmers,
+.machines .left h3 {
     margin: 0;
     font-size: 0.95rem;
     font-weight: 600;
 }
 
-.farmers, .machines .left h4 {
+.farmers,
+.machines .left h4 {
     margin: 6px 0 0 0;
     font-size: 0.95rem;
     font-weight: 700;
@@ -597,12 +603,7 @@ main .top .profile {
     background: var(--color-white);
     padding: var(--card-padding);
     border-radius: var(--card-border-radius);
-    box-shadow: var(--box-shadow);
     transition: all 300ms ease;
-}
-
-#calendar:hover {
-    box-shadow: none;
 }
 
 /* Calendar day: pin the day number top-left and push events below it */
@@ -610,7 +611,8 @@ main .top .profile {
     padding: 0.8rem 0.4rem 0.4rem 0.4rem;
     border-radius: 4px;
     height: 80px;
-    position: relative; /* required for absolute-positioned day number and tooltip */
+    position: relative;
+    /* required for absolute-positioned day number and tooltip */
     background: transparent;
     border: 0.5px solid var(--color-dark);
     overflow-y: auto;
@@ -649,7 +651,7 @@ main .top .profile {
     border: 1px solid var(--color-light);
     padding: 6px 8px;
     border-radius: 6px;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
     z-index: 10;
 }
 
@@ -669,7 +671,6 @@ main .top .profile {
     color: var(--color-dark);
     font-size: 1.4rem;
     font-weight: bold;
-    text-decoration: underline;
     cursor: pointer;
 }
 
@@ -696,4 +697,668 @@ main .top .profile {
 #calendar-container button span {
     text-align: center;
     color: var(--color-dark);
+}
+
+/* Welcome row */
+.dash-welcome {
+    margin-top: 0.6rem;
+    margin-bottom: 1.6rem;
+}
+
+.dash-welcome h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-dark);
+    line-height: 1.1;
+}
+
+.dash-welcome p {
+    margin-top: 0.2rem;
+    font-size: 0.85rem;
+}
+
+/* ---- Stat Cards Row ---- */
+.stat-card {
+    position: relative;
+    border-radius: 1.6rem;
+    overflow: hidden;
+    text-decoration: none;
+    color: #fff;
+    min-height: 180px;
+    display: flex;
+    align-items: stretch;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card--farmers {
+    background: linear-gradient(135deg, #5ea56a 0%, #A0C878 55%, #c5e0a0 100%);
+}
+
+.stat-card--machines {
+    background: linear-gradient(135deg, #143D60 0%, #1e6090 55%, #2b83c2 100%);
+}
+
+.stat-card__body {
+    position: relative;
+    z-index: 2;
+    padding: 2rem 2.2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.3rem;
+    flex: 1;
+}
+
+.stat-card__icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.8rem;
+}
+
+.stat-card__icon-wrap .material-icons-sharp {
+    font-size: 26px;
+    color: #fff;
+}
+
+.stat-card__label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.stat-card__count {
+    font-size: 3.6rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-top: 0.1rem;
+}
+
+.stat-card__sub {
+    font-size: 0.78rem;
+    opacity: 0.75;
+    margin-top: 0.3rem;
+}
+
+/* Decorative background circle on the right side of each card */
+.stat-card__deco {
+    position: absolute;
+    right: -40px;
+    bottom: -40px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.stat-card__deco::before {
+    content: "";
+    position: absolute;
+    top: -30px;
+    left: -30px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+/* ---- Calendar Section ---- */
+#calendar-container {
+    background: var(--color-white);
+    border-radius: var(--card-border-radius);
+    padding: var(--card-padding);
+    box-shadow: var(--box-shadow);
+    margin-top: 0;
+    transition: box-shadow 300ms ease;
+}
+
+#calendar-container:hover {
+    box-shadow: none;
+}
+
+.calendar-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.4rem;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.calendar-section-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-dark);
+    margin: 0;
+}
+
+.calendar-section-header p {
+    font-size: 0.8rem;
+    margin-top: 0.2rem;
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.calendar-nav #calendar-header {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-dark);
+    text-decoration: none;
+    min-width: 140px;
+    text-align: center;
+    cursor: default;
+}
+
+.calendar-nav button {
+    background: var(--color-background);
+    border: 1px solid var(--color-info-light);
+    color: var(--color-dark);
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    transition: background 160ms ease, transform 80ms ease;
+}
+
+.calendar-nav button:hover {
+    background: var(--color-primary);
+    color: #fff;
+    box-shadow: none;
+    transform: none;
+}
+
+.calendar-nav button:hover span {
+    color: #fff;
+}
+
+.calendar-nav button span {
+    font-size: 1.2rem;
+}
+
+.dark-theme-variables .stat-card--farmers {
+    background: linear-gradient(135deg, #3d7048 0%, #5a9464 55%, #7ab87e 100%);
+}
+
+.dark-theme-variables .stat-card--machines {
+    background: linear-gradient(135deg, #0d2a45 0%, #143D60 55%, #1e5a8a 100%);
+}
+
+.stat-card__progress-wrap {
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.stat-card__progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.stat-card__progress-fill {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    min-width: 4px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card__progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.4rem;
+    font-size: 0.72rem;
+    opacity: 0.82;
+    font-weight: 500;
+    color: #fff;
+}
+
+/* ---- Stat Card Top Row (icon+label left, count right) ---- */
+.stat-card__top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+}
+
+.stat-card__left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* =====================================================
+   DASHBOARD GRID LAYOUT
+   ===================================================== */
+
+/* Container stays 2-column (sidebar + main) */
+.container {
+    grid-template-columns: 13rem auto !important;
+}
+
+.dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 22rem;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "farmers  machines  ongoing"
+        "calendar calendar  completed";
+    gap: 1.4rem;
+    align-items: stretch;
+    margin-top: 1rem;
+}
+
+.dash-grid__farmers {
+    grid-area: farmers;
+}
+
+.dash-grid__machines {
+    grid-area: machines;
+}
+
+.dash-grid__ongoing {
+    grid-area: ongoing;
+}
+
+.dash-grid__calendar {
+    grid-area: calendar;
+}
+
+.dash-grid__completed {
+    grid-area: completed;
+}
+
+/* Panel cards — fill their grid cell fully */
+.panel-card {
+    background: var(--color-white);
+    border-radius: var(--card-border-radius);
+    padding: 1.4rem 1.5rem 1rem;
+    box-shadow: var(--box-shadow);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    transition: box-shadow 300ms ease;
+    overflow: hidden;
+}
+
+.panel-card:hover {
+    box-shadow: none;
+}
+
+.panel-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+}
+
+.panel-card__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-dark);
+    margin: 0;
+}
+
+.panel-card__sub {
+    font-size: 0.75rem;
+    margin-top: 0.15rem;
+}
+
+/* ---- Panel Buttons ---- */
+.panel-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.8rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: opacity 150ms ease, transform 80ms ease;
+    flex-shrink: 0;
+}
+
+.panel-btn .material-icons-sharp {
+    font-size: 1rem;
+}
+
+.panel-btn:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
+.panel-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.panel-btn--primary {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.panel-btn--danger {
+    background: #fff0f0;
+    color: var(--color-danger);
+}
+
+.dark-theme-variables .panel-btn--danger {
+    background: rgba(255, 119, 130, 0.12);
+}
+
+/* ---- Scrollable list — fills the remaining card height ---- */
+.panel-card__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    flex: 1;
+    overflow: hidden;
+}
+
+.panel-card__list--fixed {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-light) transparent;
+}
+
+.panel-card__list--fixed::-webkit-scrollbar {
+    width: 4px;
+}
+
+.panel-card__list--fixed::-webkit-scrollbar-thumb {
+    background: var(--color-light);
+    border-radius: 999px;
+}
+
+/* ---- Individual row ---- */
+.panel-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.5rem;
+    border-radius: 10px;
+    transition: background 140ms ease;
+    flex-shrink: 0;
+}
+
+.panel-item:hover {
+    background: var(--color-light);
+}
+
+.panel-item__dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.panel-item__dot--ongoing {
+    background: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(160, 200, 120, 0.25);
+}
+
+.panel-item__dot--done {
+    background: var(--color-info-dark);
+}
+
+.panel-item__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.panel-item__name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.panel-item__meta {
+    font-size: 0.72rem;
+    color: var(--color-info-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.panel-item__time {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-dark-variant);
+    text-align: right;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+}
+
+.panel-item__time small {
+    font-size: 0.67rem;
+    opacity: 0.7;
+    font-weight: 400;
+}
+
+/* ---- Empty state ---- */
+.panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    color: var(--color-info-dark);
+    opacity: 0.7;
+    flex: 1;
+}
+
+.panel-empty .material-icons-sharp {
+    font-size: 2rem;
+}
+
+.panel-empty p {
+    font-size: 0.78rem;
+    text-align: center;
+}
+
+/* ---- See all link ---- */
+.panel-see-all {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: none;
+    margin-top: 0.8rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--color-info-light);
+    flex-shrink: 0;
+    transition: gap 150ms ease;
+}
+
+.panel-see-all:hover {
+    gap: 0.5rem;
+}
+
+.panel-see-all .material-icons-sharp {
+    font-size: 1rem;
+}
+
+/* Spin animation for clear button loading state */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+/* =====================================================
+   COLOUR REFRESH — lively accents throughout
+   ===================================================== */
+
+/* ── Top bar: soft coloured profile chip ── */
+main .top .profile span {
+    color: var(--color-dark);
+}
+
+/* ── Dashboard welcome: accent underline on title ── */
+.dash-welcome h1 {
+    background: linear-gradient(90deg, #2d4a32, #A0C878);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+}
+
+.dark-theme-variables .dash-welcome h1 {
+    background: linear-gradient(90deg, #A0C878, #c5e89a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ── Calendar: coloured header & today highlight ── */
+.calendar-section-header h2 {
+    color: var(--color-dark);
+}
+
+#calendar-container {
+    border-top: 4px solid var(--color-primary);
+}
+
+/* Today cell highlight */
+.calendar-day.today {
+    background: rgba(160, 200, 120, 0.14);
+    border-color: #A0C878 !important;
+}
+
+.calendar-day.today strong {
+    color: #2d6b38;
+    font-weight: 800;
+}
+
+.dark-theme-variables .calendar-day.today strong {
+    color: #A0C878;
+}
+
+/* Event pills: coloured by index cycling */
+.event {
+    background: #e8f5e2;
+    color: #2d5a32;
+    font-weight: 600;
+    border-left: 3px solid #A0C878;
+    border-radius: 4px;
+    padding: 2px 6px;
+}
+
+.event:nth-child(2)  { background: #fef3e2; color: #7a4f00; border-left-color: #ffbb55; }
+.event:nth-child(3)  { background: #fde8ea; color: #7a1a1f; border-left-color: #ff7782; }
+.event:nth-child(4)  { background: #e3f0ff; color: #1a3f6f; border-left-color: #5b9cdd; }
+.event:nth-child(5)  { background: #f0e8ff; color: #4a1a7a; border-left-color: #9b59b6; }
+
+.dark-theme-variables .event {
+    background: rgba(160, 200, 120, 0.15);
+    color: #a8d890;
+}
+
+/* ── Panel cards: coloured top accent bar ── */
+.dash-grid__ongoing .panel-card {
+    border-top: 4px solid #A0C878;
+}
+
+.dash-grid__completed .panel-card {
+    border-top: 4px solid #5b9cdd;
+}
+
+/* On going dot: pulsing green */
+.panel-item__dot--ongoing {
+    background: #A0C878;
+    box-shadow: 0 0 0 3px rgba(160, 200, 120, 0.3);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(160, 200, 120, 0.3); }
+    50%       { box-shadow: 0 0 0 6px rgba(160, 200, 120, 0.1); }
+}
+
+/* Completed dot: blue */
+.panel-item__dot--done {
+    background: #5b9cdd;
+}
+
+/* See all links */
+.panel-see-all {
+    color: var(--color-primary);
+}
+
+/* ── Calendar nav buttons: green on hover ── */
+.calendar-nav button:hover {
+    background: var(--color-primary) !important;
+    color: #fff !important;
+}
+
+.calendar-nav button:hover span {
+    color: #fff !important;
+}
+
+/* ── Scrollbar accent ── */
+.panel-card__list--fixed::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    opacity: 0.5;
+}
+
+/* ── Main background: subtle leaf texture via gradient ── */
+body {
+    background: 
+        radial-gradient(ellipse at 10% 20%, rgba(160,200,120,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 80%, rgba(45,74,50,0.06) 0%, transparent 50%),
+        var(--color-background);
 }

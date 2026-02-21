@@ -153,6 +153,82 @@ if ($result = $conn->query($sql)) {
     $machine_count = (int)($row['cnt'] ?? 0);
     $result->free();
 }
+
+// Count farmers currently booked (have an On going or Approved active schedule right now)
+$booked_farmers = 0;
+$bookedFarmerSql = "SELECT COUNT(DISTINCT s.farmer_id) AS cnt
+                    FROM schedules s
+                    WHERE s.status = 'Approved'
+                    AND NOW() >= CONCAT(s.schedule_date, ' ', s.start_time)
+                    AND NOW() <= CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)";
+if ($result = $conn->query($bookedFarmerSql)) {
+    $row = $result->fetch_assoc();
+    $booked_farmers = (int)($row['cnt'] ?? 0);
+    $result->free();
+}
+
+// Count machines currently in use (On going schedule)
+$booked_machines = 0;
+$bookedMachineSql = "SELECT COUNT(DISTINCT s.machine_id) AS cnt
+                     FROM schedules s
+                     WHERE s.status = 'Approved'
+                     AND NOW() >= CONCAT(s.schedule_date, ' ', s.start_time)
+                     AND NOW() <= CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)";
+if ($result = $conn->query($bookedMachineSql)) {
+    $row = $result->fetch_assoc();
+    $booked_machines = (int)($row['cnt'] ?? 0);
+    $result->free();
+}
+
+$farmer_booked_pct = $farmer_count > 0 ? round(($booked_farmers / $farmer_count) * 100) : 0;
+$machine_booked_pct = $machine_count > 0 ? round(($booked_machines / $machine_count) * 100) : 0;
+
+// Fetch On going schedules (Approved + currently active window)
+$ongoingSchedules = [];
+$ongoingSql = "SELECT s.id, f.name AS farmer_name, m.name AS machine_name,
+                      s.schedule_date, s.start_time, s.end_time, s.date_span
+               FROM schedules s
+               LEFT JOIN farmers f ON s.farmer_id = f.id
+               LEFT JOIN machines m ON s.machine_id = m.id
+               WHERE s.status = 'Approved'
+               AND NOW() >= CONCAT(s.schedule_date, ' ', s.start_time)
+               AND NOW() <= CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)
+               ORDER BY s.schedule_date ASC, s.start_time ASC
+               LIMIT 10";
+if ($result = $conn->query($ongoingSql)) {
+    while ($row = $result->fetch_assoc()) $ongoingSchedules[] = $row;
+    $result->free();
+}
+
+// Handle AJAX clear-completed action
+if (isset($_POST['action']) && $_POST['action'] === 'clear_completed') {
+    header('Content-Type: application/json');
+    $del = $conn->query("DELETE FROM schedules WHERE status = 'Completed'");
+    echo json_encode(['success' => (bool)$del]);
+    $conn->close();
+    exit;
+}
+
+// Fetch Completed schedules
+$completedSchedules = [];
+$completedSql = "SELECT s.id, f.name AS farmer_name, m.name AS machine_name,
+                        s.schedule_date, s.end_time, s.date_span
+                 FROM schedules s
+                 LEFT JOIN farmers f ON s.farmer_id = f.id
+                 LEFT JOIN machines m ON s.machine_id = m.id
+                 WHERE s.status = 'Completed'
+                 ORDER BY s.schedule_date DESC
+                 LIMIT 10";
+if ($result = $conn->query($completedSql)) {
+    while ($row = $result->fetch_assoc()) $completedSchedules[] = $row;
+    $result->free();
+}
+
+$completedTotal = 0;
+if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Completed'")) {
+    $completedTotal = (int)($r->fetch_assoc()['cnt'] ?? 0);
+    $r->free();
+}
 ?>
 
 <!DOCTYPE html>
@@ -286,76 +362,159 @@ if ($result = $conn->query($sql)) {
                     <small class="text-muted">Admin</small>
                 </div>
             </div>
-            <h1>Dashboard</h1>
-
-            <div class="insights">
-                <a href="../farmers_sec/farmers.php" class="insight-card-link" title="View registered farmers">
-                    <div class="farmers">
-                        <div class="farmers-left" style="display:flex;align-items:center;gap:1rem;">
-                            <div class="icon-bg">
-                                <span class="material-icons-sharp">groups</span>
-                            </div>
-                            <div class="left">
-                                <h3>Registered</h3>
-                                <h4 style="margin-top:6px; font-weight:600; color:var(--color-dark-variant);">Farmers</h4>
-                            </div>
-                        </div>
-
-                        <div class="count-right">
-                            <h1><?= htmlspecialchars($farmer_count, ENT_QUOTES, 'UTF-8'); ?></h1>
-                        </div>
-                    </div>
-                </a>
-                <div class="attendance">
-                    <span class="material-icons-sharp">inventory</span>
-                    <div class="middle">
-                        <div class="left">
-                            <h3>Attendance</h3>
-                            <h1>Today</h1>
-                        </div>
-                        <div class="progress">
-                            <svg>
-                                <circle cx='38' cy='36' r='36'></circle>
-                            </svg>
-                            <div class="number">
-                                <p>62%</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <a href="../machines/machine.php" class="insight-card-link" title="View registered machines">
-                    <div class="machines">
-                        <div class="machines-left" style="display:flex;align-items:center;gap:1rem;">
-                            <div class="icon-bg">
-                                <span class="material-icons-sharp">agriculture</span>
-                            </div>
-                            <div class="left">
-                                <h3>Registered</h3>
-                                <h4 style="margin-top:6px; font-weight:600; color:var(--color-dark-variant);">Machines</h4>
-                            </div>
-                        </div>
-
-                        <div class="count-right">
-                            <h1><?= htmlspecialchars($machine_count, ENT_QUOTES, 'UTF-8'); ?></h1>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <div id="calendar-container">
-                <h2>Schedule Calendar</h2>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <button id="prev-month"><span
-                            class="material-icons-sharp">keyboard_arrow_left</span>Previous</button>
-                    <div id="calendar-header"></div>
-                    <button id="next-month">Next<span class="material-icons-sharp">keyboard_arrow_right</span></button>
-                </div>
-                <div id="calendar">
+            <div class="dash-welcome">
+                <div>
+                    <h1>Dashboard</h1>
+                    <p class="text-muted">Here's what's happening today.</p>
                 </div>
             </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dash-grid">
+
+                <!-- FARMERS CARD -->
+                <a href="../farmers_sec/farmers.php" class="stat-card stat-card--farmers dash-grid__farmers" title="View registered farmers">
+                    <div class="stat-card__body">
+                        <div class="stat-card__top-row">
+                            <div class="stat-card__left">
+                                <div class="stat-card__icon-wrap">
+                                    <span class="material-icons-sharp">groups</span>
+                                </div>
+                                <div class="stat-card__label">Registered Farmers</div>
+                            </div>
+                            <div class="stat-card__count"><?= htmlspecialchars($farmer_count, ENT_QUOTES, 'UTF-8'); ?></div>
+                        </div>
+                        <div class="stat-card__progress-wrap">
+                            <div class="stat-card__progress-bar">
+                                <div class="stat-card__progress-fill" style="width: <?= $farmer_booked_pct ?>%"></div>
+                            </div>
+                            <div class="stat-card__progress-label">
+                                <span><?= $booked_farmers ?> currently active</span>
+                                <span><?= $farmer_booked_pct ?>%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card__deco"></div>
+                </a>
+
+                <!-- MACHINES CARD -->
+                <a href="../machines/machine.php" class="stat-card stat-card--machines dash-grid__machines" title="View registered machines">
+                    <div class="stat-card__body">
+                        <div class="stat-card__top-row">
+                            <div class="stat-card__left">
+                                <div class="stat-card__icon-wrap">
+                                    <span class="material-icons-sharp">agriculture</span>
+                                </div>
+                                <div class="stat-card__label">Registered Machines</div>
+                            </div>
+                            <div class="stat-card__count"><?= htmlspecialchars($machine_count, ENT_QUOTES, 'UTF-8'); ?></div>
+                        </div>
+                        <div class="stat-card__progress-wrap">
+                            <div class="stat-card__progress-bar">
+                                <div class="stat-card__progress-fill" style="width: <?= $machine_booked_pct ?>%"></div>
+                            </div>
+                            <div class="stat-card__progress-label">
+                                <span><?= $booked_machines ?> currently in use</span>
+                                <span><?= $machine_booked_pct ?>%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card__deco"></div>
+                </a>
+
+                <!-- ON GOING PANEL -->
+                <div class="panel-card dash-grid__ongoing">
+                    <div class="panel-card__header">
+                        <div>
+                            <h2 class="panel-card__title">On Going Schedules</h2>
+                            <p class="text-muted panel-card__sub"><?= count($ongoingSchedules) ?> active right now</p>
+                        </div>
+                        <a href="../schedules/schedule.php?status=Pending" class="panel-btn panel-btn--primary" title="Add new schedule">
+                            <span class="material-icons-sharp">add</span>
+                        </a>
+                    </div>
+                    <div class="panel-card__list panel-card__list--fixed">
+                        <?php if (empty($ongoingSchedules)): ?>
+                            <div class="panel-empty">
+                                <span class="material-icons-sharp">event_available</span>
+                                <p>No active schedules right now</p>
+                            </div>
+                        <?php else: foreach ($ongoingSchedules as $s): ?>
+                            <div class="panel-item">
+                                <div class="panel-item__dot panel-item__dot--ongoing"></div>
+                                <div class="panel-item__body">
+                                    <span class="panel-item__name"><?= htmlspecialchars($s['farmer_name'] ?? '—') ?></span>
+                                    <span class="panel-item__meta"><?= htmlspecialchars($s['machine_name'] ?? '—') ?></span>
+                                </div>
+                                <div class="panel-item__time">
+                                    <?= date('M j', strtotime($s['schedule_date'])) ?>
+                                    <small><?= date('H:i', strtotime($s['start_time'])) ?> – <?= date('H:i', strtotime($s['end_time'])) ?></small>
+                                </div>
+                            </div>
+                        <?php endforeach; endif; ?>
+                    </div>
+                    <a href="../schedules/schedule.php?status=On+going" class="panel-see-all">
+                        See all ongoing schedules <span class="material-icons-sharp">chevron_right</span>
+                    </a>
+                </div>
+
+                <!-- CALENDAR -->
+                <div id="calendar-container" class="dash-grid__calendar">
+                    <div class="calendar-section-header">
+                        <div>
+                            <h2>Schedule Calendar</h2>
+                            <p class="text-muted">Overview of all scheduled activities</p>
+                        </div>
+                        <div class="calendar-nav">
+                            <button id="prev-month"><span class="material-icons-sharp">keyboard_arrow_left</span></button>
+                            <div id="calendar-header"></div>
+                            <button id="next-month"><span class="material-icons-sharp">keyboard_arrow_right</span></button>
+                        </div>
+                    </div>
+                    <div id="calendar"></div>
+                </div>
+
+                <!-- COMPLETED PANEL -->
+                <div class="panel-card dash-grid__completed">
+                    <div class="panel-card__header">
+                        <div>
+                            <h2 class="panel-card__title">Completed Schedules</h2>
+                            <p class="text-muted panel-card__sub"><?= $completedTotal ?> total completed</p>
+                        </div>
+                        <button class="panel-btn panel-btn--danger" id="clearCompletedBtn" <?= $completedTotal === 0 ? 'disabled' : '' ?>>
+                            <span class="material-icons-sharp">delete_sweep</span> Clear
+                        </button>
+                    </div>
+                    <div class="panel-card__list panel-card__list--fixed">
+                        <?php if (empty($completedSchedules)): ?>
+                            <div class="panel-empty">
+                                <span class="material-icons-sharp">check_circle</span>
+                                <p>No completed schedules yet</p>
+                            </div>
+                        <?php else: foreach ($completedSchedules as $s):
+                            $endDate = date('Y-m-d', strtotime($s['schedule_date'] . " +{$s['date_span']} days"));
+                        ?>
+                            <div class="panel-item">
+                                <div class="panel-item__dot panel-item__dot--done"></div>
+                                <div class="panel-item__body">
+                                    <span class="panel-item__name"><?= htmlspecialchars($s['farmer_name'] ?? '—') ?></span>
+                                    <span class="panel-item__meta"><?= htmlspecialchars($s['machine_name'] ?? '—') ?></span>
+                                </div>
+                                <div class="panel-item__time">
+                                    <?= date('M j', strtotime($endDate)) ?>
+                                    <small>Completed</small>
+                                </div>
+                            </div>
+                        <?php endforeach; endif; ?>
+                    </div>
+                    <a href="../schedules/schedule.php?status=Completed" class="panel-see-all">
+                        See all completed schedules <span class="material-icons-sharp">chevron_right</span>
+                    </a>
+                </div>
+
+            </div><!-- end dash-grid -->
         </main>
     </div>
-
 
     <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -387,15 +546,17 @@ if ($result = $conn->query($sql)) {
 
             for (let day = 1; day <= daysInMonth; day++) {
                 const cell = document.createElement("div");
-                cell.className = "calendar-day";
+                const thisDate =
+                `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                cell.className = "calendar-day" + (thisDate === todayStr ? " today" : "");
 
                 // day number pinned to the top (CSS handles absolute positioning)
                 const dayLabel = document.createElement("strong");
                 dayLabel.textContent = day;
                 cell.appendChild(dayLabel);
-
-                const thisDate =
-                `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
                 // add events for this date - expand multi-day spans via date_span
                 events.forEach(ev => {
@@ -454,6 +615,47 @@ if ($result = $conn->query($sql)) {
     });
     </script>
     <script src="dashscript.js"></script>
+    <script>
+    // Animate progress bars on load
+    document.addEventListener("DOMContentLoaded", function () {
+        const fills = document.querySelectorAll(".stat-card__progress-fill");
+        fills.forEach(function (el) {
+            const target = el.style.width;
+            el.style.width = "0%";
+            setTimeout(function () { el.style.width = target; }, 300);
+        });
+
+        // Clear completed schedules
+        const clearBtn = document.getElementById("clearCompletedBtn");
+        if (clearBtn) {
+            clearBtn.addEventListener("click", function () {
+                if (!confirm("Are you sure you want to permanently delete all completed schedules? This cannot be undone.")) return;
+                clearBtn.disabled = true;
+                clearBtn.innerHTML = '<span class="material-icons-sharp" style="animation:spin 0.8s linear infinite">sync</span> Clearing...';
+                fetch("dashdex.php", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: "action=clear_completed"
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert("Failed to clear. Please try again.");
+                        clearBtn.disabled = false;
+                        clearBtn.innerHTML = '<span class="material-icons-sharp">delete_sweep</span> Clear';
+                    }
+                })
+                .catch(() => {
+                    alert("An error occurred.");
+                    clearBtn.disabled = false;
+                    clearBtn.innerHTML = '<span class="material-icons-sharp">delete_sweep</span> Clear';
+                });
+            });
+        }
+    });
+    </script>
 </body>
 
 </html>

@@ -51,6 +51,18 @@ if ($checkResult) {
     $checkResult->free();
 }
 
+// Auto-complete approved schedules whose end datetime has passed
+$completeSql = "UPDATE schedules 
+                SET status = 'Completed' 
+                WHERE status = 'Approved' 
+                AND CONCAT(DATE_ADD(schedule_date, INTERVAL date_span DAY), ' ', end_time) < ?";
+$completeStmt = $conn->prepare($completeSql);
+if ($completeStmt) {
+    $completeStmt->bind_param("s", $currentDateTime);
+    $completeStmt->execute();
+    $completeStmt->close();
+}
+
 // Count machines by status
 $machineCounts = [
     'Available' => 0,
@@ -399,8 +411,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 <?php $currentStatus = isset($_GET['status']) ? $_GET['status'] : 'Pending'; ?>
                 <div class="title-actions">
                     <span class="results-count-schedule" id="resultsCount"></span>
-                    <a href="javascript:void(0)" onclick="openAddScheduleModal()" class="btn btn-primary schedule"
-                        role="button">Add Schedule</a>
                     <div class="search-expand-wrap" id="searchWrap">
                         <div class="schedule-placeholder search-fields" id="searchFields">
                             <div class="search-input-wrap">
@@ -416,6 +426,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             <span class="material-icons-sharp">search</span>
                         </button>
                     </div>
+                    <a href="javascript:void(0)" onclick="openAddScheduleModal()" class="btn btn-primary schedule"
+                        role="button">Add Schedule</a>
                 </div>
             </div>
             <br>
