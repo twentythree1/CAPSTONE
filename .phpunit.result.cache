@@ -1,0 +1,1 @@
+{"version":2,"defects":[],"times":{"AuthLoginTest::testLoginReturnsUserIdWhenPasswordIsCorrect":0.103,"AuthLoginTest::testLoginReturnsUserNotFoundWhenNoUserExists":0,"AuthLoginTest::testLoginReturnsIncorrectPasswordWhenPasswordIsWrong":0.094,"SampleTest::testExample":0.001}}

@@ -1,93 +1,7 @@
 <?php
-session_start();
 require '../db/accounts/testdb.php';
-
-$errorMessage = '';
-$successMessage = '';
-
-if (isset($_SESSION['success_message'])) {
-    $successMessage = $_SESSION['success_message'];
-    unset($_SESSION['success_message']);
-}
-
-$formType = 'login';
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['password_confirm'])) {
-        $formType = 'register';
-        // Registration form
-        $username = htmlspecialchars($_POST['username']);
-        $password = $_POST['password'];
-        $passwordConfirm = $_POST['password_confirm'];
-
-        if ($password !== $passwordConfirm) {
-            $errorMessage = 'Passwords do not match!';
-        } else {
-            // Check if username already exists
-            $checkStmt = $conn->prepare('SELECT id FROM users WHERE username = ?');
-            if ($checkStmt) {
-                $checkStmt->bind_param('s', $username);
-                $checkStmt->execute();
-                $checkStmt->store_result();
-                $usernameExists = $checkStmt->num_rows > 0;
-                $checkStmt->close();
-            } else {
-                $errorMessage = "Database error. Please try again.";
-                $usernameExists = false;
-            }
-
-            if ($usernameExists) {
-                $errorMessage = "Username already taken. Please choose a different one.";
-            } elseif (empty($errorMessage)) {
-                $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
-                if ($stmt) {
-                    $stmt->bind_param('ss', $username, $passwordHash);
-                    if ($stmt->execute()) {
-                        $_SESSION['success_message'] = "Registration successful! You can now log in.";
-                        header("Location: logindex.php");
-                        exit;
-                    } else {
-                        $errorMessage = "Registration failed: " . $stmt->error;
-                    }
-                    $stmt->close();
-                } else {
-                    $errorMessage = "Database error. Please try again.";
-                }
-            }
-        }
-    } else {
-        $formType = 'login';
-        // Login form
-        $username = htmlspecialchars($_POST['username']);
-        $password = $_POST['password'];
-
-        $stmt = $conn->prepare('SELECT id, password_hash FROM users WHERE username = ?');
-        if ($stmt) {
-            $stmt->bind_param('s', $username);
-            $stmt->execute();
-            $stmt->store_result();
-
-            if ($stmt->num_rows > 0) {
-                $stmt->bind_result($id, $passwordHash);
-                $stmt->fetch();
-                if (password_verify($password, $passwordHash)) {
-                    $_SESSION['user_id'] = $id;
-                    $_SESSION['username'] = $username;
-                    header("Location: ../dashboard/main/dashdex.php");
-                    exit;
-                } else {
-                    $errorMessage = 'Incorrect Password!   Please try again.';
-                }
-            } else {
-                $errorMessage = 'User not found! Please register before logging in.';
-            }
-            $stmt->close();
-        } else {
-            $errorMessage = 'Database error. Please try again.';
-        }
-    }
-}
+require 'Auth.php';
+require 'LoginHandler.php';
 ?>
 
 <!DOCTYPE html>
@@ -100,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>CAFCA | Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <link rel="stylesheet" href="loginstyle.css">
+    <link rel="stylesheet" href="css/loginstyle.css">
 </head>
 
 <body>
@@ -166,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <script>
         const initialForm = "<?php echo $formType; ?>";
     </script>
-    <script src="login&regScript.js"></script>
+    <script src="js/login&regScript.js"></script>
 </body>
 
 </html>
