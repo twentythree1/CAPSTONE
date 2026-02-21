@@ -110,6 +110,35 @@ if ((int)$conflictData['conflict_count'] > 0) {
     exit;
 }
 
+// Check if this farmer is already booked during the requested period
+$farmer_id_esc = $conn->real_escape_string($farmer_id);
+
+$farmerConflictQuery = "
+    SELECT COUNT(*) as conflict_count FROM schedules 
+    WHERE farmer_id = '$farmer_id_esc'
+      AND status IN ('Pending', 'Approved', 'On going')
+      AND (
+            DATE_ADD(schedule_date, INTERVAL date_span DAY) >= '$schedule_date_esc'
+            AND schedule_date <= '$end_date_esc'
+        )
+      AND (
+            start_time < '$end_time_esc' AND end_time > '$start_time_esc'
+        )
+";
+
+$farmerConflictResult = $conn->query($farmerConflictQuery);
+if (!$farmerConflictResult) {
+    echo json_encode(['success' => false, 'message' => 'Error checking farmer availability: ' . $conn->error]);
+    exit;
+}
+
+$farmerConflictData = $farmerConflictResult->fetch_assoc();
+
+if ((int)$farmerConflictData['conflict_count'] > 0) {
+    echo json_encode(['success' => false, 'message' => 'This farmer is already booked for the selected date/time.']);
+    exit;
+}
+
 $farmer_id = (int)$farmer_id;
 $machine_id = (int)$machine_id;
 $date_span = (int)$date_span;

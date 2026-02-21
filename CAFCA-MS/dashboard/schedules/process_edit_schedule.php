@@ -140,6 +140,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
+        // Check if this farmer is already booked during the requested period (excluding current schedule)
+        $farmerConflictQuery = "
+            SELECT COUNT(*) as conflict_count FROM schedules 
+            WHERE farmer_id = ? 
+              AND id != ?
+              AND status IN ('Pending', 'Approved', 'On going')
+              AND (
+                    DATE_ADD(schedule_date, INTERVAL date_span DAY) >= ?
+                    AND schedule_date <= ?
+                )
+              AND (
+                    start_time < ? AND end_time > ?
+                )
+        ";
+
+        $farmerConflictStmt = $conn->prepare($farmerConflictQuery);
+        $farmerConflictStmt->bind_param("iissss", $farmer_id, $id, $schedule_date, $end_date, $end_time, $start_time);
+        $farmerConflictStmt->execute();
+        $farmerConflictResult = $farmerConflictStmt->get_result();
+        $farmerConflictData = $farmerConflictResult->fetch_assoc();
+        $farmerConflictStmt->close();
+
+        if ((int)$farmerConflictData['conflict_count'] > 0) {
+            $errorMessage = "This farmer is already booked during the selected date/time.";
+            break;
+        }
+
         $sql = "UPDATE schedules 
                 SET farmer_id = ?, machine_id = ?, schedule_date = ?, date_span = ?, start_time = ?, end_time = ? 
                 WHERE id = ?";
