@@ -86,7 +86,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $unavailableFrom = $machineData['unavailable_from'];
         $unavailableUntil = $machineData['unavailable_until'];
         $machineStmt->close();
-        
+
+        // Check if this machine is currently "Not Returned" (past its end datetime with no return_date)
+        // Exclude the current schedule being edited so it doesn't block editing its own entry
+        $notReturnedStmt = $conn->prepare(
+            "SELECT COUNT(*) as cnt FROM schedules
+             WHERE machine_id = ?
+               AND id != ?
+               AND status IN ('Approved', 'Completed')
+               AND (return_date IS NULL OR return_date = '')
+               AND NOW() > CONCAT(DATE_ADD(schedule_date, INTERVAL date_span DAY), ' ', end_time)"
+        );
+        $notReturnedStmt->bind_param("ii", $machine_id, $id);
+        $notReturnedStmt->execute();
+        $notReturnedData = $notReturnedStmt->get_result()->fetch_assoc();
+        $notReturnedStmt->close();
+
+        if ((int)$notReturnedData['cnt'] > 0) {
+            $errorMessage = "This machine has not been returned yet by a previous farmer. A new schedule cannot be created until it is returned.";
+            break;
+        }
+
         // Check if the requested time period overlaps with machine's unavailable period
         if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
             try {

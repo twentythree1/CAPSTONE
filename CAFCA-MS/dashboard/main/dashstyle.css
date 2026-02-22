@@ -1051,7 +1051,7 @@ main .top .profile {
     cursor: pointer;
     white-space: nowrap;
     text-decoration: none;
-    transition: opacity 150ms ease, transform 80ms ease;
+    transition: opacity 150ms ease, transform 80ms ease-in-out;
     flex-shrink: 0;
 }
 
@@ -1062,6 +1062,7 @@ main .top .profile {
 .panel-btn:hover {
     opacity: 0.85;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(46, 45, 45, 0.1);
 }
 
 .panel-btn:disabled {
@@ -1071,7 +1072,7 @@ main .top .profile {
 }
 
 .panel-btn--primary {
-    background: var(--color-primary);
+    background: linear-gradient(180deg, #2d4a32, #A0C878);
     color: #fff;
 }
 

@@ -63,7 +63,8 @@ if ($completeStmt) {
     $completeStmt->close();
 }
 
-// Count machines by status
+// Count machines by status — use the same direct DB queries as machine.php
+// so sidebar badges are consistent regardless of which page you're on.
 $machineCounts = [
     'Available' => 0,
     'Partially Damaged' => 0,
@@ -71,65 +72,36 @@ $machineCounts = [
     'Not Returned' => 0
 ];
 
-$countSql = "SELECT status, COUNT(*) as cnt FROM machines GROUP BY status";
-$countResult = $conn->query($countSql);
-if ($countResult) {
-    while ($r = $countResult->fetch_assoc()) {
-        $status = $r['status'];
-        if (isset($machineCounts[$status])) {
-            $machineCounts[$status] += intval($r['cnt']);
-        }
-    }
-    $countResult->free();
+// Available: direct count of machines with status='Available'
+$availBadgeResult = $conn->query("SELECT COUNT(*) AS cnt FROM machines WHERE status = 'Available'");
+if ($availBadgeResult) {
+    $machineCounts['Available'] = (int)($availBadgeResult->fetch_assoc()['cnt'] ?? 0);
+    $availBadgeResult->free();
 }
 
-// Calculate on-going and not-returned counts by looping in PHP
-// so we use the SAME end-datetime logic as the sidebar status computation.
-$ongoingCount     = 0;
+// Partially Damaged / Totally Damaged
+foreach (['Partially Damaged', 'Totally Damaged'] as $dmgStatus) {
+    $dmgStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM machines WHERE status = ?");
+    $dmgStmt->bind_param("s", $dmgStatus);
+    $dmgStmt->execute();
+    $machineCounts[$dmgStatus] = (int)($dmgStmt->get_result()->fetch_assoc()['cnt'] ?? 0);
+    $dmgStmt->close();
+}
+
+// Not Returned: schedules that are past their end datetime and have no return_date
+$notReturnedResult = $conn->query(
+    "SELECT COUNT(*) as count
+     FROM schedules s
+     WHERE s.status IN ('Approved', 'Completed')
+       AND (s.return_date IS NULL OR s.return_date = '')
+       AND NOW() > CONCAT(DATE_ADD(s.schedule_date, INTERVAL s.date_span DAY), ' ', s.end_time)"
+);
 $notReturnedCount = 0;
-
-$activeSql = "SELECT schedule_date, date_span, start_time, end_time, status, return_date
-              FROM schedules WHERE status IN ('Approved', 'Completed')";
-$activeResult = $conn->query($activeSql);
-if ($activeResult) {
-    $tz    = new DateTimeZone('Asia/Manila');
-    $nowDt = new DateTime('now', $tz);
-    while ($row = $activeResult->fetch_assoc()) {
-        $dbStatus   = $row['status'];
-        $span       = (int)$row['date_span'];
-        $startTime  = $row['start_time'] ?: '00:00:00';
-        $endTime    = $row['end_time']   ?: '23:59:59';
-        $returnDate = $row['return_date'];
-        $hasReturned = ($returnDate !== null && $returnDate !== '');
-
-        // DB-stored 'Completed': if return_date is missing, machine was not returned
-        if ($dbStatus === 'Completed') {
-            if (!$hasReturned) {
-                $notReturnedCount++;
-            }
-            continue;
-        }
-
-        // 'Approved': compute actual start/end with midnight-crossing support
-        $startDt = new DateTime($row['schedule_date'] . ' ' . $startTime, $tz);
-        $endBase  = new DateTime($row['schedule_date'], $tz);
-        $endBase->modify("+{$span} days");
-        $endDt = new DateTime($endBase->format('Y-m-d') . ' ' . $endTime, $tz);
-        if ($endDt <= $startDt) {
-            $endDt->modify('+1 day'); // crosses midnight
-        }
-
-        if ($nowDt >= $startDt && $nowDt <= $endDt) {
-            $ongoingCount++;
-        } elseif ($nowDt > $endDt && !$hasReturned) {
-            $notReturnedCount++;
-        }
-    }
-    $activeResult->free();
+if ($notReturnedResult) {
+    $notReturnedCount = (int)($notReturnedResult->fetch_assoc()['count'] ?? 0);
+    $notReturnedResult->free();
 }
-
 $machineCounts['Not Returned'] = $notReturnedCount;
-$machineCounts['Available']    = max(0, $machineCounts['Available'] - $notReturnedCount - $ongoingCount);
 
 // Count schedules by status
 $counts = [
@@ -843,18 +815,19 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
     // TOOLTIP FOR RESCHEDULE REASON
     document.addEventListener('DOMContentLoaded', function() {
-        const infoIcons = document.querySelectorAll('.reschedule-info-icon');
-
-        infoIcons.forEach(icon => {
-            icon.addEventListener('mouseenter', function(e) {
+        document.querySelectorAll('.reschedule-info-icon').forEach(function(icon) {
+            icon.addEventListener('mouseenter', function() {
                 const rect = this.getBoundingClientRect();
-                const tooltip = window.getComputedStyle(this, '::before');
-
-                this.style.setProperty('--tooltip-left', rect.left + (rect.width / 2) + 'px');
-                this.style.setProperty('--tooltip-top', (rect.top - 10) + 'px');
+                this.style.setProperty('--tip-x', (rect.left + rect.width / 2) + 'px');
+                this.style.setProperty('--tip-y', (rect.top - 12) + 'px');
+                this.classList.add('tip-visible');
+            });
+            icon.addEventListener('mouseleave', function() {
+                this.classList.remove('tip-visible');
             });
         });
     });
+
     </script>
 
     <!-- ADD SCHEDULE MODAL -->
@@ -891,9 +864,25 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             onchange="checkMachineAvailability()">
                             <option value="">Select a Machine</option>
                             <?php
+                            // Get machine IDs that are currently "Not Returned"
+                            $notReturnedMachineIds = [];
+                            $nrResult = $conn->query(
+                                "SELECT DISTINCT machine_id FROM schedules
+                                 WHERE status IN ('Approved', 'Completed')
+                                   AND (return_date IS NULL OR return_date = '')
+                                   AND NOW() > CONCAT(DATE_ADD(schedule_date, INTERVAL date_span DAY), ' ', end_time)"
+                            );
+                            if ($nrResult) {
+                                while ($nrRow = $nrResult->fetch_assoc()) {
+                                    $notReturnedMachineIds[] = (int)$nrRow['machine_id'];
+                                }
+                                $nrResult->free();
+                            }
+
                             $machineList = $conn->query("SELECT id, name, status, unavailable_from, unavailable_until FROM machines ORDER BY name ASC");
                             while ($row = $machineList->fetch_assoc()):
                                 $isTotallyDamaged = ($row['status'] === 'Totally Damaged');
+                                $isNotReturned = in_array((int)$row['id'], $notReturnedMachineIds);
 
                                 // Check if machine has unavailable dates set
                                 $unavailableInfo = '';
@@ -906,8 +895,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             <option value="<?= $row['id'] ?>" data-status="<?= htmlspecialchars($row['status']) ?>"
                                 data-unavailable-from="<?= htmlspecialchars($row['unavailable_from'] ?? '') ?>"
                                 data-unavailable-until="<?= htmlspecialchars($row['unavailable_until'] ?? '') ?>"
+                                data-not-returned="<?= $isNotReturned ? '1' : '0' ?>"
                                 <?= $isTotallyDamaged ? 'disabled style="color: #aaa;"' : '' ?>>
-                                <?= htmlspecialchars($row['name']) ?><?= $isTotallyDamaged ? ' — Unavailable. This machine is Totally Damaged.' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
+                                <?= htmlspecialchars($row['name']) ?><?= $isTotallyDamaged ? ' — Unavailable. This machine is Totally Damaged.' : '' ?><?= $isNotReturned ? ' — Not Yet Returned' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
                             </option>
                             <?php endwhile; ?>
                         </select>
@@ -984,6 +974,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             $machineList = $conn->query("SELECT id, name, status, unavailable_from, unavailable_until FROM machines ORDER BY name");
                             while ($row = $machineList->fetch_assoc()):
                                 $isTotallyDamaged = ($row['status'] === 'Totally Damaged');
+                                $isNotReturnedEdit = in_array((int)$row['id'], $notReturnedMachineIds);
 
                                 // Check if machine has unavailable dates set
                                 $unavailableInfo = '';
@@ -996,8 +987,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             <option value="<?= $row['id'] ?>" data-status="<?= htmlspecialchars($row['status']) ?>"
                                 data-unavailable-from="<?= htmlspecialchars($row['unavailable_from'] ?? '') ?>"
                                 data-unavailable-until="<?= htmlspecialchars($row['unavailable_until'] ?? '') ?>"
+                                data-not-returned="<?= $isNotReturnedEdit ? '1' : '0' ?>"
                                 <?= $isTotallyDamaged ? 'disabled style="color: #aaa;"' : '' ?>>
-                                <?= htmlspecialchars($row['name']) ?><?= $isTotallyDamaged ? ' — Unavailable. This machine is Totally Damaged' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
+                                <?= htmlspecialchars($row['name']) ?><?= $isTotallyDamaged ? ' — Unavailable. This machine is Totally Damaged' : '' ?><?= $isNotReturnedEdit ? ' — Not Yet Returned' : '' ?><?= htmlspecialchars($unavailableInfo) ?>
                             </option>
                             <?php endwhile; ?>
                         </select>
@@ -1074,11 +1066,22 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const machineId = selectedOption.value;
         const unavailableFrom = selectedOption.getAttribute('data-unavailable-from');
         const unavailableUntil = selectedOption.getAttribute('data-unavailable-until');
+        const notReturned = selectedOption.getAttribute('data-not-returned');
 
         // Check status first
         if (status === 'Totally Damaged') {
             warningDiv.innerHTML =
                 '⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.';
+            warningDiv.style.background = '#fde8e8';
+            warningDiv.style.color = '#b71c1c';
+            warningDiv.style.display = 'block';
+            return;
+        }
+
+        // Block if machine has not been returned yet
+        if (notReturned === '1') {
+            warningDiv.innerHTML =
+                '🚫 This machine has <strong>not been returned yet</strong> by a previous farmer. A new schedule cannot be created until it is returned.';
             warningDiv.style.background = '#fde8e8';
             warningDiv.style.color = '#b71c1c';
             warningDiv.style.display = 'block';
@@ -1195,6 +1198,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             return;
         }
 
+        // Guard: block submission if machine has not been returned
+        if (selectedOption && selectedOption.getAttribute('data-not-returned') === '1') {
+            const errorDiv = document.getElementById('addScheduleErrorMessage');
+            errorDiv.innerHTML =
+                'Cannot book a schedule: the selected machine has <strong>not been returned yet</strong> by a previous farmer. Please wait until it is returned before creating a new booking.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
         // Confirmation: warn if Partially Damaged machine is selected
         if (selectedOption && selectedOption.getAttribute('data-status') === 'Partially Damaged') {
             const machineName = selectedOption.textContent.trim();
@@ -1258,11 +1270,22 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const machineId = selectedOption.value;
         const unavailableFrom = selectedOption.getAttribute('data-unavailable-from');
         const unavailableUntil = selectedOption.getAttribute('data-unavailable-until');
+        const notReturned = selectedOption.getAttribute('data-not-returned');
 
         // Check status first
         if (status === 'Totally Damaged') {
             warningDiv.innerHTML =
                 '⚠️ This machine is <strong>Totally Damaged</strong> and cannot be scheduled for use.';
+            warningDiv.style.background = '#fde8e8';
+            warningDiv.style.color = '#b71c1c';
+            warningDiv.style.display = 'block';
+            return;
+        }
+
+        // Block if machine has not been returned yet
+        if (notReturned === '1') {
+            warningDiv.innerHTML =
+                '🚫 This machine has <strong>not been returned yet</strong> by a previous farmer. A new schedule cannot be created until it is returned.';
             warningDiv.style.background = '#fde8e8';
             warningDiv.style.color = '#b71c1c';
             warningDiv.style.display = 'block';

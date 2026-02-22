@@ -261,7 +261,7 @@ aside .sidebar a:hover span {
 }
 
 .sidebar-dropdown .dropdown-menu a.active {
-    color: var(--color-primary);               
+    color: var(--color-primary);
     font-weight: 700;
     margin-left: 1.5rem;
 }
@@ -270,6 +270,7 @@ aside .sidebar a:hover span {
 .sidebar-dropdown .dropdown-menu {
     display: none;
 }
+
 .sidebar-dropdown.open .dropdown-menu {
     display: flex;
 }
@@ -277,6 +278,7 @@ aside .sidebar a:hover span {
 aside {
     width: 13rem !important;
 }
+
 .container {
     grid-template-columns: 13rem auto !important;
 }
@@ -306,7 +308,7 @@ aside {
 }
 
 .sidebar .dropdown-menu a:hover {
-    background: rgba(0,0,0,0.03);
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .sidebar .dropdown-menu a.active {
@@ -350,7 +352,7 @@ main .title {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 1rem;
+    margin: 1rem 0;
     padding: 0.8rem 1.2rem;
     background: var(--color-white);
     border-radius: var(--border-radius-3);
@@ -418,11 +420,12 @@ main .machine-count span {
 main .btn {
     margin-bottom: 1rem;
     color: white;
-    background: seagreen;
+    background: linear-gradient(135deg, #2d5a34, #4a8e56);
     padding: 0.6rem;
     border-radius: 8px;
-    transition: 0.3s ease;
+    transition: transform 130ms ease, box-shadow 130ms ease, filter 100ms ease;
     display: inline-block;
+    box-shadow: 0 3px 10px rgba(45, 90, 52, 0.28);
 }
 
 .title-actions main .btn,
@@ -431,29 +434,34 @@ main .title .title-actions .btn {
 }
 
 main .btn:hover {
-    background: green;
+    background: linear-gradient(135deg, #2d5a34, #4a8e56);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(45, 90, 52, 0.38);
+    filter: brightness(1.10);
 }
 
 main .btn-resched {
-    background: #EB5B00;
-    transition: all 0.2s ease;
+    background: linear-gradient(135deg, #c05a00, #f07820);
+    transition: transform 130ms ease, box-shadow 130ms ease, filter 100ms ease;
+    box-shadow: 0 3px 10px rgba(192, 90, 0, 0.28);
 }
 
 main .btn-resched:hover {
-    background: #723417;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 18px rgba(192, 90, 0, 0.40);
+    filter: brightness(1.10);
 }
 
 main .btn-danger {
-    background: #C5172E;
-    transition: all 0.2s ease;
+    background: linear-gradient(135deg, #b83232, #e04444);
+    transition: transform 130ms ease, box-shadow 130ms ease, filter 100ms ease;
+    box-shadow: 0 3px 10px rgba(184, 50, 50, 0.28);
 }
 
 main .btn-danger:hover {
-    background: red;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 18px rgba(184, 50, 50, 0.40);
+    filter: brightness(1.10);
 }
 
 main .btn-warning {
@@ -465,15 +473,17 @@ main .btn-success {
     padding: 0.6rem;
     margin: 1rem 0;
     display: inline-flex;
-    background-color: #143D60;
+    background: linear-gradient(135deg, #0f6a3e, #1ea068);
     color: white;
     border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(15, 106, 62, 0.28);
+    transition: transform 130ms ease, box-shadow 130ms ease, filter 100ms ease;
 }
 
 main .btn-success:hover {
-    background-color: blue;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 18px rgba(15, 106, 62, 0.40);
+    filter: brightness(1.10);
 }
 
 main table {
@@ -522,9 +532,9 @@ main table tbody tr:last-child td {
 .table-scroll table {
     width: 100%;
     border-collapse: collapse;
-    background: transparent; 
+    background: transparent;
     margin: 0;
-    table-layout: auto; 
+    table-layout: auto;
 }
 
 .table-scroll thead th,
@@ -552,6 +562,83 @@ main table tbody tr:last-child td {
     border-bottom: none;
 }
 
+/* ── Row entrance animation ── */
+@keyframes rowSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.table-scroll tbody tr {
+    animation: rowSlideIn 220ms ease both;
+}
+
+.table-scroll tbody tr:nth-child(1) {
+    animation-delay: 20ms;
+}
+
+.table-scroll tbody tr:nth-child(2) {
+    animation-delay: 44ms;
+}
+
+.table-scroll tbody tr:nth-child(3) {
+    animation-delay: 68ms;
+}
+
+.table-scroll tbody tr:nth-child(4) {
+    animation-delay: 92ms;
+}
+
+.table-scroll tbody tr:nth-child(5) {
+    animation-delay: 116ms;
+}
+
+.table-scroll tbody tr:nth-child(6) {
+    animation-delay: 140ms;
+}
+
+.table-scroll tbody tr:nth-child(7) {
+    animation-delay: 164ms;
+}
+
+.table-scroll tbody tr:nth-child(8) {
+    animation-delay: 188ms;
+}
+
+.table-scroll tbody tr:nth-child(9) {
+    animation-delay: 212ms;
+}
+
+.table-scroll tbody tr:nth-child(10) {
+    animation-delay: 236ms;
+}
+
+.table-scroll tbody tr:nth-child(11) {
+    animation-delay: 260ms;
+}
+
+.table-scroll tbody tr:nth-child(12) {
+    animation-delay: 284ms;
+}
+
+.table-scroll tbody tr:nth-child(13) {
+    animation-delay: 308ms;
+}
+
+.table-scroll tbody tr:nth-child(14) {
+    animation-delay: 332ms;
+}
+
+.table-scroll tbody tr:nth-child(15) {
+    animation-delay: 356ms;
+}
+
 .table-scroll tbody td {
     white-space: nowrap;
     overflow: hidden;
@@ -562,8 +649,9 @@ main table tbody tr:last-child td {
     width: 10px;
     max-height: calc(100% - 220px);
 }
+
 .table-scroll::-webkit-scrollbar-thumb {
-    background: rgba(0,0,0,0.12);
+    background: rgba(0, 0, 0, 0.12);
     border-radius: 6px;
 }
 
@@ -622,25 +710,30 @@ main .top .profile {
 }
 
 .btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 10px;
-  font-weight: bold;
-  cursor: pointer;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 130ms ease, box-shadow 130ms ease, filter 100ms ease;
 }
 
 .btn-green {
-  background-color: #28a745;
-  color: white;
+    background: linear-gradient(135deg, #3a8c4a, #5cb870);
+    color: white;
+    box-shadow: 0 3px 10px rgba(58, 140, 74, 0.28);
 }
 
 .btn-red {
-  background-color: #dc3545;
-  color: white;
+    background: linear-gradient(135deg, #b83232, #e04444);
+    color: white;
+    box-shadow: 0 3px 10px rgba(184, 50, 50, 0.28);
 }
 
 .btn:hover {
-  opacity: 0.9;
+    transform: translateY(-2px);
+    filter: brightness(1.10);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
 main .top .alert-success {
@@ -689,8 +782,13 @@ main .top .alert-success {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .modal-content {
@@ -709,6 +807,7 @@ main .top .alert-success {
         transform: translateY(-50px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -830,8 +929,8 @@ main .top .alert-success {
 .reschedule-info-icon::before {
     content: attr(data-tooltip);
     position: fixed;
-    left: var(--tooltip-left);
-    top: var(--tooltip-top);
+    right: -5rem;
+    top: 1rem;
     background: var(--color-dark);
     color: var(--color-white);
     padding: 0.75rem 1rem;
@@ -854,8 +953,8 @@ main .top .alert-success {
 .reschedule-info-icon::after {
     content: '';
     position: fixed;
-    left: var(--tooltip-left);
-    top: calc(var(--tooltip-top) + 0.8%);
+    right: 7.5rem;
+    top: 1.45rem;
     border: 8px solid transparent;
     border-top-color: var(--color-dark);
     opacity: 0;
@@ -950,13 +1049,16 @@ main .top .alert-success {
 }
 
 .btn-primary {
-    background: var(--color-danger);
+    background: linear-gradient(135deg, #3a8c4a, #5cb870);
     color: white;
+    box-shadow: 0 3px 10px rgba(58, 140, 74, 0.28);
+    transition: transform 130ms ease, box-shadow 130ms ease, filter 100ms ease;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 16px rgba(58, 140, 74, 0.38);
+    filter: brightness(1.10);
 }
 
 .error-message {
@@ -986,6 +1088,7 @@ main .top .alert-success {
         opacity: 0;
         transform: translateY(-50px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1204,8 +1307,8 @@ main .title a.farmer {
     overflow: hidden;
     opacity: 0;
     transition: max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity   0.25s ease,
-                gap       0.3s ease;
+        opacity 0.25s ease,
+        gap 0.3s ease;
     pointer-events: none;
 }
 
@@ -1351,6 +1454,7 @@ main .title a.farmer {
 .results-count-record {
     position: static;
 }
+
 /* =====================================================
    COLOUR & VISUAL ENHANCEMENT — All pages
    ===================================================== */
@@ -1358,8 +1462,8 @@ main .title a.farmer {
 /* ── Subtle background glow ── */
 body {
     background:
-        radial-gradient(ellipse at 8% 15%,  rgba(160,200,120,0.07) 0%, transparent 50%),
-        radial-gradient(ellipse at 92% 85%, rgba(45,74,50,0.05)    0%, transparent 50%),
+        radial-gradient(ellipse at 8% 15%, rgba(160, 200, 120, 0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 92% 85%, rgba(45, 74, 50, 0.05) 0%, transparent 50%),
         var(--color-background);
 }
 
@@ -1397,7 +1501,7 @@ main h1 {
 
 .dark-theme-variables .table-scroll thead th {
     color: #a3cca8 !important;
-    border-bottom-color: rgba(160,200,120,0.4) !important;
+    border-bottom-color: rgba(160, 200, 120, 0.4) !important;
 }
 
 /* ── Table row hover: soft green wash ── */
@@ -1412,7 +1516,7 @@ main h1 {
 
 /* ── Scrollbar: green thumb ── */
 .table-scroll::-webkit-scrollbar-thumb {
-    background: rgba(160,200,120,0.45);
+    background: rgba(160, 200, 120, 0.45);
     border-radius: 6px;
 }
 
@@ -1440,32 +1544,99 @@ main h1 {
 }
 
 /* Status text colouring by data-status on the row */
-.schedule-row[data-status="pending"] td:nth-child(8)      { color: #d97706; }
-.schedule-row[data-status="approved"] td:nth-child(8)     { color: #2563eb; }
-.schedule-row[data-status="on going"] td:nth-child(8)     { color: #16a34a; }
-.schedule-row[data-status="completed"] td:nth-child(8)    { color: #6b7280; }
-.schedule-row[data-status="expired"] td:nth-child(8)      { color: #dc2626; }
-.schedule-row[data-status="cancelled"] td:nth-child(8)    { color: #9333ea; }
+.schedule-row[data-status="pending"] td:nth-child(8) {
+    color: #d97706;
+}
+
+.schedule-row[data-status="approved"] td:nth-child(8) {
+    color: #2563eb;
+}
+
+.schedule-row[data-status="on going"] td:nth-child(8) {
+    color: #16a34a;
+}
+
+.schedule-row[data-status="completed"] td:nth-child(8) {
+    color: #6b7280;
+}
+
+.schedule-row[data-status="expired"] td:nth-child(8) {
+    color: #dc2626;
+}
+
+.schedule-row[data-status="cancelled"] td:nth-child(8) {
+    color: #9333ea;
+}
 
 /* ── Machine status in machine table ── */
-.machine-row[data-status="available"]         td:last-child { color: #16a34a; font-weight: 700; }
-.machine-row[data-status="partially damaged"] td:last-child { color: #d97706; font-weight: 700; }
-.machine-row[data-status="totally damaged"]   td:last-child { color: #dc2626; font-weight: 700; }
-.machine-row[data-status="not returned"]      td:last-child { color: #9333ea; font-weight: 700; }
+.machine-row[data-status="available"] td:last-child {
+    color: #16a34a;
+    font-weight: 700;
+}
+
+.machine-row[data-status="partially damaged"] td:last-child {
+    color: #d97706;
+    font-weight: 700;
+}
+
+.machine-row[data-status="totally damaged"] td:last-child {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+.machine-row[data-status="not returned"] td:last-child {
+    color: #9333ea;
+    font-weight: 700;
+}
 
 /* ── Action buttons: refined sizing & shadows ── */
 .btn.btn-sm {
     padding: 0.3rem 0.7rem;
     font-size: 0.75rem;
     border-radius: 7px;
-    font-weight: 600;
-    transition: transform 100ms ease, box-shadow 100ms ease, filter 100ms ease;
+    font-weight: 700;
+    transition: transform 120ms ease, box-shadow 120ms ease, filter 100ms ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* Edit button — green gradient */
+.btn.btn-sm.btn-primary,
+a.btn.btn-sm.btn-primary {
+    background: linear-gradient(135deg, #3a8c4a, #5cb870) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 7px rgba(58, 140, 74, 0.28) !important;
+}
+
+/* Delete button — red gradient */
+.btn.btn-sm.btn-danger,
+a.btn.btn-sm.btn-danger {
+    background: linear-gradient(135deg, #b83232, #e04444) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 7px rgba(184, 50, 50, 0.26) !important;
+}
+
+/* Reschedule button — orange gradient */
+.btn.btn-sm.btn-resched,
+a.btn.btn-sm.btn-resched {
+    background: linear-gradient(135deg, #c05a00, #f07820) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 7px rgba(192, 90, 0, 0.24) !important;
+}
+
+/* Approve / success button */
+.btn.btn-sm.btn-success,
+a.btn.btn-sm.btn-success {
+    background: linear-gradient(135deg, #0f6a3e, #1ea068) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 7px rgba(15, 106, 62, 0.26) !important;
 }
 
 .btn.btn-sm:hover {
-    transform: translateY(-2px);
-    filter: brightness(1.1);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px) scale(1.04);
+    filter: brightness(1.10);
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18) !important;
 }
 
 /* Add Farmer / Add Machine / Add Schedule buttons */
@@ -1473,7 +1644,7 @@ main .btn:not(.btn-sm),
 .btn.farmer-btn,
 main .title a.schedule {
     background: linear-gradient(135deg, #4a9e5c, #A0C878) !important;
-    box-shadow: 0 4px 12px rgba(74,158,92,0.3);
+    box-shadow: 0 4px 12px rgba(74, 158, 92, 0.3);
     font-weight: 700;
     letter-spacing: 0.02em;
     transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
@@ -1484,23 +1655,23 @@ main .btn:not(.btn-sm):hover,
 main .title a.schedule:hover {
     background: linear-gradient(135deg, #3a8a4a, #8ab868) !important;
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(74,158,92,0.4);
+    box-shadow: 0 6px 18px rgba(74, 158, 92, 0.4);
     filter: none;
 }
 
 /* ── count badges on top bar ── */
 main .farmers-count span,
 main .machine-count span {
-    background: linear-gradient(135deg, rgba(160,200,120,0.2), rgba(160,200,120,0.08));
-    border: 1px solid rgba(160,200,120,0.35);
+    background: linear-gradient(135deg, rgba(160, 200, 120, 0.2), rgba(160, 200, 120, 0.08));
+    border: 1px solid rgba(160, 200, 120, 0.35);
     color: #2d4a32;
     font-weight: 600;
 }
 
 .dark-theme-variables main .farmers-count span,
 .dark-theme-variables main .machine-count span {
-    background: rgba(160,200,120,0.1);
-    border-color: rgba(160,200,120,0.2);
+    background: rgba(160, 200, 120, 0.1);
+    border-color: rgba(160, 200, 120, 0.2);
     color: #a3cca8;
 }
 
@@ -1524,7 +1695,7 @@ main .machine-count span {
 .form-group select:focus {
     outline: none;
     border-color: var(--color-primary) !important;
-    box-shadow: 0 0 0 3px rgba(160,200,120,0.2) !important;
+    box-shadow: 0 0 0 3px rgba(160, 200, 120, 0.2) !important;
 }
 
 /* ── Title action bar: subtle background ── */
@@ -1550,12 +1721,12 @@ main .top .alert-success {
     border-radius: 10px;
     font-weight: 600;
     background: linear-gradient(135deg, #e8fde8, #ceffcc);
-    box-shadow: 0 4px 12px rgba(74,222,128,0.2);
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
 }
 
 /* ── Table: alternating very subtle row tint ── */
 .table-scroll tbody tr:nth-child(even) td {
-    background: rgba(160,200,120,0.03);
+    background: rgba(160, 200, 120, 0.03);
 }
 
 /* ── "No results" row: centred and styled ── */
@@ -1567,18 +1738,29 @@ main .top .alert-success {
 
 /* ── Dark theme table header fix ── */
 .dark-theme-variables .table-scroll tbody tr:hover td {
-    background: rgba(160,200,120,0.08);
+    background: rgba(160, 200, 120, 0.08);
     color: #c0c0c0 !important;
 }
 
 .dark-theme-variables .table-scroll {
-    border-left-color: rgba(160,200,120,0.4);
+    border-left-color: rgba(160, 200, 120, 0.4);
 }
 
 /* ── Records page: ecosystem badge colours ── */
 td[data-ecosystem="Irrigated"],
-td .ecosystem-irrigated { color: #2563eb; font-weight: 600; }
+td .ecosystem-irrigated {
+    color: #2563eb;
+    font-weight: 600;
+}
+
 td[data-ecosystem="Rainfed"],
-td .ecosystem-rainfed    { color: #16a34a; font-weight: 600; }
+td .ecosystem-rainfed {
+    color: #16a34a;
+    font-weight: 600;
+}
+
 td[data-ecosystem="Upland"],
-td .ecosystem-upland     { color: #d97706; font-weight: 600; }
+td .ecosystem-upland {
+    color: #d97706;
+    font-weight: 600;
+}

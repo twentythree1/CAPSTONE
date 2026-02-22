@@ -433,7 +433,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
 
                 if (empty($machineRows)) {
                     $statusName = $statusFilter ?: 'Machines';
-                    echo "<p style='display: flex; justify-content: center; text-transform: capitalize;'>No {$statusName} machine(s).</p>";
+                    echo "<p style='display: flex; justify-content: center; margin-top: 1.5rem;'>No {$statusName} machine(s).</p>";
                 } else {
                     echo "<div class='table-scroll' style='margin-top: 1.5rem;'>
                           <table style='width:100%;' class='table'>
@@ -454,7 +454,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         $historySQL = "SELECT f.name, s.schedule_date, s.date_span 
                                       FROM schedules s
                                       INNER JOIN farmers f ON s.farmer_id = f.id
-                                      WHERE s.machine_id = ? AND s.status IN ('Approved', 'Completed')
+                                      WHERE s.machine_id = ? AND s.status = 'Completed'
                                       ORDER BY s.schedule_date DESC
                                       LIMIT 1";
                         $historyStmt = $conn->prepare($historySQL);
@@ -666,19 +666,21 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
     <!-- TOOLTIP FOR MACHINE USAGE HISTORY -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const infoIcons = document.querySelectorAll('.reschedule-info-icon');
-        
-        infoIcons.forEach(icon => {
-            icon.addEventListener('mouseenter', function(e) {
+        document.querySelectorAll('.reschedule-info-icon').forEach(function(icon) {
+            icon.addEventListener('mouseenter', function() {
                 const rect = this.getBoundingClientRect();
-                const tooltip = window.getComputedStyle(this, '::before');
-                
-                this.style.setProperty('--tooltip-left', rect.left + (rect.width / 2) + 'px');
-                this.style.setProperty('--tooltip-top', (rect.top - 10) + 'px');
+                this.style.setProperty('--tip-x', (rect.left + rect.width / 2) + 'px');
+                this.style.setProperty('--tip-y', (rect.top - 12) + 'px');
+                this.classList.add('tip-visible');
+            });
+            icon.addEventListener('mouseleave', function() {
+                this.classList.remove('tip-visible');
             });
         });
     });
+    </script>
 
+    <script>
     // MACHINE HISTORY MODAL FUNCTIONS
     function openHistoryModal(machineId) {
         const modal = document.getElementById('historyModal');

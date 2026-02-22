@@ -64,6 +64,24 @@ $machineData = $machineResult->fetch_assoc();
 $unavailableFrom = $machineData['unavailable_from'];
 $unavailableUntil = $machineData['unavailable_until'];
 
+// Check if this machine is currently "Not Returned" (past its end datetime with no return_date)
+$notReturnedCheck = $conn->prepare(
+    "SELECT COUNT(*) as cnt FROM schedules
+     WHERE machine_id = ?
+       AND status IN ('Approved', 'Completed')
+       AND (return_date IS NULL OR return_date = '')
+       AND NOW() > CONCAT(DATE_ADD(schedule_date, INTERVAL date_span DAY), ' ', end_time)"
+);
+$notReturnedCheck->bind_param("i", $machine_id);
+$notReturnedCheck->execute();
+$notReturnedData = $notReturnedCheck->get_result()->fetch_assoc();
+$notReturnedCheck->close();
+
+if ((int)$notReturnedData['cnt'] > 0) {
+    echo json_encode(['success' => false, 'message' => 'This machine has not been returned yet by a previous farmer. A new schedule cannot be created until it is returned.']);
+    exit;
+}
+
 // Check if the requested time period overlaps with machine's unavailable period
 if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
     try {
