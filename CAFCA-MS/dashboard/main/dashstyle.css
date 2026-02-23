@@ -1363,3 +1363,261 @@ body {
         radial-gradient(ellipse at 90% 80%, rgba(45,74,50,0.06) 0%, transparent 50%),
         var(--color-background);
 }
+
+/* =====================================================
+   DASHBOARD — MEDIA QUERIES
+   Breakpoints: 2560px | 2000px | 1750px | 1250px
+   ===================================================== */
+
+/* ─────────────────────────────────────────────────────
+   2560px — Large / 4K displays
+   ───────────────────────────────────────────────────── */
+@media screen and (max-width: 2560px) {
+    html {
+        font-size: 16px;
+    }
+
+    .container {
+        width: 94%;
+        grid-template-columns: 16rem auto !important;
+        gap: 2.2rem;
+    }
+
+    aside {
+        width: 16rem !important;
+    }
+
+    .stat-card__count {
+        font-size: 4.2rem;
+    }
+
+    .stat-card {
+        min-height: 210px;
+    }
+
+    .dash-grid {
+        grid-template-columns: 1fr 1fr 26rem;
+        gap: 1.8rem;
+    }
+
+    .calendar-day {
+        height: 100px;
+    }
+
+    #calendar {
+        gap: 8px;
+    }
+
+    .panel-card {
+        padding: 1.8rem 2rem 1.4rem;
+    }
+
+    .insight-card-link {
+        min-height: 150px;
+    }
+
+    .dash-welcome h1 {
+        font-size: 2.6rem;
+    }
+}
+
+/* ─────────────────────────────────────────────────────
+   2000px — Wide / QHD displays
+   ───────────────────────────────────────────────────── */
+@media (max-width: 2000px) {
+    html {
+        font-size: 14px;
+    }
+
+    .container {
+        width: 95%;
+        grid-template-columns: 15rem auto !important;
+        gap: 2rem;
+    }
+
+    aside {
+        width: 15rem !important;
+    }
+
+    .stat-card__count {
+        font-size: 3.8rem;
+    }
+
+    .stat-card {
+        min-height: 195px;
+    }
+
+    .dash-grid {
+        grid-template-columns: 1fr 1fr 24rem;
+        gap: 1.6rem;
+    }
+
+    .calendar-day {
+        height: 90px;
+    }
+
+    .dash-welcome h1 {
+        font-size: 2.4rem;
+    }
+
+    .panel-card {
+        padding: 1.6rem 1.8rem 1.2rem;
+    }
+}
+
+/* ─────────────────────────────────────────────────────
+   1750px — Standard large desktop / 1440p displays
+   ───────────────────────────────────────────────────── */
+@media screen and (max-width: 1750px) {
+    html {
+        font-size: 12px;
+    }
+
+    .container {
+        width: 96%;
+        grid-template-columns: 14rem auto !important;
+        gap: 1.8rem;
+    }
+
+    aside {
+        width: 14rem !important;
+    }
+
+    .stat-card__count {
+        font-size: 3.6rem;
+    }
+
+    .stat-card {
+        min-height: 180px;
+    }
+
+    .dash-grid {
+        grid-template-columns: 1fr 1fr 22rem;
+        gap: 1.4rem;
+    }
+
+    .calendar-day {
+        height: 82px;
+    }
+
+    .dash-welcome h1 {
+        font-size: 2rem;
+    }
+}
+
+/* ─────────────────────────────────────────────────────
+   1250px — Compact desktop / small laptop / tablet-landscape
+   ───────────────────────────────────────────────────── */
+@media screen and (max-width: 1250px) {
+    html {
+        font-size: 13px;
+    }
+
+    .container {
+        width: 98%;
+        grid-template-columns: 12rem auto !important;
+        gap: 1.2rem;
+    }
+
+    aside {
+        width: 12rem !important;
+    }
+
+    /* Sidebar text & links tighten up */
+    aside .sidebar a {
+        height: 3.2rem;
+        margin-left: 1.5rem;
+    }
+
+    /* Stat cards: switch to a 2-column row */
+    main .insights {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-card__count {
+        font-size: 2.8rem;
+    }
+
+    .stat-card {
+        min-height: 160px;
+    }
+
+    .stat-card__body {
+        padding: 1.4rem 1.6rem;
+    }
+
+    /* Dashboard grid: stack into single column when sidebar takes space */
+    .dash-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto;
+        grid-template-areas:
+            "farmers   machines"
+            "ongoing   completed"
+            "calendar  calendar";
+        gap: 1rem;
+    }
+
+    /* Calendar */
+    .calendar-day {
+        height: 68px;
+        padding: 0.5rem 0.3rem 0.3rem;
+    }
+
+    .calendar-day strong {
+        font-size: 0.8rem;
+    }
+
+    .event {
+        font-size: 0.7rem;
+        padding: 1px 4px;
+        margin-top: 22px;
+    }
+
+    .calendar-nav #calendar-header {
+        min-width: 110px;
+        font-size: 0.88rem;
+    }
+
+    .calendar-section-header h2 {
+        font-size: 0.95rem;
+    }
+
+    /* Welcome row */
+    .dash-welcome h1 {
+        font-size: 1.6rem;
+    }
+
+    .dash-welcome p {
+        font-size: 0.78rem;
+    }
+
+    /* Top bar */
+    main .top {
+        gap: 0.7rem;
+    }
+
+    /* Panel cards */
+    .panel-card {
+        padding: 1rem 1.1rem 0.8rem;
+    }
+
+    .panel-card__title {
+        font-size: 0.85rem;
+    }
+
+    .panel-btn {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.6rem;
+    }
+
+    /* Insight cards */
+    .insight-card-link {
+        min-height: 110px;
+        padding: 1.2rem;
+    }
+
+    .count-right h1 {
+        font-size: 1.7rem;
+    }
+}

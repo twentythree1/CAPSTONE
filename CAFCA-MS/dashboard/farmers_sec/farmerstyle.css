@@ -1764,3 +1764,480 @@ td .ecosystem-upland {
     color: #d97706;
     font-weight: 600;
 }
+
+/* ===================================
+   RESPONSIVE ADJUSTMENTS
+   =================================== */
+@media screen and (max-width: 2560px) {
+    html {
+        font-size: 16px;
+    }
+
+    .container {
+        width: 94%;
+        grid-template-columns: 16rem auto !important;
+        gap: 2.2rem;
+    }
+
+    aside {
+        width: 16rem !important;
+    }
+
+    /* Title bar */
+    main .title {
+        padding: 1rem 1.6rem;
+    }
+
+    /* Table cells: a little more spacious */
+    .table-scroll thead th,
+    .table-scroll tbody td {
+        padding: 1.2rem 1.8rem;
+        font-size: 1rem;
+    }
+
+    /* Buttons */
+    .btn.btn-sm {
+        padding: 0.4rem 0.9rem;
+        font-size: 0.82rem;
+    }
+
+    main .btn {
+        padding: 0.75rem 1.2rem;
+        font-size: 1rem;
+    }
+
+    /* Modal */
+    .modal-content {
+        max-width: 820px;
+    }
+
+    /* Count badges */
+    main .farmers-count span,
+    main .machine-count span {
+        padding: 0.85rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    /* Search input */
+    #farmerSearch,
+    #machineSearch,
+    #scheduleSearch,
+    #recordSearch {
+        width: 280px;
+        font-size: 0.95rem;
+    }
+}
+
+/* ─────────────────────────────────────────────────────
+   2000px — Wide / QHD displays
+   ───────────────────────────────────────────────────── */
+@media screen and (max-width: 2000px) {
+    html {
+        font-size: 14px;
+    }
+
+    .container {
+        width: 95%;
+        grid-template-columns: 15rem auto !important;
+        gap: 2rem;
+    }
+
+    aside {
+        width: 15rem !important;
+    }
+
+    .table-scroll thead th,
+    .table-scroll tbody td {
+        padding: 1.1rem 1.6rem;
+    }
+
+    .btn.btn-sm {
+        padding: 0.35rem 0.8rem;
+        font-size: 0.78rem;
+    }
+
+    .modal-content {
+        max-width: 760px;
+    }
+
+    #farmerSearch,
+    #machineSearch,
+    #scheduleSearch,
+    #recordSearch {
+        width: 260px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────
+   1750px — Standard large desktop / 1440p displays
+   ───────────────────────────────────────────────────── */
+@media screen and (max-width: 1750px) {
+    html {
+        font-size: 12px;
+    }
+
+    .container {
+        width: 96%;
+        grid-template-columns: 14rem auto !important;
+        gap: 1.8rem;
+    }
+
+    aside {
+        width: 14rem !important;
+    }
+
+    .table-scroll thead th,
+    .table-scroll tbody td {
+        padding: 1rem 1.4rem;
+    }
+
+    .modal-content {
+        max-width: 700px;
+    }
+
+    #farmerSearch,
+    #machineSearch,
+    #scheduleSearch,
+    #recordSearch {
+        width: 240px;
+    }
+
+    .reschedule-info-icon::before {
+        right: -10.3rem;
+    }
+
+    .reschedule-info-icon::after {
+        right: 1.7rem;
+    }
+
+    .records-table-wrap {
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+
+    .records-table-wrap table,
+    table.records-table {
+        table-layout: fixed;
+        width: 100%;
+        min-width: 900px;
+    }
+    
+    .records-table-wrap table th:nth-child(1),
+    .records-table-wrap table td:nth-child(1),
+    table.records-table th:nth-child(1),
+    table.records-table td:nth-child(1) {
+        width: 48px;
+    }
+
+    .records-table-wrap table th:nth-child(2),
+    .records-table-wrap table td:nth-child(2),
+    table.records-table th:nth-child(2),
+    table.records-table td:nth-child(2) {
+        width: 100px;
+    }
+
+    .records-table-wrap table th:nth-child(3),
+    .records-table-wrap table td:nth-child(3),
+    table.records-table th:nth-child(3),
+    table.records-table td:nth-child(3) {
+        width: 155px;
+    }
+
+    .records-table-wrap table th:nth-child(4),
+    .records-table-wrap table td:nth-child(4),
+    table.records-table th:nth-child(4),
+    table.records-table td:nth-child(4) {
+        width: 100px;
+    }
+
+    .records-table-wrap table th:nth-child(5),
+    .records-table-wrap table td:nth-child(5),
+    table.records-table th:nth-child(5),
+    table.records-table td:nth-child(5) {
+        width: 100px;
+    }
+
+    .records-table-wrap table th:nth-child(6),
+    .records-table-wrap table td:nth-child(6),
+    table.records-table th:nth-child(6),
+    table.records-table td:nth-child(6) {
+        width: 90px;
+    }
+
+    .records-table-wrap table th:nth-child(7),
+    .records-table-wrap table td:nth-child(7),
+    table.records-table th:nth-child(7),
+    table.records-table td:nth-child(7) {
+        width: 90px;
+    }
+
+    .records-table-wrap table th:nth-child(8),
+    .records-table-wrap table td:nth-child(8),
+    table.records-table th:nth-child(8),
+    table.records-table td:nth-child(8) {
+        width: 85px;
+    }
+
+    .records-table-wrap table th:nth-child(9),
+    .records-table-wrap table td:nth-child(9),
+    table.records-table th:nth-child(9),
+    table.records-table td:nth-child(9) {
+        width: 115px;
+    }
+
+    .records-table-wrap table th:nth-child(10),
+    .records-table-wrap table td:nth-child(10),
+    table.records-table th:nth-child(10),
+    table.records-table td:nth-child(10) {
+        width: 85px;
+    }
+
+    .records-table-wrap table th:nth-child(11),
+    .records-table-wrap table td:nth-child(11),
+    table.records-table th:nth-child(11),
+    table.records-table td:nth-child(11) {
+        width: 75px;
+    }
+
+    .records-table-wrap table th:nth-child(12),
+    .records-table-wrap table td:nth-child(12),
+    table.records-table th:nth-child(12),
+    table.records-table td:nth-child(12) {
+        width: 110px;
+    }
+
+    .records-table-wrap table tbody td,
+    table.records-table tbody td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 0;
+    }
+
+    
+    .records-table-wrap table thead th,
+    table.records-table thead th {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    
+    .records-table-wrap table tbody td,
+    table.records-table tbody td {
+        position: relative;
+    }
+
+    .records-table-wrap table tbody td:hover::after,
+    table.records-table tbody td:hover::after {
+        content: attr(data-full);
+        position: absolute;
+        left: 0;
+        top: calc(100% + 6px);
+        z-index: 100;
+        background: var(--color-dark, #364938);
+        color: var(--color-white, #fff);
+        font-size: 0.78rem;
+        font-weight: 500;
+        line-height: 1.45;
+        padding: 0.45rem 0.75rem;
+        border-radius: 8px;
+        white-space: normal;
+        max-width: 260px;
+        min-width: 80px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+        pointer-events: none;
+        animation: tooltipFadeIn 120ms ease both;
+    }
+
+    .records-table-wrap table tbody td:hover::before,
+    table.records-table tbody td:hover::before {
+        content: "";
+        position: absolute;
+        left: 14px;
+        top: calc(100% + 0px);
+        z-index: 101;
+        border: 6px solid transparent;
+        border-bottom-color: var(--color-dark, #364938);
+        pointer-events: none;
+        animation: tooltipFadeIn 120ms ease both;
+    }
+
+    .records-table-wrap table tbody td[data-full=""]:hover::after,
+    .records-table-wrap table tbody td[data-full=""]:hover::before,
+    table.records-table tbody td[data-full=""]:hover::after,
+    table.records-table tbody td[data-full=""]:hover::before {
+        display: none;
+    }
+
+    @keyframes tooltipFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .dark-theme-variables .records-table-wrap table tbody td:hover::after,
+    .dark-theme-variables table.records-table tbody td:hover::after {
+        background: #1a2e1d;
+        border: 1px solid rgba(160, 200, 120, 0.25);
+        color: #c8e6c9;
+    }
+
+    .dark-theme-variables .records-table-wrap table tbody td:hover::before,
+    .dark-theme-variables table.records-table tbody td:hover::before {
+        border-bottom-color: #1a2e1d;
+    }
+
+    .records-table-wrap table tbody td:last-child,
+    table.records-table tbody td:last-child {
+        overflow: visible;
+        white-space: nowrap;
+    }
+
+    .records-table-wrap table tbody td:last-child::after,
+    .records-table-wrap table tbody td:last-child::before,
+    table.records-table tbody td:last-child::after,
+    table.records-table tbody td:last-child::before {
+        display: none !important;
+    }
+}
+
+/* ─────────────────────────────────────────────────────
+   1250px — Compact desktop / small laptop / tablet-landscape
+   ───────────────────────────────────────────────────── */
+@media screen and (max-width: 1250px) {
+    html {
+        font-size: 13px;
+    }
+
+    .container {
+        width: 98%;
+        grid-template-columns: 12rem auto !important;
+        gap: 1.2rem;
+    }
+
+    aside {
+        width: 12rem !important;
+    }
+
+    /* Sidebar links */
+    aside .sidebar a {
+        height: 3.2rem;
+        margin-left: 1.5rem;
+    }
+
+    /* Title bar: allow wrapping on narrow screens */
+    main .title {
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        padding: 0.7rem 1rem;
+    }
+
+    .title-actions {
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    /* Table cells: tighter padding & smaller text */
+    .table-scroll thead th,
+    .table-scroll tbody td {
+        padding: 0.75rem 0.9rem;
+        font-size: 0.8rem;
+    }
+
+    .table-scroll tbody tr td {
+        height: 3rem;
+    }
+
+    /* Allow horizontal scroll on narrow tables instead of overflow-hidden */
+    .table-scroll {
+        overflow-x: auto;
+    }
+
+    /* Action buttons */
+    .btn.btn-sm {
+        padding: 0.25rem 0.55rem;
+        font-size: 0.7rem;
+        gap: 2px;
+    }
+
+    main .btn {
+        padding: 0.5rem 0.85rem;
+        font-size: 0.82rem;
+    }
+
+    /* Count badges */
+    main .farmers-count,
+    main .machine-count {
+        gap: 0.8rem;
+    }
+
+    main .farmers-count span,
+    main .machine-count span {
+        padding: 0.5rem 0.9rem;
+        font-size: 0.82rem;
+    }
+
+    /* Search */
+    #farmerSearch,
+    #machineSearch,
+    #scheduleSearch,
+    #recordSearch {
+        width: 180px;
+        font-size: 0.78rem;
+    }
+
+    .search-expand-wrap.expanded .search-fields {
+        max-width: 340px;
+    }
+
+    /* Modal */
+    .modal-content {
+        width: 95%;
+        max-width: 580px;
+        margin: 5% auto;
+    }
+
+    .modal-header {
+        padding: 1.1rem 1.4rem;
+    }
+
+    .modal-body {
+        padding: 1.4rem;
+    }
+
+    .modal-header h2 {
+        font-size: 1.1rem;
+    }
+
+    /* Form inputs inside modal */
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        font-size: 0.88rem;
+        padding: 0.6rem;
+    }
+
+    /* Alert success bar */
+    main .top .alert-success {
+        width: 60%;
+        font-size: 0.82rem;
+        padding: 0.9rem;
+    }
+
+    /* Top bar */
+    .top {
+        gap: 0.7rem;
+    }
+
+    main .top .theme-toggler {
+        width: 3.6rem;
+        height: 1.4rem;
+    }
+}
