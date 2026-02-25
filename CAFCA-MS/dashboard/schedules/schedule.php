@@ -692,7 +692,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeDetailsModal()">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="printScheduleAsImage()">Download as
+                    <button type="button" class="btn btn-primary" onclick="printScheduleAsImage()"><span
+                            class="material-icons-sharp"
+                            style="font-size:18px; vertical-align:middle; margin-right:4px;">download</span>Download as
                         Image</button>
                 </div>
             </div>
@@ -830,7 +832,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             });
         });
     });
-
     </script>
 
     <!-- ADD SCHEDULE MODAL -->
@@ -864,7 +865,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             <input type="text" id="non_member_name" name="non_member_name"
                                 placeholder="Enter non-member full name" maxlength="255"
                                 style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.95rem;">
-                            <small style="color:#e65100; display:block; margin-top:0.25rem;">⚠️ This person is not a registered member of the association.</small>
+                            <small style="color:#e65100; display:block; margin-top:0.25rem;">⚠️ This person is not a
+                                registered member of the association.</small>
                         </div>
                     </div>
 
@@ -978,7 +980,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             <input type="text" id="edit_non_member_name" name="non_member_name"
                                 placeholder="Enter non-member full name" maxlength="255"
                                 style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.95rem;">
-                            <small style="color:#e65100; display:block; margin-top:0.25rem;">⚠️ This person is not a registered member of the association.</small>
+                            <small style="color:#e65100; display:block; margin-top:0.25rem;">⚠️ This person is not a
+                                registered member of the association.</small>
                         </div>
                     </div>
 
@@ -1260,7 +1263,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             const machineName = selectedOption.textContent.trim();
             const confirmed = confirm(
                 `⚠️ "${machineName}" is Partially Damaged. It may not perform at full capacity and could affect operations.\n\nAre you sure you want to book this machine?`
-                );
+            );
             if (!confirmed) return;
         }
 
@@ -1394,7 +1397,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         availabilityDiv.style.background = '#ffebee';
                         availabilityDiv.style.borderColor = '#f44336';
                         availabilityMsg.style.color = '#c62828';
-                        availabilityMsg.innerHTML = `❌ ${data.message || 'This machine is already booked for the selected period.'}`;
+                        availabilityMsg.innerHTML =
+                            `❌ ${data.message || 'This machine is already booked for the selected period.'}`;
                     }
                 })
                 .catch(error => console.error('Error checking availability:', error));
@@ -1528,7 +1532,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             const machineName = selectedOption.textContent.trim();
             const confirmed = confirm(
                 `⚠️ The selected machine "${machineName}" is Partially Damaged.\n\nIt may not perform at full capacity and could affect operations.\n\nAre you sure you want to book this machine?`
-                );
+            );
             if (!confirmed) return;
         }
 
