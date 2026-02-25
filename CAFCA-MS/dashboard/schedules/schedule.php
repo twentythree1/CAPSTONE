@@ -168,7 +168,7 @@ $machine_count = array_sum($machineCounts);
 if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['id'])) {
     header('Content-Type: application/json');
     $id = intval($_GET['id']);
-    $sql = "SELECT s.*, f.name as farmer_name, m.name as machine_name 
+    $sql = "SELECT s.*, COALESCE(f.name, s.non_member_name) as farmer_name, m.name as machine_name 
             FROM schedules s
             LEFT JOIN farmers f ON s.farmer_id = f.id
             LEFT JOIN machines m ON s.machine_id = m.id
@@ -421,7 +421,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                 SELECT 
                     schedules.id,
                     schedules.status,
-                    farmers.name AS farmer_name,
+                    COALESCE(farmers.name, schedules.non_member_name) AS farmer_name,
+                    schedules.non_member_name,
                     machines.name AS machine_name,
                     schedules.schedule_date,
                     schedules.date_span,
@@ -430,7 +431,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     schedules.reschedule_reason,
                     schedules.rescheduled_at
                 FROM schedules
-                JOIN farmers ON schedules.farmer_id = farmers.id
+                LEFT JOIN farmers ON schedules.farmer_id = farmers.id
                 JOIN machines ON schedules.machine_id = machines.id
             ";
             $result = $conn->query($sql);
@@ -534,8 +535,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                     $safemachine = htmlspecialchars(strtolower($row['machine_name']), ENT_QUOTES, 'UTF-8');
                     $safestatus  = htmlspecialchars(strtolower($status),              ENT_QUOTES, 'UTF-8');
                     echo "<tr class='schedule-row' data-farmer='{$safefarmer}' data-machine='{$safemachine}' data-status='{$safestatus}'>";
+                    $isNonMember = !empty($row['non_member_name']);
+                    $nonMemberBadge = $isNonMember ? ' <span title="Non-Member" style="display:inline-block;font-size:0.65rem;font-weight:700;background:#ff9800;color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;letter-spacing:0.3px;">NON-MEMBER</span>' : '';
                     echo "<td>{$row['id']}</td>";
-                    echo "<td>{$row['farmer_name']}</td>";
+                    echo "<td>" . htmlspecialchars($row['farmer_name']) . $nonMemberBadge . "</td>";
                     echo "<td>{$row['machine_name']}</td>";
                     echo "<td>$start_date</td>";
                     echo "<td>$end_date</td>";
@@ -846,8 +849,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
                     <div class="form-group">
                         <label for="farmer_id">Farmer <span style="color: red;">*</span></label>
-                        <select name="farmer_id" id="farmer_id" required class="form-select">
+                        <select name="farmer_id" id="farmer_id" class="form-select" onchange="toggleNonMemberInput()">
                             <option value="">Select a Farmer</option>
+                            <option value="non_member" style="font-style:italic; color:#e65100;">— Non-Member —</option>
                             <?php
                             $farmerList = $conn->query("SELECT id, name FROM farmers ORDER BY name ASC");
                             while ($row = $farmerList->fetch_assoc()): ?>
@@ -856,6 +860,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             </option>
                             <?php endwhile; ?>
                         </select>
+                        <div id="nonMemberNameGroup" style="display:none; margin-top:0.5rem;">
+                            <input type="text" id="non_member_name" name="non_member_name"
+                                placeholder="Enter non-member full name" maxlength="255"
+                                style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.95rem;">
+                            <small style="color:#e65100; display:block; margin-top:0.25rem;">⚠️ This person is not a registered member of the association.</small>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -1044,6 +1054,22 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
     <!-- ADD SCHEDULE MODAL SCRIPT -->
     <script>
+    // Non-member toggle
+    function toggleNonMemberInput() {
+        const farmerSelect = document.getElementById('farmer_id');
+        const nonMemberGroup = document.getElementById('nonMemberNameGroup');
+        const nonMemberInput = document.getElementById('non_member_name');
+
+        if (farmerSelect.value === 'non_member') {
+            nonMemberGroup.style.display = 'block';
+            nonMemberInput.required = true;
+        } else {
+            nonMemberGroup.style.display = 'none';
+            nonMemberInput.required = false;
+            nonMemberInput.value = '';
+        }
+    }
+
     // Function to check machine availability in real-time
     function checkMachineAvailability() {
         const machineSelect = document.getElementById('machine_id');

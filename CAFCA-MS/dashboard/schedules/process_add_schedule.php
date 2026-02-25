@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $farmer_id = $_POST["farmer_id"] ?? "";
+$non_member_name = trim($_POST["non_member_name"] ?? "");
 $machine_id = $_POST["machine_id"] ?? "";
 $schedule_date = $_POST["schedule_date"] ?? "";
 $end_date = $_POST["end_date"] ?? "";
@@ -26,15 +27,22 @@ $start_time = $_POST["start_time"] ?? "";
 $end_time = $_POST["end_time"] ?? "";
 $redirect = $_POST["redirect"] ?? "Pending";
 
+$is_non_member = ($farmer_id === 'non_member');
+
+if ($is_non_member) {
+    $farmer_id = null; // will be NULL in DB
+}
+
 if (
-    empty($farmer_id) ||
+    (!$is_non_member && empty($farmer_id)) ||
+    ($is_non_member && empty($non_member_name)) ||
     empty($machine_id) ||
     empty($schedule_date) ||
     empty($end_date) ||
     empty($start_time) ||
     empty($end_time)
 ) {
-    echo json_encode(['success' => false, 'message' => 'All fields are required!']);
+    echo json_encode(['success' => false, 'message' => $is_non_member && empty($non_member_name) ? 'Please enter the non-member\'s name.' : 'All fields are required!']);
     exit;
 }
 
@@ -128,41 +136,49 @@ if ((int)$conflictData['conflict_count'] > 0) {
     exit;
 }
 
-// Check if this farmer is already booked during the requested period
-$farmer_id_esc = $conn->real_escape_string($farmer_id);
+// Check if this farmer is already booked during the requested period (skip for non-members)
+if (!$is_non_member && !empty($farmer_id)) {
+    $farmer_id_esc = $conn->real_escape_string($farmer_id);
 
-$farmerConflictQuery = "
-    SELECT COUNT(*) as conflict_count FROM schedules 
-    WHERE farmer_id = '$farmer_id_esc'
-      AND status IN ('Pending', 'Approved', 'On going')
-      AND (
-            DATE_ADD(schedule_date, INTERVAL date_span DAY) >= '$schedule_date_esc'
-            AND schedule_date <= '$end_date_esc'
-        )
-      AND (
-            start_time < '$end_time_esc' AND end_time > '$start_time_esc'
-        )
-";
+    $farmerConflictQuery = "
+        SELECT COUNT(*) as conflict_count FROM schedules 
+        WHERE farmer_id = '$farmer_id_esc'
+          AND status IN ('Pending', 'Approved', 'On going')
+          AND (
+                DATE_ADD(schedule_date, INTERVAL date_span DAY) >= '$schedule_date_esc'
+                AND schedule_date <= '$end_date_esc'
+            )
+          AND (
+                start_time < '$end_time_esc' AND end_time > '$start_time_esc'
+            )
+    ";
 
-$farmerConflictResult = $conn->query($farmerConflictQuery);
-if (!$farmerConflictResult) {
-    echo json_encode(['success' => false, 'message' => 'Error checking farmer availability: ' . $conn->error]);
-    exit;
+    $farmerConflictResult = $conn->query($farmerConflictQuery);
+    if (!$farmerConflictResult) {
+        echo json_encode(['success' => false, 'message' => 'Error checking farmer availability: ' . $conn->error]);
+        exit;
+    }
+
+    $farmerConflictData = $farmerConflictResult->fetch_assoc();
+
+    if ((int)$farmerConflictData['conflict_count'] > 0) {
+        echo json_encode(['success' => false, 'message' => 'This farmer is already booked for the selected date/time.']);
+        exit;
+    }
 }
 
-$farmerConflictData = $farmerConflictResult->fetch_assoc();
-
-if ((int)$farmerConflictData['conflict_count'] > 0) {
-    echo json_encode(['success' => false, 'message' => 'This farmer is already booked for the selected date/time.']);
-    exit;
-}
-
-$farmer_id = (int)$farmer_id;
 $machine_id = (int)$machine_id;
 $date_span = (int)$date_span;
 
-$sql = "INSERT INTO schedules (farmer_id, machine_id, schedule_date, date_span, start_time, end_time, status) 
-        VALUES ('$farmer_id', '$machine_id', '$schedule_date_esc', '$date_span', '$start_time_esc', '$end_time_esc', 'Pending')";
+if ($is_non_member) {
+    $non_member_name_esc = $conn->real_escape_string($non_member_name);
+    $sql = "INSERT INTO schedules (farmer_id, non_member_name, machine_id, schedule_date, date_span, start_time, end_time, status) 
+            VALUES (NULL, '$non_member_name_esc', '$machine_id', '$schedule_date_esc', '$date_span', '$start_time_esc', '$end_time_esc', 'Pending')";
+} else {
+    $farmer_id = (int)$farmer_id;
+    $sql = "INSERT INTO schedules (farmer_id, non_member_name, machine_id, schedule_date, date_span, start_time, end_time, status) 
+            VALUES ('$farmer_id', NULL, '$machine_id', '$schedule_date_esc', '$date_span', '$start_time_esc', '$end_time_esc', 'Pending')";
+}
 
 $result = $conn->query($sql);
 

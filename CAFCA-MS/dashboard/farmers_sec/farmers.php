@@ -333,6 +333,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                             <span class="material-icons-sharp">search</span>
                         </button>
                     </div>
+                    <a href="javascript:void(0)" onclick="exportToExcel()" class="btn btn-primary farmer-btn" role="button" title="Export table to Excel" style="background-color: #217346;">
+                        <span class="material-icons-sharp" style="font-size:18px; vertical-align:middle; margin-right:4px;">download</span>Export Excel
+                    </a>
                     <a href="javascript:void(0)" onclick="openAddFarmerModal()" class="btn btn-primary farmer-btn" role="button">Add Farmer</a>
                 </div>
             </div>
@@ -803,6 +806,57 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
     </script>
 
     <script src="../main/dashscript.js"></script>
+
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+    function exportToExcel() {
+        const table = document.querySelector('.table');
+        const headers = [];
+        const headerCells = table.querySelectorAll('thead tr th');
+        headerCells.forEach((th, i) => {
+            if (th.textContent.trim() !== 'Action') {
+                headers.push({ index: i, label: th.textContent.trim() });
+            }
+        });
+
+        const rows = table.querySelectorAll('tbody tr.farmer-row');
+        const data = [];
+
+        data.push(headers.map(h => h.label));
+
+        rows.forEach(row => {
+            if (row.style.display === 'none') return;
+            const rowData = [];
+            headers.forEach(h => {
+                const cell = row.cells[h.index];
+                const text = (cell && cell.dataset.original !== undefined)
+                    ? cell.dataset.original
+                    : (cell ? cell.textContent.trim() : '');
+                rowData.push(text);
+            });
+            data.push(rowData);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+
+        const colWidths = data[0].map((_, colIdx) => {
+            const maxLen = data.reduce((max, row) => {
+                const val = row[colIdx] ? String(row[colIdx]).length : 0;
+                return Math.max(max, val);
+            }, 10);
+            return { wch: Math.min(maxLen + 2, 40) };
+        });
+        ws['!cols'] = colWidths;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Farmers');
+
+        const today = new Date();
+        const dateStr = today.toISOString().slice(0, 10);
+        XLSX.writeFile(wb, `Farmers_${dateStr}.xlsx`);
+    }
+    </script>
 </body>
 
 </html>
