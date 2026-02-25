@@ -224,15 +224,18 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Partially Damaged">
                             <span>Partially Damaged</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Partially Damaged'] ?? 0) ?></span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Partially Damaged'] ?? 0) ?></span>
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Totally Damaged">
                             <span>Totally Damaged</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Not Returned">
                             <span>Not Returned</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
                         </a>
                     </div>
                 </div>
@@ -323,7 +326,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                                 <option value="acre(s)">acre(s)</option>
                             </select>
                             <div class="search-input-wrap">
-                                <input type="text" id="farmerSearch" placeholder="Search name, address, contact..." autocomplete="off">
+                                <input type="text" id="farmerSearch" placeholder="Search name, address, contact..."
+                                    autocomplete="off">
                                 <button class="clear-search" id="clearSearch" title="Clear" style="display:none;">
                                     <span class="material-icons-sharp">close</span>
                                 </button>
@@ -333,10 +337,13 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                             <span class="material-icons-sharp">search</span>
                         </button>
                     </div>
-                    <a href="javascript:void(0)" onclick="exportToExcel()" class="btn btn-primary farmer-btn" role="button" title="Export table to Excel" style="background-color: #217346;">
-                        <span class="material-icons-sharp" style="font-size:18px; vertical-align:middle; margin-right:4px;">download</span>Export Excel
+                    <a href="javascript:void(0)" onclick="exportToExcel()" class="btn btn-primary farmer-btn"
+                        role="button" title="Export table to Excel" style="background-color: #217346;">
+                        <span class="material-icons-sharp"
+                            style="font-size:18px; vertical-align:middle; margin-right:4px;">download</span>Export Excel
                     </a>
-                    <a href="javascript:void(0)" onclick="openAddFarmerModal()" class="btn btn-primary farmer-btn" role="button">Add Farmer</a>
+                    <a href="javascript:void(0)" onclick="openAddFarmerModal()" class="btn btn-primary farmer-btn"
+                        role="button">Add Farmer</a>
                 </div>
             </div>
 
@@ -403,8 +410,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                     ?>
 
                         <tr id="noResultsRow" style="display:none;">
-                            <td colspan="10" style="text-align:center; padding: 2rem; color: var(--color-dark-variant);">
-                                <span class="material-icons-sharp" style="font-size:2rem; display:block; margin-bottom:0.5rem;">search_off</span>
+                            <td colspan="10"
+                                style="text-align:center; padding: 2rem; color: var(--color-dark-variant);">
+                                <span class="material-icons-sharp"
+                                    style="font-size:2rem; display:block; margin-bottom:0.5rem;">search_off</span>
                                 No farmers found matching your search.
                             </td>
                         </tr>
@@ -433,22 +442,27 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
 
                     <div class="form-group">
                         <label for="farmer_birthday">Birthday <span style="color: red;">*</span></label>
-                        <input type="date" id="farmer_birthday" name="birthday" max="<?= date('Y-m-d', strtotime('-15 years')) ?>" required>
-                        <small style="color: var(--color-dark-variant); display: block; margin-top: 0.25rem;">Farmer must be at least 15 years old</small>
+                        <input type="date" id="farmer_birthday" name="birthday"
+                            max="<?= date('Y-m-d', strtotime('-15 years')) ?>" required>
+                        <small style="color: var(--color-dark-variant); display: block; margin-top: 0.25rem;">Farmer
+                            must be at least 15 years old</small>
                     </div>
 
                     <div class="form-group">
                         <label for="farmer_address">Address <span style="color: red;">*</span></label>
-                        <input type="text" id="farmer_address" name="address" placeholder="Enter complete address" required>
+                        <input type="text" id="farmer_address" name="address" placeholder="Enter complete address"
+                            required>
                     </div>
 
                     <div class="form-group">
                         <label for="farmer_land">Land Area <span style="color: red;">*</span></label>
-                        <input type="number" id="farmer_land" name="land" step="0.25" min="0" placeholder="Enter land area" required>
+                        <input type="number" id="farmer_land" name="land" step="0.25" min="0"
+                            placeholder="Enter land area" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="farmer_unit">Unit of Measurement of Land Area <span style="color: red;">*</span></label>
+                        <label for="farmer_unit">Unit of Measurement of Land Area <span
+                                style="color: red;">*</span></label>
                         <select id="farmer_unit" name="unit" required>
                             <option value="">--- Select unit ---</option>
                             <option value="cm²">cm²</option>
@@ -466,7 +480,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
 
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="closeAddFarmerModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50">Add Farmer</button>
+                        <button type="submit" class="btn btn-primary" style="background-color: #4CAF50">Add
+                            Farmer</button>
                     </div>
                 </form>
             </div>
@@ -486,30 +501,36 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
 
                 <form id="editFarmerForm" method="POST">
                     <input type="hidden" id="edit_farmer_id" name="id">
-                    
+
                     <div class="form-group">
                         <label for="edit_farmer_name">Name <span style="color: red;">*</span></label>
-                        <input type="text" id="edit_farmer_name" name="name" placeholder="Enter farmer's full name" required>
+                        <input type="text" id="edit_farmer_name" name="name" placeholder="Enter farmer's full name"
+                            required>
                     </div>
 
                     <div class="form-group">
                         <label for="edit_farmer_birthday">Birthday <span style="color: red;">*</span></label>
-                        <input type="date" id="edit_farmer_birthday" name="birthday" max="<?= date('Y-m-d', strtotime('-15 years')) ?>" required>
-                        <small style="color: var(--color-dark-variant); display: block; margin-top: 0.25rem;">Farmer must be at least 15 years old</small>
+                        <input type="date" id="edit_farmer_birthday" name="birthday"
+                            max="<?= date('Y-m-d', strtotime('-15 years')) ?>" required>
+                        <small style="color: var(--color-dark-variant); display: block; margin-top: 0.25rem;">Farmer
+                            must be at least 15 years old</small>
                     </div>
 
                     <div class="form-group">
                         <label for="edit_farmer_address">Address <span style="color: red;">*</span></label>
-                        <input type="text" id="edit_farmer_address" name="address" placeholder="Enter complete address" required>
+                        <input type="text" id="edit_farmer_address" name="address" placeholder="Enter complete address"
+                            required>
                     </div>
 
                     <div class="form-group">
                         <label for="edit_farmer_land">Land Area <span style="color: red;">*</span></label>
-                        <input type="number" id="edit_farmer_land" name="land" step="0.25" min="0" placeholder="Enter land area" required>
+                        <input type="number" id="edit_farmer_land" name="land" step="0.25" min="0"
+                            placeholder="Enter land area" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="edit_farmer_unit">Unit of Measurement of Land Area <span style="color: red;">*</span></label>
+                        <label for="edit_farmer_unit">Unit of Measurement of Land Area <span
+                                style="color: red;">*</span></label>
                         <select id="edit_farmer_unit" name="unit" required>
                             <option value="">--- Select unit ---</option>
                             <option value="cm²">cm²</option>
@@ -522,7 +543,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
 
                     <div class="form-group">
                         <label for="edit_farmer_phone">Contact Number <span style="color: red;">*</span></label>
-                        <input type="text" id="edit_farmer_phone" name="phone" placeholder="Enter contact number" maxlength="11" required>
+                        <input type="text" id="edit_farmer_phone" name="phone" placeholder="Enter contact number"
+                            maxlength="11" required>
                     </div>
 
                     <div class="form-actions">
@@ -538,10 +560,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
     <script>
     function openAddFarmerModal() {
         const modal = document.getElementById('addFarmerModal');
-        
+
         document.getElementById('addFarmerForm').reset();
         document.getElementById('addFarmerErrorMessage').style.display = 'none';
-        
+
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
     }
@@ -608,7 +630,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
         const modal = document.getElementById('editFarmerModal');
         const errorDiv = document.getElementById('editFarmerErrorMessage');
         errorDiv.style.display = 'none';
-        
+
         // Fetch farmer data
         fetch(`farmers.php?action=get_farmer&id=${farmerId}`)
             .then(response => response.json())
@@ -622,7 +644,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                     document.getElementById('edit_farmer_land').value = data.data.land;
                     document.getElementById('edit_farmer_unit').value = data.data.unit;
                     document.getElementById('edit_farmer_phone').value = data.data.phone;
-                    
+
                     modal.style.display = 'block';
                     document.body.style.overflow = 'hidden';
                 } else {
@@ -687,14 +709,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
 
     <!-- SEARCH & FILTER SCRIPT -->
     <script>
-    (function () {
-        const searchInput  = document.getElementById('farmerSearch');
-        const filterUnit   = document.getElementById('filterUnit');
-        const clearBtn     = document.getElementById('clearSearch');
+    (function() {
+        const searchInput = document.getElementById('farmerSearch');
+        const filterUnit = document.getElementById('filterUnit');
+        const clearBtn = document.getElementById('clearSearch');
         const resultsCount = document.getElementById('resultsCount');
         const noResultsRow = document.getElementById('noResultsRow');
-        const searchWrap   = document.getElementById('searchWrap');
-        const toggleBtn    = document.getElementById('searchToggleBtn');
+        const searchWrap = document.getElementById('searchWrap');
+        const toggleBtn = document.getElementById('searchToggleBtn');
 
         // Columns to search: name (1), address (4), phone (7)
         const SEARCHABLE_COLS = [1, 4, 7];
@@ -712,10 +734,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
             }
         }
 
-        toggleBtn.addEventListener('click', function () {
+        toggleBtn.addEventListener('click', function() {
             if (searchWrap.classList.contains('expanded')) {
                 searchInput.value = '';
-                filterUnit.value  = '';
+                filterUnit.value = '';
                 applyFilters();
                 searchWrap.classList.remove('expanded');
             } else {
@@ -724,25 +746,25 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
         });
 
         // Keep open while hovering the whole wrap
-        searchWrap.addEventListener('focusout', function (e) {
+        searchWrap.addEventListener('focusout', function(e) {
             if (!searchWrap.contains(e.relatedTarget)) closeSearch();
         });
 
         // filtering function
         function applyFilters() {
-            const query      = searchInput.value.trim().toLowerCase();
+            const query = searchInput.value.trim().toLowerCase();
             const unitFilter = filterUnit.value;
-            const rows       = document.querySelectorAll('.farmer-row');
+            const rows = document.querySelectorAll('.farmer-row');
 
             clearBtn.style.display = query ? 'flex' : 'none';
 
             let visible = 0;
 
             rows.forEach(row => {
-                const name    = row.dataset.name    || '';
+                const name = row.dataset.name || '';
                 const address = row.dataset.address || '';
-                const phone   = row.dataset.phone   || '';
-                const unit    = row.dataset.unit    || '';
+                const phone = row.dataset.phone || '';
+                const unit = row.dataset.unit || '';
 
                 const matchesSearch = !query ||
                     name.includes(query) ||
@@ -764,7 +786,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                         const original = cell.dataset.original;
                         if (query) {
                             const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
-                            cell.innerHTML = original.replace(regex, '<mark class="search-highlight">$1</mark>');
+                            cell.innerHTML = original.replace(regex,
+                                '<mark class="search-highlight">$1</mark>');
                         } else {
                             cell.textContent = original;
                         }
@@ -797,7 +820,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
         searchInput.addEventListener('input', applyFilters);
         filterUnit.addEventListener('change', applyFilters);
 
-        clearBtn.addEventListener('click', function () {
+        clearBtn.addEventListener('click', function() {
             searchInput.value = '';
             applyFilters();
             searchInput.focus();
@@ -816,7 +839,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
         const headerCells = table.querySelectorAll('thead tr th');
         headerCells.forEach((th, i) => {
             if (th.textContent.trim() !== 'Action') {
-                headers.push({ index: i, label: th.textContent.trim() });
+                headers.push({
+                    index: i,
+                    label: th.textContent.trim()
+                });
             }
         });
 
@@ -830,9 +856,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
             const rowData = [];
             headers.forEach(h => {
                 const cell = row.cells[h.index];
-                const text = (cell && cell.dataset.original !== undefined)
-                    ? cell.dataset.original
-                    : (cell ? cell.textContent.trim() : '');
+                const text = (cell && cell.dataset.original !== undefined) ?
+                    cell.dataset.original :
+                    (cell ? cell.textContent.trim() : '');
                 rowData.push(text);
             });
             data.push(rowData);
@@ -845,7 +871,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                 const val = row[colIdx] ? String(row[colIdx]).length : 0;
                 return Math.max(max, val);
             }, 10);
-            return { wch: Math.min(maxLen + 2, 40) };
+            return {
+                wch: Math.min(maxLen + 2, 40)
+            };
         });
         ws['!cols'] = colWidths;
 

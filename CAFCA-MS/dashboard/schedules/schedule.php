@@ -964,8 +964,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
                     <div class="form-group">
                         <label for="edit_farmer_id">Farmer <span style="color: red;">*</span></label>
-                        <select id="edit_farmer_id" name="farmer_id" required>
+                        <select id="edit_farmer_id" name="farmer_id" onchange="toggleEditNonMemberInput()">
                             <option value="">Select a Farmer</option>
+                            <option value="non_member" style="font-style:italic; color:#e65100;">— Non-Member —</option>
                             <?php
                             $farmerList = $conn->query("SELECT id, name FROM farmers ORDER BY name");
                             while ($row = $farmerList->fetch_assoc()):
@@ -973,6 +974,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                             <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
                             <?php endwhile; ?>
                         </select>
+                        <div id="editNonMemberNameGroup" style="display:none; margin-top:0.5rem;">
+                            <input type="text" id="edit_non_member_name" name="non_member_name"
+                                placeholder="Enter non-member full name" maxlength="255"
+                                style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.95rem;">
+                            <small style="color:#e65100; display:block; margin-top:0.25rem;">⚠️ This person is not a registered member of the association.</small>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -1059,6 +1066,21 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const farmerSelect = document.getElementById('farmer_id');
         const nonMemberGroup = document.getElementById('nonMemberNameGroup');
         const nonMemberInput = document.getElementById('non_member_name');
+
+        if (farmerSelect.value === 'non_member') {
+            nonMemberGroup.style.display = 'block';
+            nonMemberInput.required = true;
+        } else {
+            nonMemberGroup.style.display = 'none';
+            nonMemberInput.required = false;
+            nonMemberInput.value = '';
+        }
+    }
+
+    function toggleEditNonMemberInput() {
+        const farmerSelect = document.getElementById('edit_farmer_id');
+        const nonMemberGroup = document.getElementById('editNonMemberNameGroup');
+        const nonMemberInput = document.getElementById('edit_non_member_name');
 
         if (farmerSelect.value === 'non_member') {
             nonMemberGroup.style.display = 'block';
@@ -1391,12 +1413,30 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
             .then(data => {
                 if (data.success) {
                     document.getElementById('edit_schedule_id').value = data.data.id;
-                    document.getElementById('edit_farmer_id').value = data.data.farmer_id;
                     document.getElementById('edit_machine_id').value = data.data.machine_id;
                     document.getElementById('edit_schedule_date').value = data.data.schedule_date;
                     document.getElementById('edit_date_span').value = data.data.date_span;
                     document.getElementById('edit_start_time').value = data.data.start_time;
                     document.getElementById('edit_end_time').value = data.data.end_time;
+
+                    // Handle non-member vs registered farmer
+                    const farmerSelect = document.getElementById('edit_farmer_id');
+                    const nonMemberGroup = document.getElementById('editNonMemberNameGroup');
+                    const nonMemberInput = document.getElementById('edit_non_member_name');
+
+                    if (data.data.non_member_name) {
+                        // It's a non-member schedule — select the non_member option and fill the name
+                        farmerSelect.value = 'non_member';
+                        nonMemberGroup.style.display = 'block';
+                        nonMemberInput.value = data.data.non_member_name;
+                        nonMemberInput.required = true;
+                    } else {
+                        // Regular farmer
+                        farmerSelect.value = data.data.farmer_id;
+                        nonMemberGroup.style.display = 'none';
+                        nonMemberInput.value = '';
+                        nonMemberInput.required = false;
+                    }
 
                     updateEditEndDate();
                     checkEditMachineAvailability();
@@ -1417,6 +1457,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         const modal = document.getElementById('editScheduleModal');
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
+        // Reset non-member fields
+        document.getElementById('editNonMemberNameGroup').style.display = 'none';
+        document.getElementById('edit_non_member_name').value = '';
+        document.getElementById('edit_non_member_name').required = false;
     }
 
     function updateEditEndDate() {

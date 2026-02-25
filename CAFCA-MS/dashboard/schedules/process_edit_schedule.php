@@ -26,20 +26,38 @@ $errorMessage = "";
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $id = isset($_POST["id"]) ? (int)$_POST["id"] : 0;
-    $farmer_id = isset($_POST["farmer_id"]) ? (int)$_POST["farmer_id"] : 0;
+    $farmer_id = isset($_POST["farmer_id"]) ? $_POST["farmer_id"] : '';
+    $non_member_name = isset($_POST["non_member_name"]) ? trim($_POST["non_member_name"]) : '';
     $machine_id = isset($_POST["machine_id"]) ? (int)$_POST["machine_id"] : 0;
     $schedule_date = isset($_POST["schedule_date"]) ? $_POST["schedule_date"] : '';
     $date_span = isset($_POST["date_span"]) ? (int)$_POST["date_span"] : 0;
     $start_time = isset($_POST["start_time"]) ? $_POST["start_time"] : '';
     $end_time = isset($_POST["end_time"]) ? $_POST["end_time"] : '';
 
+    $is_non_member = ($farmer_id === 'non_member');
+    if ($is_non_member) {
+        $farmer_id_int = null;
+    } else {
+        $farmer_id_int = (int)$farmer_id;
+    }
+
     do {
         if (
-            empty($id) || empty($farmer_id) || empty($machine_id) ||
+            empty($id) || empty($machine_id) ||
             empty($schedule_date) || (!is_numeric($date_span) && $date_span !== 0) ||
             empty($start_time) || empty($end_time)
         ) {
             $errorMessage = "All fields are required!";
+            break;
+        }
+
+        if ($is_non_member && empty($non_member_name)) {
+            $errorMessage = "Please enter the non-member's name.";
+            break;
+        }
+
+        if (!$is_non_member && empty($farmer_id_int)) {
+            $errorMessage = "Please select a farmer.";
             break;
         }
 
@@ -87,8 +105,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $unavailableUntil = $machineData['unavailable_until'];
         $machineStmt->close();
 
-        // Check if this machine is currently "Not Returned" (past its end datetime with no return_date)
-        // Exclude the current schedule being edited so it doesn't block editing its own entry
         $notReturnedStmt = $conn->prepare(
             "SELECT COUNT(*) as cnt FROM schedules
              WHERE machine_id = ?
@@ -160,44 +176,55 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             break;
         }
 
-        // Check if this farmer is already booked during the requested period (excluding current schedule)
-        $farmerConflictQuery = "
-            SELECT COUNT(*) as conflict_count FROM schedules 
-            WHERE farmer_id = ? 
-              AND id != ?
-              AND status IN ('Pending', 'Approved', 'On going')
-              AND (
-                    DATE_ADD(schedule_date, INTERVAL date_span DAY) >= ?
-                    AND schedule_date <= ?
-                )
-              AND (
-                    start_time < ? AND end_time > ?
-                )
-        ";
+        if (!$is_non_member && $farmer_id_int) {
+            $farmerConflictQuery = "
+                SELECT COUNT(*) as conflict_count FROM schedules 
+                WHERE farmer_id = ? 
+                  AND id != ?
+                  AND status IN ('Pending', 'Approved', 'On going')
+                  AND (
+                        DATE_ADD(schedule_date, INTERVAL date_span DAY) >= ?
+                        AND schedule_date <= ?
+                    )
+                  AND (
+                        start_time < ? AND end_time > ?
+                    )
+            ";
 
-        $farmerConflictStmt = $conn->prepare($farmerConflictQuery);
-        $farmerConflictStmt->bind_param("iissss", $farmer_id, $id, $schedule_date, $end_date, $end_time, $start_time);
-        $farmerConflictStmt->execute();
-        $farmerConflictResult = $farmerConflictStmt->get_result();
-        $farmerConflictData = $farmerConflictResult->fetch_assoc();
-        $farmerConflictStmt->close();
+            $farmerConflictStmt = $conn->prepare($farmerConflictQuery);
+            $farmerConflictStmt->bind_param("iissss", $farmer_id_int, $id, $schedule_date, $end_date, $end_time, $start_time);
+            $farmerConflictStmt->execute();
+            $farmerConflictResult = $farmerConflictStmt->get_result();
+            $farmerConflictData = $farmerConflictResult->fetch_assoc();
+            $farmerConflictStmt->close();
 
-        if ((int)$farmerConflictData['conflict_count'] > 0) {
-            $errorMessage = "This farmer is already booked during the selected date/time.";
-            break;
+            if ((int)$farmerConflictData['conflict_count'] > 0) {
+                $errorMessage = "This farmer is already booked during the selected date/time.";
+                break;
+            }
         }
 
-        $sql = "UPDATE schedules 
-                SET farmer_id = ?, machine_id = ?, schedule_date = ?, date_span = ?, start_time = ?, end_time = ? 
-                WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-
-        if (!$stmt) {
-            $errorMessage = "Database error: " . $conn->error;
-            break;
+        if ($is_non_member) {
+            $sql = "UPDATE schedules 
+                    SET farmer_id = NULL, non_member_name = ?, machine_id = ?, schedule_date = ?, date_span = ?, start_time = ?, end_time = ? 
+                    WHERE id = ?";
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                $errorMessage = "Database error: " . $conn->error;
+                break;
+            }
+            $stmt->bind_param("sissssi", $non_member_name, $machine_id, $schedule_date, $date_span, $start_time, $end_time, $id);
+        } else {
+            $sql = "UPDATE schedules 
+                    SET farmer_id = ?, non_member_name = NULL, machine_id = ?, schedule_date = ?, date_span = ?, start_time = ?, end_time = ? 
+                    WHERE id = ?";
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                $errorMessage = "Database error: " . $conn->error;
+                break;
+            }
+            $stmt->bind_param("iisissi", $farmer_id_int, $machine_id, $schedule_date, $date_span, $start_time, $end_time, $id);
         }
-
-        $stmt->bind_param("iisissi", $farmer_id, $machine_id, $schedule_date, $date_span, $start_time, $end_time, $id);
 
         if (!$stmt->execute()) {
             $errorMessage = "Error updating schedule: " . $stmt->error;
@@ -209,10 +236,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Update machine availability if the schedule is Approved or On going
         if ($scheduleStatus === 'Approved' || $scheduleStatus === 'On going') {
-            // Update the new machine's availability
             updateMachineAvailability($conn, $machine_id);
             
-            // If machine was changed, update the old machine's availability too
             if ($oldMachineId && $oldMachineId != $machine_id) {
                 updateMachineAvailability($conn, $oldMachineId);
             }
@@ -233,6 +258,5 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 $conn->close();
 
-// If accessed directly (not via POST), redirect to schedules page
 header("location: /CAPSTONE/CAFCA-MS/dashboard/schedules/schedule.php?status=Pending");
 exit;
