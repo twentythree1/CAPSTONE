@@ -72,7 +72,7 @@
     <section class="about-section" id="about">
         <div class="section-content">
             <div class="about-image-wrapper">
-                <img src="/CAFCA-MS/LandingPage/others/aboutimg.jpg" alt="About" class="about-image">
+                <img src="others/aboutimg.jpg" alt="About" class="about-image">
             </div>
             <div class="about-details">
                 <h2 class="section-title">ABOUT US</h2>
@@ -90,22 +90,22 @@
         <div class="section-content">
             <ul class="gallery-list">
                 <li class="gallery-info">
-                    <img src="/CAFCA-MS/LandingPage/others/sampleimage(gallery).jpg" alt="gallery-1" class="farm-image">
+                    <img src="others/sampleimage(gallery).jpg" alt="gallery-1" class="farm-image">
                     <h3 class="name">Dandy V. Balinas</h3>
                     <p class="text">CHAIRMAN</p>
                 </li>
                 <li class="gallery-info">
-                    <img src="/CAFCA-MS/LandingPage/others/sampleimage(gallery).jpg" alt="gallery-3" class="farm-image">
+                    <img src="others/sampleimage(gallery).jpg" alt="gallery-3" class="farm-image">
                     <h3 class="name">Efren V. Alvior</h3>
                     <p class="text">VICE CHAIRMAN</p>
                 </li>
                 <li class="gallery-info">
-                    <img src="/CAFCA-MS/LandingPage/others/sampleimage(gallery).jpg" alt="gallery-2" class="farm-image">
+                    <img src="others/sampleimage(gallery).jpg" alt="gallery-2" class="farm-image">
                     <h3 class="name">Ofelia A. Aguilos</h3>
                     <p class="text">SECRETARY</p>
                 </li>
                 <li class="gallery-info">
-                    <img src="/CAFCA-MS/LandingPage/others/sampleimage(gallery).jpg" alt="gallery-4" class="farm-image">
+                    <img src="others/sampleimage(gallery).jpg" alt="gallery-4" class="farm-image">
                     <h3 class="name">Maylen G. Familara</h3>
                     <p class="text">TREASURER</p>
                 </li>
@@ -121,22 +121,22 @@
                 <div class="slider-wrapper">
                     <ul class="developer-list swiper-wrapper">
                         <li class="developer swiper-slide">
-                            <img src="/CAFCA-MS/LandingPage/others/dev1.jpg" alt="devs" class="dev-image">
+                            <img src="others/dev1.jpg" alt="devs" class="dev-image">
                             <h3 class="name">Jan Laurence Tan</h3>
                             <i class="description">BSIT 3-C STUDENT</i>
                         </li>
                         <li class="developer swiper-slide">
-                            <img src="/CAFCA-MS/LandingPage/others/dev2.jpg" alt="devs" class="dev-image">
+                            <img src="others/dev2.jpg" alt="devs" class="dev-image">
                             <h3 class="name">Shantal Mae Lee</h3>
                             <i class="description">BSIT 3-C STUDENT</i>
                         </li>
                         <li class="developer swiper-slide">
-                            <img src="/CAFCA-MS/LandingPage/others/dev3.jpg" alt="devs" class="dev-image">
+                            <img src="others/dev3.jpg" alt="devs" class="dev-image">
                             <h3 class="name">Leahna Mae Antiquin</h3>
                             <i class="description">BSIT 3-C STUDENT</i>
                         </li>
                         <li class="developer swiper-slide">
-                            <img src="/CAFCA-MS/LandingPage/others/dev4.jpg" alt="devs" class="dev-image">
+                            <img src="others/dev4.jpg" alt="devs" class="dev-image">
                             <h3 class="name">Judjel Delos Reyes</h3>
                             <i class="description">BSIT 3-C STUDENT</i>
                         </li>
@@ -187,6 +187,10 @@
         </div>
     </section>
 
+    <a id="back-to-top-btn" class="back-to-top-btn" href="#home">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
     <!-- footer -->
     <footer class="footer-section">
         <div class="section-content">
@@ -205,7 +209,7 @@
     <!-- swiper script -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <!-- custom script -->
-    <script src="/CAFCA-MS/LandingPage/hpscript.js"></script>
+    <script src="hpscript.js"></script>
 </body>
 
 </html>
