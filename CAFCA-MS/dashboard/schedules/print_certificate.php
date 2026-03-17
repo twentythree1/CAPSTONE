@@ -47,7 +47,7 @@ if (isset($_GET['id'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="../../LandingPage/others/logo.png" type="image/x-icon">
+    <link rel="icon" href="../../assets/logo.png" type="image/x-icon">
     <link rel="stylesheet" href="details.css">
     <title>Schedule Certificate</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp">
@@ -55,7 +55,7 @@ if (isset($_GET['id'])) {
 <body>
 
 <div class="certificate">
-    <img src="../../LandingPage/others/logo.png">
+    <img src="../../assets/logo.png">
     <h2>Schedule Certificate</h2>
     <p>This is to certify that:</p>
     <h3><?= htmlspecialchars($row['farmer_name']); ?></h3>

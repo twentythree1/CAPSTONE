@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAFCA-MS User Guideline</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="CAFCA-MS/assets/logo.png">
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            /* Agricultural Green */
+            --secondary-color: #4caf50;
+            --accent-color: #f1f8e9;
+            --text-main: #333333;
+            --text-light: #666666;
+            --bg-color: #f9fbf9;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-width;
+            overflow-x: hidden;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            line-height: 1.6;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: #ffffff;
+            height: 100vh;
+            position: fixed;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            padding: 2rem 0;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 0 2rem 2rem;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 1rem;
+            pointer-events: none;
+        }
+
+        .sidebar-header h2 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 2rem;
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-nav a i {
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            border-right: 4px solid var(--primary-color);
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            margin-left: calc(120px + var(--sidebar-width));
+            padding: 3rem 5rem;
+            width: calc(100% - var(--sidebar-width));
+            max-width: 1200px;
+            margin-top: -7rem;
+            pointer-events: none;
+        }
+
+        .hero-banner {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 3rem;
+            border-radius: 12px;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 20px rgba(46, 125, 50, 0.2);
+        }
+
+        .hero-img {
+            position: relative;
+            left: 53.5rem;
+            top: 6rem;
+        }
+
+        .hero-img img {
+            max-width: 150px;
+            height: auto;
+        }
+
+        .hero-banner h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero-banner p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .section-block {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            margin-bottom: 3rem;
+            border-top: 4px solid var(--primary-color);
+        }
+
+        .section-block h2 {
+            display: flex;
+            align-items: center;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .section-block h2 i {
+            margin-right: 15px;
+            font-size: 1.5rem;
+        }
+
+        .step-list {
+            list-style: none;
+            margin-top: 1.5rem;
+        }
+
+        .step-item {
+            display: flex;
+            margin-bottom: 1.5rem;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            font-weight: 700;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .note-box {
+            background-color: #fff8e1;
+            border-left: 4px solid #ffb300;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1500px) {
+            .hero-img {
+                left: 50rem;
+            }
+        }
+
+        @media (max-width: 1405px) {
+            .hero-img {
+                left: 40rem;
+            }
+        }
+
+        @media (max-width: 1355px) {
+            .hero-img {
+                left: 36rem;
+            }
+        }
+
+        @media (max-width: 1233px) {
+            .hero-img {
+                display: none;
+            }
+
+            .main-content {
+                padding-top: 10rem;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 1rem 0;
+            }
+
+            .main-content {
+                margin-top: 1vh;
+                margin-left: 0;
+                width: 100%;
+                padding: 2rem;
+            }
+
+            body {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fa-solid fa-leaf"></i> CAFCA-MS</h2>
+            <p style="font-size: 0.8rem; color: #666;">User Documentation</p>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="#welcome" class="active"><i class="fa-solid fa-house"></i> Overview</a></li>
+                <li><a href="#authentication"><i class="fa-solid fa-right-to-bracket"></i> Login & Access</a></li>
+                <li><a href="#dashboard"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
+                <li><a href="#farmers"><i class="fa-solid fa-users"></i> Managing Farmers</a></li>
+                <li><a href="#machines"><i class="fa-solid fa-tractor"></i> Machine Inventory</a></li>
+                <li><a href="#schedules"><i class="fa-solid fa-calendar-check"></i> Schedules & Certs</a></li>
+                <li><a href="#records"><i class="fa-solid fa-folder-open"></i> Records Management</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="hero-img">
+            <img src="CAFCA-MS/assets/logo.png" alt="">
+        </div>
+
+        <div class="hero-banner" id="welcome">
+            <h1>Calubang Farmers Cluster Association </h1>
+            <p>Welcome to the official user guideline for the CAFCA Management System. This manual will walk you through
+                the system's features, starting from secure login all the way to managing your farmers, machineries,
+                schedules, and association records.</p>
+        </div>
+
+        <section id="authentication" class="section-block">
+            <h2><i class="fa-solid fa-right-to-bracket"></i> Login & Access</h2>
+            <p>Accessing the system requires an authorized account to ensure association data remains secure and
+                private.</p>
+
+            <ul class="step-list">
+                <li class="step-item">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Enable XAMPP</h4>
+                        <p>Open XAMPP Control Panel and then start Apache and MySQL.</p>
+                    </div>
+                </li>
+                <li class="step-item">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Navigate to the Login Portal</h4>
+                        <p>Open your web browser and enter the URL for the CAFCA-MS Login <br> page
+                            (`CAPSTONE/CAFCA-MS/login/logindex.php`).</p>
+                    </div>
+                </li>
+                <li class="step-item">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Enter Credentials</h4>
+                        <p>Input your registered Administrator Username/Email and Password in the provided fields and
+                            click <strong>Login</strong>. If your credentials are correct, you will be securely
+                            redirected to the main dashboard.</p>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <section id="dashboard" class="section-block">
+            <h2><i class="fa-solid fa-chart-pie"></i> Dashboard Overview</h2>
+            <p>The Dashboard serves as the central hub of CAFCA-MS. Upon logging in successfully, you will be greeted by
+                a summarized view of the association's current status.</p>
+            <ul class="step-list">
+                <li class="step-item">
+                    <div class="step-number"><i class="fa-solid fa-check"></i></div>
+                    <div class="step-content">
+                        <h4>Quick Statistics</h4>
+                        <p>View total registered farmers, machineries, on going schedules, completed schedules, and a
+                            calendar that shows the dates that has a schedule(s)
+                            at a glance without having to open individual modules.</p>
+                    </div>
+                </li>
+                <li class="step-item">
+                    <div class="step-number"><i class="fa-solid fa-check"></i></div>
+                    <div class="step-content">
+                        <h4>Navigation Menu</h4>
+                        <p>Use the side panel to quickly switch between the Farmers, Machines, Schedules, and Records
+                            modules.</p>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <section id="farmers" class="section-block">
+            <h2><i class="fa-solid fa-users"></i> Managing Farmers</h2>
+            <p>Maintain an accurate database of all cluster association members.</p>
+
+            <ul class="step-list">
+                <li class="step-item">
+                    <div class="step-number"><i class="fa-solid fa-plus"></i></div>
+                    <div class="step-content">
+                        <h4>Adding a New Farmer</h4>
+                        <p>Navigate to the <strong>Farmers</strong> section and click "Add Farmer". Fill out the
+                            required personal details, farm size, and contact information, then submit to save them
+                            to the registry.</p>
+                    </div>
+                </li>
+                <li class="step-item">
+                    <div class="step-number"><i class="fa-solid fa-pen"></i></div>
+                    <div class="step-content">
+                        <h4>Editing Details</h4>
+                        <p>Locate the farmer in the list, click the <strong>Edit</strong> icon, update the necessary
+                            fields (such as phone number or farm size), and save the changes.</p>
+                    </div>
+                </li>
+                <li class="step-item">
+                    <div class="step-number"><i class="fa-solid fa-trash"></i></div>
+                    <div class="step-content">
+                        <h4>Deleting a Record</h4>
+                        <p>If a member leaves the association, use the <strong>Delete</strong> action. You will be
+                            prompted to confirm this action as it is irreversible.</p>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <section id="machines" class="section-block">
+            <h2><i class="fa-solid fa-tractor"></i> Machine Inventory Management</h2>
+            <p>Track the association's agricultural equipment, their availability, and usage history.</p>
+
+            <ul class="step-list">
+                <li class="step-item">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Registering Equipment</h4>
+                        <p>In the Machines module, click "Add Machine". Enter the machine name, description, and initial
+                            status.</p>
+                    </div>
+                </li>
+                <li class="step-item">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Updating Machine Status & Returns</h4>
+                        <p>When a farmer's schedule is over, the machine they used will automatically be transferred to
+                            the "Completed" submenu where the admin can click the <strong>Return</strong> feature to
+                            mark it as available again for the next user.</p>
+                    </div>
+                </li>
+                <li class="step-item">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Viewing Machine History</h4>
+                        <p>Click on the history icon next to a specific machine to see a log of who borrowed it and when
+                            it
+                            was borrowed.</p>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <section id="schedules" class="section-block">
+            <h2><i class="fa-solid fa-calendar-check"></i> Schedules & Certificates</h2>
+            <p>Manage machine borrowing schedules and generate official documents.</p>
+
+            <ul class="step-list">
+                <li class="step-item">
+                    <div class="step-number"><i class="fa-solid fa-clock"></i></div>
+                    <div class="step-content">
+                        <h4>Handling Requests</h4>
+                        <p>View incoming schedule requests from farmers. You can <strong>Add</strong>,
+                            <strong>Approve</strong>,
+                            <strong>Cancel</strong>, or <strong>Reschedule</strong> them based on the current inventory
+                            and machine availability.
+                        </p>
+                    </div>
+                </li>
+                <li class="step-item">
+                    <div class="step-number"><i class="fa-solid fa-certificate"></i></div>
+                    <div class="step-content">
+                        <h4>Generating Certificates</h4>
+                        <p>Once a schedule is completed and a machine is returned, the system can generate a
+                            certificate. Use the <strong>Fetch Certificate</strong> feature to preview, and
+                            <strong>Print Certificate</strong> to create a physical or PDF copy for the farmer.
+                        </p>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <section id="records" class="section-block">
+            <h2><i class="fa-solid fa-folder-open"></i> Records Management</h2>
+            <p>Keep track of other essential association documents and administrative logs.</p>
+
+            <ul class="step-list">
+                <li class="step-item">
+                    <div class="step-number"><i class="fa-solid fa-file-lines"></i></div>
+                    <div class="step-content">
+                        <h4>Managing Records</h4>
+                        <p>Access the Records module to view all general logs. Similar to the Farmers module, you can
+                            <strong>Add</strong>, <strong>Edit</strong>, and <strong>Delete</strong> records as
+                            necessary to maintain clean and organized bookkeeping.
+                        </p>
+                    </div>
+                </li>
+                <li class="step-item">
+                    <div class="step-number"><i class="fa-solid fa-download"></i></div>
+                    <div class="step-content">
+                        <h4>Converting to Excel</h4>
+                        <p>The user can easily convert the table into an excel file by just clicking the <strong>Export
+                                Excel</strong> button beside the <strong>Add Record</strong> button.</p>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const sections = document.querySelectorAll("section, .hero-banner");
+            const navLi = document.querySelectorAll(".sidebar-nav ul li a");
+
+            // Smooth scrolling
+            navLi.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    let targetId = this.getAttribute('href');
+                    let targetSection = document.querySelector(targetId);
+
+                    window.scrollTo({
+                        top: targetSection.offsetTop - 20,
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            // Highlight active navigation on scroll
+            window.addEventListener("scroll", () => {
+                let current = "";
+                sections.forEach((section) => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    if (pageYOffset >= sectionTop - 100) {
+                        current = section.getAttribute("id");
+                    }
+                });
+
+                navLi.forEach((link) => {
+                    link.classList.remove("active");
+                    if (link.getAttribute("href").includes(current)) {
+                        link.classList.add("active");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

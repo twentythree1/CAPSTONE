@@ -9,7 +9,7 @@ require 'LoginHandler.php';
 
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="../LandingPage/others/logo.png" type="image/x-icon">
+    <link rel="icon" href="../assets/logo.png" type="image/x-icon">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAFCA | Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -27,7 +27,7 @@ require 'LoginHandler.php';
                 <?php if (!empty($successMessage)): ?>
                     <div class="success-message"><?php echo htmlspecialchars($successMessage); ?></div>
                 <?php endif; ?>
-                <img src="../LandingPage/others/logo.png">
+                <img src="../assets/logo.png">
                 <h1>CAFCA-MS</h1>
                 <div class="input-box">
                     <input type="name" name="username" placeholder="Username" required>

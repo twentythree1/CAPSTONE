@@ -238,7 +238,7 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-store">
-    <link rel="icon" href="../../LandingPage/others/logo.png" type="image/x-icon">
+    <link rel="icon" href="../../assets/logo.png" type="image/x-icon">
     <title>CAFCA | Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <!-- MATERIAL ICONS -->
@@ -252,7 +252,7 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
         <aside>
             <div class="top">
                 <a class="logo" href="dashdex.php">
-                    <img src="../../LandingPage/others/logo.png">
+                    <img src="../../assets/logo.png">
                     <h2>CAFCA <span>MS</span></h2>
                 </a>
                 <div class="close" id="close-btn">

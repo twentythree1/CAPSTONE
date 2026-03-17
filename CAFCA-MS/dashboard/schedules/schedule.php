@@ -194,7 +194,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="../../LandingPage/others/logo.png" type="image/x-icon">
+    <link rel="icon" href="../../assets/logo.png" type="image/x-icon">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAFCA | Admin</title>
     <link rel="stylesheet" href="../farmers_sec/farmerstyle.css">
@@ -209,7 +209,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         <aside>
             <div class="top">
                 <a class="logo" href="../main/dashdex.php">
-                    <img src="../../LandingPage/others/logo.png">
+                    <img src="../../assets/logo.png">
                     <h2>CAFCA <span>MS</span></h2>
                 </a>
                 <div class="close" id="close-btn">
@@ -669,7 +669,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
 
             <div class="modal-body">
                 <div class="schedule-info" id="scheduleDetailsContent" style="position: relative;">
-                    <img src="../../LandingPage/others/logo.png" alt="CAFCA Logo"
+                    <img src="../../assets/logo.png" alt="CAFCA Logo"
                         style="position: absolute; top: 10px; right: 10px; width: 80px; height: 80px; object-fit: contain;">
                     <h3>Schedule Information</h3>
                     <p><strong>Schedule ID:</strong> <span id="details-id"></span></p>
