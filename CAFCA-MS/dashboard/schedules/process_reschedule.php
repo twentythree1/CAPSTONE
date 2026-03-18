@@ -71,50 +71,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $unavailableUntil = $machineData['unavailable_until'];
     $machineStmt->close();
 
-    // Check if the requested time period overlaps with machine's unavailable period
+    // Check if the requested time period overlaps with machine's unavailable period.
+    // IMPORTANT: unavailable_from/until is derived from approved schedules (including the
+    // current one being rescheduled). We must NOT block if the ONLY reason the machine
+    // appears unavailable is the schedule we are currently moving.
     if (!empty($unavailableFrom) && !empty($unavailableUntil)) {
         try {
-            $end_date = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
-            
-            $requestStart = new DateTime($schedule_date . ' ' . $start_time);
-            $requestEnd = new DateTime($end_date . ' ' . $end_time);
+            $req_end_date = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
+
+            $requestStart            = new DateTime($schedule_date . ' ' . $start_time);
+            $requestEnd              = new DateTime($req_end_date . ' ' . $end_time);
             $machineUnavailableStart = new DateTime($unavailableFrom);
-            $machineUnavailableEnd = new DateTime($unavailableUntil);
-            
-            // Check if there's any overlap
+            $machineUnavailableEnd   = new DateTime($unavailableUntil);
+
+            // Only block if there is an overlap AND another approved schedule (not this one)
+            // is actually causing that unavailability window.
             if ($requestStart < $machineUnavailableEnd && $requestEnd > $machineUnavailableStart) {
-                $conn->close();
-                header("Location: schedule.php?status=" . urlencode($redirect) . "&error=machine_unavailable");
-                exit();
+                $causeStmt = $conn->prepare(
+                    "SELECT COUNT(*) AS cnt FROM schedules
+                     WHERE machine_id = ?
+                       AND id != ?
+                       AND status IN ('Approved', 'On going')
+                       AND DATE_ADD(?, INTERVAL ? DAY) >= schedule_date
+                       AND ? <= DATE_ADD(schedule_date, INTERVAL date_span DAY)"
+                );
+                $causeStmt->bind_param("iisis", $machine_id, $schedule_id, $schedule_date, $date_span, $schedule_date);
+                $causeStmt->execute();
+                $causeRow = $causeStmt->get_result()->fetch_assoc();
+                $causeStmt->close();
+
+                if ((int)$causeRow['cnt'] > 0) {
+                    $conn->close();
+                    header("Location: schedule.php?status=" . urlencode($redirect) . "&error=machine_unavailable");
+                    exit();
+                }
             }
         } catch (Exception $e) {
-            // If date parsing fails, continue with availability check
+            // If date parsing fails, continue with conflict check
         }
     }
 
     // Check if this machine is already booked during the requested period (excluding current schedule)
     $end_date = date('Y-m-d', strtotime($schedule_date . " +{$date_span} days"));
-    
-    $conflictSql = "SELECT COUNT(*) as conflict_count FROM schedules 
+    $force_bump = isset($_POST['force_bump']) && $_POST['force_bump'] === '1';
+
+    $conflictSql = "SELECT id, schedule_date, date_span FROM schedules 
                     WHERE machine_id = ? 
                     AND id != ? 
                     AND status IN ('Pending', 'Approved', 'On going')
-                    AND NOT (
-                        DATE_ADD(?, INTERVAL ? DAY) < schedule_date 
-                        OR ? > DATE_ADD(schedule_date, INTERVAL date_span DAY)
-                    )";
+                    AND DATE_ADD(?, INTERVAL ? DAY) >= schedule_date
+                    AND ? <= DATE_ADD(schedule_date, INTERVAL date_span DAY)";
     
     $conflictStmt = $conn->prepare($conflictSql);
     $conflictStmt->bind_param("iisis", $machine_id, $schedule_id, $schedule_date, $date_span, $schedule_date);
     $conflictStmt->execute();
     $conflictResult = $conflictStmt->get_result();
-    $conflictData = $conflictResult->fetch_assoc();
+    $conflictingSchedules = [];
+    while ($cr = $conflictResult->fetch_assoc()) {
+        $conflictingSchedules[] = $cr;
+    }
     $conflictStmt->close();
-    
-    if ((int)$conflictData['conflict_count'] > 0) {
-        $conn->close();
-        header("Location: schedule.php?status=" . urlencode($redirect) . "&error=fully_booked");
-        exit();
+
+    if (!empty($conflictingSchedules)) {
+        if (!$force_bump) {
+            // Not confirmed yet — redirect back with conflict info
+            $conn->close();
+            header("Location: schedule.php?status=" . urlencode($redirect) . "&error=fully_booked");
+            exit();
+        }
+
+        // Admin confirmed: bump each conflicting schedule 1 day ahead
+        $bumpSql = "UPDATE schedules SET schedule_date = DATE_ADD(schedule_date, INTERVAL 1 DAY) WHERE id = ?";
+        $bumpStmt = $conn->prepare($bumpSql);
+        foreach ($conflictingSchedules as $cs) {
+            $bumpStmt->bind_param("i", $cs['id']);
+            $bumpStmt->execute();
+        }
+        $bumpStmt->close();
     }
 
     // If rescheduling from Cancelled, change to Pending so admin can approve

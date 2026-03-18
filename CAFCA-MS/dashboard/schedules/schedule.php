@@ -187,6 +187,44 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
     $conn->close();
     exit;
 }
+
+// Handle AJAX conflict check
+if (isset($_GET['action']) && $_GET['action'] == 'check_conflicts') {
+    header('Content-Type: application/json');
+    $schedule_id   = intval($_GET['schedule_id'] ?? 0);
+    $schedule_date = $_GET['schedule_date'] ?? '';
+    $date_span     = intval($_GET['date_span'] ?? 0);
+
+    // Get machine_id for the schedule being rescheduled
+    $midStmt = $conn->prepare("SELECT machine_id FROM schedules WHERE id = ?");
+    $midStmt->bind_param("i", $schedule_id);
+    $midStmt->execute();
+    $midRes = $midStmt->get_result()->fetch_assoc();
+    $midStmt->close();
+    $machine_id = $midRes ? (int)$midRes['machine_id'] : 0;
+
+    $conflicts = [];
+    if ($machine_id && $schedule_date) {
+        $cSql = "SELECT id, schedule_date FROM schedules
+                 WHERE machine_id = ?
+                   AND id != ?
+                   AND status IN ('Pending','Approved','On going')
+                   AND DATE_ADD(?, INTERVAL ? DAY) >= schedule_date
+                   AND ? <= DATE_ADD(schedule_date, INTERVAL date_span DAY)";
+        $cStmt = $conn->prepare($cSql);
+        $cStmt->bind_param("iisis", $machine_id, $schedule_id, $schedule_date, $date_span, $schedule_date);
+        $cStmt->execute();
+        $cRes = $cStmt->get_result();
+        while ($row = $cRes->fetch_assoc()) {
+            $conflicts[] = ['id' => $row['id'], 'schedule_date' => $row['schedule_date']];
+        }
+        $cStmt->close();
+    }
+
+    echo json_encode(['conflicts' => $conflicts]);
+    $conn->close();
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -261,9 +299,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
                         </a>
                     </div>
                 </div>
-                <div class="sidebar-dropdown <?= $schedulesStatus ? 'open' : '' ?>">
+                <div class="sidebar-dropdown <?= $isSchedulePage ? 'open' : '' ?>">
                     <a href="javascript:void(0)" class="dropdown-toggle"
-                        aria-expanded="<?= $schedulesStatus ? 'true' : 'false' ?>">
+                        aria-expanded="<?= $isSchedulePage ? 'true' : 'false' ?>">
                         <span class="material-icons-sharp">event</span>
                         <h3>Schedules</h3>
                         <span class="material-icons-sharp dropdown-icon">expand_more</span>
@@ -663,6 +701,29 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         </div>
     </div>
 
+    <!-- Bump Confirmation Modal -->
+    <div id="bumpConfirmModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header" id="bumpConfirmModalHeader">
+                <div class="modal-header-icon icon-conflict" id="bumpConfirmModalIcon">⚠️</div>
+                <div style="flex:1; min-width:0;">
+                    <h2 id="bumpConfirmModalTitle">Scheduling Conflict Detected</h2>
+                    <p class="header-sub" id="bumpConfirmModalSubtitle"></p>
+                </div>
+                <span class="close-modal" onclick="closeBumpConfirmModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="bumpConfirmModalBody"></div>
+                <div class="bump-divider"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeBumpConfirmModal()">Cancel</button>
+                    <button type="button" id="bumpConfirmBtn" class="btn btn-conflict">Yes, Move &amp;
+                        Reschedule</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Details Modal -->
     <div id="detailsModal" class="modal">
         <div class="modal-content">
@@ -747,8 +808,13 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         document.getElementById('original_date').value = scheduleDate;
         document.getElementById('schedule_date').value = scheduleDate;
         document.getElementById('date_span').value = dateSpan;
-        document.getElementById('start_time').value = startTime;
-        document.getElementById('end_time').value = endTime;
+
+        const startInput = document.getElementById('start_time');
+        const endInput = document.getElementById('end_time');
+        startInput.value = startTime;
+        endInput.value = endTime;
+        startInput.dataset.original = startTime;
+        endInput.dataset.original = endTime;
         document.getElementById('reschedule_reason').value = '';
 
         document.getElementById('errorMessage').style.display = 'none';
@@ -794,30 +860,155 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_schedule' && isset($_GET['
         }
     });
 
-    document.getElementById('rescheduleForm').addEventListener('submit', function(e) {
+    document.getElementById('rescheduleForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
         const originalDate = document.getElementById('original_date').value;
         const newDate = document.getElementById('schedule_date').value;
+        const newStartTime = document.getElementById('start_time').value;
+        const newEndTime = document.getElementById('end_time').value;
         const errorMsg = document.getElementById('errorMessage');
 
-        if (newDate === originalDate) {
-            e.preventDefault();
-            errorMsg.textContent = 'You must change the date when rescheduling.';
+        // Store original times when modal opens so we can compare
+        const originalStart = document.getElementById('start_time').dataset.original || '';
+        const originalEnd = document.getElementById('end_time').dataset.original || '';
+        if (newDate === originalDate && newStartTime === originalStart && newEndTime === originalEnd) {
+            errorMsg.textContent = 'You must change the date or time when rescheduling.';
             errorMsg.style.display = 'block';
             errorMsg.scrollIntoView({
                 behavior: 'smooth',
                 block: 'nearest'
             });
-            return false;
+            return;
         }
 
         errorMsg.style.display = 'none';
 
-        if (!confirm('Are you sure you want to reschedule this appointment?')) {
-            e.preventDefault();
-            return false;
+        // Check for conflicts via AJAX before submitting
+        const scheduleId = document.getElementById('schedule_id').value;
+        const dateSpan = document.getElementById('date_span').value;
+        const params = new URLSearchParams({
+            action: 'check_conflicts',
+            schedule_id: scheduleId,
+            schedule_date: newDate,
+            date_span: dateSpan
+        });
+
+        let conflicts = [];
+        try {
+            const res = await fetch('schedule.php?' + params.toString());
+            const data = await res.json();
+            conflicts = data.conflicts || [];
+        } catch (err) {
+            // If AJAX fails, fall through and let the server handle it
         }
-        // Allow the form to submit normally - process_reschedule.php will handle the redirect
-        return true;
+
+        if (conflicts.length > 0) {
+            // Show bump-confirmation modal
+            showBumpConfirmModal(conflicts, newDate);
+        } else {
+            // No conflicts — just confirm normally
+            showSimpleConfirmModal();
+        }
+    });
+
+    function submitRescheduleForm(forceBump) {
+        const form = document.getElementById('rescheduleForm');
+        // Add or update the force_bump hidden field
+        let bumpInput = document.getElementById('force_bump_input');
+        if (!bumpInput) {
+            bumpInput = document.createElement('input');
+            bumpInput.type = 'hidden';
+            bumpInput.name = 'force_bump';
+            bumpInput.id = 'force_bump_input';
+            form.appendChild(bumpInput);
+        }
+        bumpInput.value = forceBump ? '1' : '0';
+        form.submit();
+    }
+
+    function showSimpleConfirmModal() {
+        const header = document.getElementById('bumpConfirmModalHeader');
+        const icon = document.getElementById('bumpConfirmModalIcon');
+        const btn = document.getElementById('bumpConfirmBtn');
+
+        header.className = 'modal-header header-simple';
+        icon.className = 'modal-header-icon icon-simple';
+        icon.textContent = '✔';
+        document.getElementById('bumpConfirmModalTitle').textContent = 'Confirm Reschedule';
+        document.getElementById('bumpConfirmModalSubtitle').textContent = 'No conflicting schedules found.';
+        document.getElementById('bumpConfirmModalBody').innerHTML =
+            '<p>Are you sure you want to proceed with rescheduling this appointment?</p>';
+        btn.className = 'btn btn-safe';
+        btn.textContent = 'Yes, Reschedule';
+        btn.onclick = () => {
+            closeBumpConfirmModal();
+            submitRescheduleForm(false);
+        };
+        document.getElementById('bumpConfirmModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function showBumpConfirmModal(conflicts, newDate) {
+        const header = document.getElementById('bumpConfirmModalHeader');
+        const icon = document.getElementById('bumpConfirmModalIcon');
+        const btn = document.getElementById('bumpConfirmBtn');
+        const dateLabel = new Date(newDate + 'T00:00:00').toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        let listItems = '';
+        conflicts.forEach(function(c) {
+            const d = new Date(c.schedule_date + 'T00:00:00').toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            listItems += `<li><strong>Schedule #${c.id}</strong> &mdash; currently on ${d}</li>`;
+        });
+
+        header.className = 'modal-header';
+        icon.className = 'modal-header-icon icon-conflict';
+        icon.textContent = '⚠️';
+        document.getElementById('bumpConfirmModalTitle').textContent = 'Scheduling Conflict Detected';
+        document.getElementById('bumpConfirmModalSubtitle').textContent =
+            conflicts.length + ' active schedule' + (conflicts.length > 1 ? 's overlap' : ' overlaps') +
+            ' with the selected date.';
+        document.getElementById('bumpConfirmModalBody').innerHTML =
+            `<p>The date <strong>${dateLabel}</strong> conflicts with the following schedule(s):</p>` +
+            `<ul class="bump-conflict-list">${listItems}</ul>` +
+            `<div class="bump-warning-banner">
+                <span class="warn-icon">⚠️</span>
+                <span>Proceeding will <strong>move each conflicting schedule 1 day forward</strong> to make room for this reschedule. This action cannot be undone.</span>
+            </div>` +
+            `<p>Do you want to continue?</p>`;
+        btn.className = 'btn btn-conflict';
+        btn.textContent = 'Yes, Move & Reschedule';
+        btn.onclick = () => {
+            closeBumpConfirmModal();
+            submitRescheduleForm(true);
+        };
+        document.getElementById('bumpConfirmModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeBumpConfirmModal() {
+        document.getElementById('bumpConfirmModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    window.addEventListener('click', function(e) {
+        if (e.target === document.getElementById('bumpConfirmModal')) {
+            closeBumpConfirmModal();
+        }
+    });
+
+    window.addEventListener('click', function(e) {
+        if (e.target === document.getElementById('bumpConfirmModal')) {
+            closeBumpConfirmModal();
+        }
     });
 
     document.querySelector('.close-modal').addEventListener('click', closeRescheduleModal);
