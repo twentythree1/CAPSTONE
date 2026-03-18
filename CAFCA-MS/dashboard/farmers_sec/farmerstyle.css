@@ -1919,7 +1919,7 @@ td .ecosystem-upland {
 
 .btn-update-pw {
     position: relative;
-    background: linear-gradient(135deg, #7dba4a 0%, #A0C878 60%, #b8d98a 100%);
+    background: linear-gradient(90deg, #2d4a32, #A0C878);
     color: #fff;
     border: none;
     border-radius: 10px;
