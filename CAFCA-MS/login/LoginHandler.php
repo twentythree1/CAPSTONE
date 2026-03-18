@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         } else {
             $errorMessage = $result;
+            $formType = 'register';
         }
 
     } else {
@@ -30,12 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         if (is_int($result)) {
-            $_SESSION['user_id'] = $result;
+            $_SESSION['user_id']  = $result;
             $_SESSION['username'] = $_POST['username'];
             header("Location: ../dashboard/main/dashdex.php");
             exit;
         } else {
             $errorMessage = $result;
+            $formType = 'login';
         }
     }
 }

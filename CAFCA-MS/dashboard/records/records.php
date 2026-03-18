@@ -265,6 +265,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_record' && isset($_GET['id
                     <span class="material-icons-sharp">topic</span>
                     <h3>Records</h3>
                 </a>
+                <a href="../settings/settings.php">
+                    <span class="material-icons-sharp">settings</span>
+                    <h3>Settings</h3>
+                </a>
                 <div class="logout"><a href="../../login/logout.php" onclick="return confirm('Are you sure you want to log out?');" class="danger">
                         <span class="material-icons-sharp">logout</span>
                         <h3>Log out</h3>

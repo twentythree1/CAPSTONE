@@ -289,15 +289,18 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Partially Damaged">
                             <span>Partially Damaged</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Partially Damaged'] ?? 0) ?></span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Partially Damaged'] ?? 0) ?></span>
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Totally Damaged">
                             <span>Totally Damaged</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Totally Damaged'] ?? 0) ?></span>
                         </a>
                         <a href="/CAPSTONE/CAFCA-MS/dashboard/machines/machine.php?status=Not Returned">
                             <span>Not Returned</span>
-                            <span class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
+                            <span
+                                class="count-badge"><?= htmlspecialchars($machineCounts['Not Returned'] ?? 0) ?></span>
                         </a>
                     </div>
                 </div>
@@ -339,7 +342,14 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
                     <span class="material-icons-sharp">topic</span>
                     <h3>Records</h3>
                 </a>
-                <div class="logout"><a href="../../login/logout.php" onclick="return confirm('Are you sure you want to log out?');" class="danger">
+
+                <a href="../settings/settings.php">
+                    <span class="material-icons-sharp">settings</span>
+                    <h3>Settings</h3>
+                </a>
+
+                <div class="logout"><a href="../../login/logout.php"
+                        onclick="return confirm('Are you sure you want to log out?');" class="danger">
                         <span class="material-icons-sharp">logout</span>
                         <h3>Log out</h3>
                     </a>
@@ -373,7 +383,8 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
             <div class="dash-grid">
 
                 <!-- FARMERS CARD -->
-                <a href="../farmers_sec/farmers.php" class="stat-card stat-card--farmers dash-grid__farmers" title="View registered farmers">
+                <a href="../farmers_sec/farmers.php" class="stat-card stat-card--farmers dash-grid__farmers"
+                    title="View registered farmers">
                     <div class="stat-card__body">
                         <div class="stat-card__top-row">
                             <div class="stat-card__left">
@@ -382,7 +393,8 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
                                 </div>
                                 <div class="stat-card__label">Registered Farmers</div>
                             </div>
-                            <div class="stat-card__count"><?= htmlspecialchars($farmer_count, ENT_QUOTES, 'UTF-8'); ?></div>
+                            <div class="stat-card__count"><?= htmlspecialchars($farmer_count, ENT_QUOTES, 'UTF-8'); ?>
+                            </div>
                         </div>
                         <div class="stat-card__progress-wrap">
                             <div class="stat-card__progress-bar">
@@ -398,7 +410,8 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
                 </a>
 
                 <!-- MACHINES CARD -->
-                <a href="../machines/machine.php" class="stat-card stat-card--machines dash-grid__machines" title="View registered machines">
+                <a href="../machines/machine.php" class="stat-card stat-card--machines dash-grid__machines"
+                    title="View registered machines">
                     <div class="stat-card__body">
                         <div class="stat-card__top-row">
                             <div class="stat-card__left">
@@ -407,7 +420,8 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
                                 </div>
                                 <div class="stat-card__label">Registered Machines</div>
                             </div>
-                            <div class="stat-card__count"><?= htmlspecialchars($machine_count, ENT_QUOTES, 'UTF-8'); ?></div>
+                            <div class="stat-card__count"><?= htmlspecialchars($machine_count, ENT_QUOTES, 'UTF-8'); ?>
+                            </div>
                         </div>
                         <div class="stat-card__progress-wrap">
                             <div class="stat-card__progress-bar">
@@ -429,28 +443,30 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
                             <h2 class="panel-card__title">On Going Schedules</h2>
                             <p class="text-muted panel-card__sub"><?= count($ongoingSchedules) ?> active right now</p>
                         </div>
-                        <a href="../schedules/schedule.php?status=Pending" class="panel-btn panel-btn--primary" title="Add new schedule">
+                        <a href="../schedules/schedule.php?status=Pending" class="panel-btn panel-btn--primary"
+                            title="Add new schedule">
                             <span class="material-icons-sharp">add</span>
                         </a>
                     </div>
                     <div class="panel-card__list panel-card__list--fixed">
                         <?php if (empty($ongoingSchedules)): ?>
-                            <div class="panel-empty">
-                                <span class="material-icons-sharp">event_available</span>
-                                <p>No active schedules right now</p>
-                            </div>
+                        <div class="panel-empty">
+                            <span class="material-icons-sharp">event_available</span>
+                            <p>No active schedules right now</p>
+                        </div>
                         <?php else: foreach ($ongoingSchedules as $s): ?>
-                            <div class="panel-item">
-                                <div class="panel-item__dot panel-item__dot--ongoing"></div>
-                                <div class="panel-item__body">
-                                    <span class="panel-item__name"><?= htmlspecialchars($s['farmer_name'] ?? '—') ?></span>
-                                    <span class="panel-item__meta"><?= htmlspecialchars($s['machine_name'] ?? '—') ?></span>
-                                </div>
-                                <div class="panel-item__time">
-                                    <?= date('M j', strtotime($s['schedule_date'])) ?>
-                                    <small><?= date('H:i', strtotime($s['start_time'])) ?> – <?= date('H:i', strtotime($s['end_time'])) ?></small>
-                                </div>
+                        <div class="panel-item">
+                            <div class="panel-item__dot panel-item__dot--ongoing"></div>
+                            <div class="panel-item__body">
+                                <span class="panel-item__name"><?= htmlspecialchars($s['farmer_name'] ?? '—') ?></span>
+                                <span class="panel-item__meta"><?= htmlspecialchars($s['machine_name'] ?? '—') ?></span>
                             </div>
+                            <div class="panel-item__time">
+                                <?= date('M j', strtotime($s['schedule_date'])) ?>
+                                <small><?= date('H:i', strtotime($s['start_time'])) ?> –
+                                    <?= date('H:i', strtotime($s['end_time'])) ?></small>
+                            </div>
+                        </div>
                         <?php endforeach; endif; ?>
                     </div>
                     <a href="../schedules/schedule.php?status=On+going" class="panel-see-all">
@@ -466,9 +482,11 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
                             <p class="text-muted">Overview of all scheduled activities</p>
                         </div>
                         <div class="calendar-nav">
-                            <button id="prev-month"><span class="material-icons-sharp">keyboard_arrow_left</span></button>
+                            <button id="prev-month"><span
+                                    class="material-icons-sharp">keyboard_arrow_left</span></button>
                             <div id="calendar-header"></div>
-                            <button id="next-month"><span class="material-icons-sharp">keyboard_arrow_right</span></button>
+                            <button id="next-month"><span
+                                    class="material-icons-sharp">keyboard_arrow_right</span></button>
                         </div>
                     </div>
                     <div id="calendar"></div>
@@ -481,30 +499,31 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
                             <h2 class="panel-card__title">Completed Schedules</h2>
                             <p class="text-muted panel-card__sub"><?= $completedTotal ?> total completed</p>
                         </div>
-                        <button class="panel-btn panel-btn--danger" id="clearCompletedBtn" <?= $completedTotal === 0 ? 'disabled' : '' ?>>
+                        <button class="panel-btn panel-btn--danger" id="clearCompletedBtn"
+                            <?= $completedTotal === 0 ? 'disabled' : '' ?>>
                             <span class="material-icons-sharp">delete_sweep</span> Clear
                         </button>
                     </div>
                     <div class="panel-card__list panel-card__list--fixed">
                         <?php if (empty($completedSchedules)): ?>
-                            <div class="panel-empty">
-                                <span class="material-icons-sharp">check_circle</span>
-                                <p>No completed schedules yet</p>
-                            </div>
+                        <div class="panel-empty">
+                            <span class="material-icons-sharp">check_circle</span>
+                            <p>No completed schedules yet</p>
+                        </div>
                         <?php else: foreach ($completedSchedules as $s):
                             $endDate = date('Y-m-d', strtotime($s['schedule_date'] . " +{$s['date_span']} days"));
                         ?>
-                            <div class="panel-item">
-                                <div class="panel-item__dot panel-item__dot--done"></div>
-                                <div class="panel-item__body">
-                                    <span class="panel-item__name"><?= htmlspecialchars($s['farmer_name'] ?? '—') ?></span>
-                                    <span class="panel-item__meta"><?= htmlspecialchars($s['machine_name'] ?? '—') ?></span>
-                                </div>
-                                <div class="panel-item__time">
-                                    <?= date('M j', strtotime($endDate)) ?>
-                                    <small>Completed</small>
-                                </div>
+                        <div class="panel-item">
+                            <div class="panel-item__dot panel-item__dot--done"></div>
+                            <div class="panel-item__body">
+                                <span class="panel-item__name"><?= htmlspecialchars($s['farmer_name'] ?? '—') ?></span>
+                                <span class="panel-item__meta"><?= htmlspecialchars($s['machine_name'] ?? '—') ?></span>
                             </div>
+                            <div class="panel-item__time">
+                                <?= date('M j', strtotime($endDate)) ?>
+                                <small>Completed</small>
+                            </div>
+                        </div>
                         <?php endforeach; endif; ?>
                     </div>
                     <a href="../schedules/schedule.php?status=Completed" class="panel-see-all">
@@ -547,10 +566,11 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
             for (let day = 1; day <= daysInMonth; day++) {
                 const cell = document.createElement("div");
                 const thisDate =
-                `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
                 const today = new Date();
-                const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                const todayStr =
+                    `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
                 cell.className = "calendar-day" + (thisDate === todayStr ? " today" : "");
 
                 // day number pinned to the top (CSS handles absolute positioning)
@@ -617,41 +637,50 @@ if ($r = $conn->query("SELECT COUNT(*) AS cnt FROM schedules WHERE status = 'Com
     <script src="dashscript.js"></script>
     <script>
     // Animate progress bars on load
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", function() {
         const fills = document.querySelectorAll(".stat-card__progress-fill");
-        fills.forEach(function (el) {
+        fills.forEach(function(el) {
             const target = el.style.width;
             el.style.width = "0%";
-            setTimeout(function () { el.style.width = target; }, 300);
+            setTimeout(function() {
+                el.style.width = target;
+            }, 300);
         });
 
         // Clear completed schedules
         const clearBtn = document.getElementById("clearCompletedBtn");
         if (clearBtn) {
-            clearBtn.addEventListener("click", function () {
-                if (!confirm("Are you sure you want to permanently delete all completed schedules? This cannot be undone.")) return;
+            clearBtn.addEventListener("click", function() {
+                if (!confirm(
+                        "Are you sure you want to permanently delete all completed schedules? This cannot be undone."
+                        )) return;
                 clearBtn.disabled = true;
-                clearBtn.innerHTML = '<span class="material-icons-sharp" style="animation:spin 0.8s linear infinite">sync</span> Clearing...';
+                clearBtn.innerHTML =
+                    '<span class="material-icons-sharp" style="animation:spin 0.8s linear infinite">sync</span> Clearing...';
                 fetch("dashdex.php", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: "action=clear_completed"
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.reload();
-                    } else {
-                        alert("Failed to clear. Please try again.");
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: "action=clear_completed"
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        } else {
+                            alert("Failed to clear. Please try again.");
+                            clearBtn.disabled = false;
+                            clearBtn.innerHTML =
+                                '<span class="material-icons-sharp">delete_sweep</span> Clear';
+                        }
+                    })
+                    .catch(() => {
+                        alert("An error occurred.");
                         clearBtn.disabled = false;
-                        clearBtn.innerHTML = '<span class="material-icons-sharp">delete_sweep</span> Clear';
-                    }
-                })
-                .catch(() => {
-                    alert("An error occurred.");
-                    clearBtn.disabled = false;
-                    clearBtn.innerHTML = '<span class="material-icons-sharp">delete_sweep</span> Clear';
-                });
+                        clearBtn.innerHTML =
+                            '<span class="material-icons-sharp">delete_sweep</span> Clear';
+                    });
             });
         }
     });
