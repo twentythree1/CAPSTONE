@@ -404,8 +404,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                 }
             }
             else {
-                // All submenus use machines.status as the source of truth.
-
                 $baseSelect = "SELECT m.*";
 
                 if ($statusFilter === 'Available') {
@@ -413,7 +411,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                     $result = $conn->query($availableSql);
 
                 } else {
-                    // Partially Damaged, Totally Damaged, or no filter — use machines.status directly
                     $sql = "$baseSelect FROM machines m";
                     if ($statusFilter) {
                         $sql .= " WHERE m.status = ?";
@@ -443,7 +440,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                           <table style='width:100%;' class='table'>
                             <thead>
                                 <tr>
-                                    <th>Machine ID</th>
                                     <th>Machine Name</th>
                                     <th>Status</th>
                                     <th>Unavailable From</th>
@@ -489,7 +485,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_machine' && isset($_GET['i
                         <tr class='machine-row'
                             data-name='" . strtolower($safeName) . "'
                             data-status='{$safeStatus}'>
-                            <td>{$safeId}</td>
                             <td>{$safeName}</td>
                             <td>{$safeStatus}</td>
                             <td>{$unavailableFrom}</td>

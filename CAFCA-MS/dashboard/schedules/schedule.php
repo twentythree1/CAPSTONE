@@ -552,7 +552,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'check_conflicts') {
                 <table id='{$tableId}' style='width:100%' class='table'>
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Farmer</th>
                             <th>Machine</th>
                             <th>Start Date</th>
@@ -579,7 +578,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'check_conflicts') {
                     echo "<tr class='schedule-row' data-farmer='{$safefarmer}' data-machine='{$safemachine}' data-status='{$safestatus}'>";
                     $isNonMember = !empty($row['non_member_name']);
                     $nonMemberBadge = $isNonMember ? ' <span title="Non-Member" style="display:inline-block;font-size:0.65rem;font-weight:700;background:#ff9800;color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;letter-spacing:0.3px;">NON-MEMBER</span>' : '';
-                    echo "<td>{$row['id']}</td>";
                     echo "<td>" . htmlspecialchars($row['farmer_name']) . $nonMemberBadge . "</td>";
                     echo "<td>{$row['machine_name']}</td>";
                     echo "<td>$start_date</td>";

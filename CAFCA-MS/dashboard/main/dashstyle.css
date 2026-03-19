@@ -706,6 +706,7 @@ main .top .profile {
 }
 
 .dash-welcome h1 {
+    margin-top: -1rem;
     font-size: 2rem;
     font-weight: 800;
     color: var(--color-dark);

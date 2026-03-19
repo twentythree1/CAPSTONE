@@ -357,7 +357,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                 <table style='width:100%' class='table'>
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Name</th>
                             <th>Birthday</th>
                             <th>Age</th>
@@ -394,7 +393,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_farmer' && isset($_GET['id
                         data-address='" . strtolower($safeAddress) . "'
                         data-phone='" . strtolower($safePhone) . "'
                         data-unit='$safeUnit'>
-                        <td>$safeId</td>
                         <td>$safeName</td>
                         <td>" . htmlspecialchars($row['birthday'], ENT_QUOTES, 'UTF-8') . "</td>
                         <td>$age</td>
